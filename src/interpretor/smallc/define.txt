@@ -1,0 +1,169 @@
+(1) <prog> ::= {<classdecl>}[<condecl>][<vdecl>] <fdef>{<fdef>}
+(2) <classdecl> ::= 'class' id '{' <decllist> '}'
+(3) <decllist> ::= <decl>{ ';' <decl>}
+(4) <decl> ::= <type> <idlist>
+(5) <type> ::= id {'[]'}
+(6) <idlist> ::= id {',' id }
+(7) <condecl> ::= 'const' <condef>{ ',' <condef>} ';'
+(8) <condef> ::= id '=' [ '-' ] num
+(9) <vdecl> ::= 'var' <decllist> 'end'
+(10) <fdef> ::= 'func' <type> <head> '{' [<vdecl>]<stlist> '}'
+(11) <head> ::=id '('[<paralist>]')'
+(12) <paralist> ::= <paradecl>{','<paradecl>}
+(13) <paradecl> ::= <type> id
+(14) <stlist>::= <st>{';'<st>}
+(15) <st>::= <exp> | <cond> | <loop>
+(16) <cond> ::= 'if' '(' <exp> ')' <st>[ 'else' <st>]
+(17) <loop> ::= 'while' '(' <exp> ')' [<st>]
+(18) <exp> ::= <orexp>[ '=' <orexp>]
+(19) <orexp> ::= <andexp>{ '||' <andexp>}
+(20) <andexp> ::= <relexp>{ '&&' <relexp>}
+(21) <relexp> ::= <term>[<relop> <term>]
+(22) <relop> ::= '==' | '!=' | '<' | '>' | '<=' | '>='
+(23) <term> ::= <factor>{<addop> <factor>}
+(24) <addop> ::= '+' | '-'
+(25) <factor> ::= <uniexp>{<multop> <uniexp>}
+(26) <multop> ::= '*' | '/' | '%'
+(27) <uniexp> ::= {<uniop>}<postexp>
+(28) <uniop> ::= '-' | '!' | '++' | '--' | 'chk'
+(29) <postexp> ::= <entity>{<postfix>}
+(30) <postfix> ::= '++' | '--' | <apara> | <sub> | <aselect> | <tcast>
+(31) <apara> ::= '(' [<exp>{ ',' <exp>}] ')'
+(32) <sub> ::= '[' <exp> ']'
+(33) <aselect> ::= '.' id
+(34) <tcast> ::= ':' <type>
+(35) <entity> ::= id | num |<cast> | <alloc> | '?'
+(36)<cast> ::= '('<stlist>')'
+(37)<alloc> ::= 'new' <type> [ '[' <exp> ']' ]
+
+
+
+
+1: func int gcd(int a, int b){ var int r end
+2:   chk (a>1 && b>1);
+3:   while (b!=0)(r=a%b; a=b; b=r);
+4:   a }
+5: func void main(){ var int i, j end
+6:   while (!eof())( i=read();
+7:     if (!eof())( j=read();
+8:       println(i, j, gcd(i, j)))) }
+6, 4, 2,
+54, 81, 27,
+16, 88, 8,
+15, 64, 1,
+
+
+1: func int gcd(int a, int b){
+2:   if (b==0) a else gcd(b, a%b) }
+3: func void main(){ var int i, j end
+4:   while (!eof())( i=read();
+5:     if (!eof())( j=read();
+6:       chk (i>1 && j>1);
+7:       println(i, j, gcd(i, j)))) }
+6, 4, 2,
+54, 81, 27,
+16, 88, 8,
+15, 64, 1,
+
+
+ 1: func int[] gcd(int a0, int a1){
+ 2:   var int x0, y0, x1, y1, x2, y2, q, r;
+ 3:     int[] ans end
+ 4:   chk (a0>1 && a1>1);
+ 5:   x0=1; y0=0; x1=0; y1=1;
+ 6:   while (a1!=0)( r=a0%a1; q=a0/a1;
+ 7:     a0=a1; a1=r; x2=x0-q*x1; y2=y0-q*y1;
+ 8:     x0=x1; x1=x2; y0=y1; y1=y2);
+ 9:   ans=new int[3]; ans[0]=a0;
+10:    ans[1]=x0; ans[2]=y0; ans }
+11: func void main(){ var int i, j; int[] k end
+12:   while (!eof())( i=read();
+13:     if (!eof())( j=read(); k=gcd(i, j);
+14:       println(i, k[1], j, k[2], k[0]))) }
+6, 1, 4, -1, 2,
+54, -1, 81, 1, 27,
+16, -5, 88, 1, 8,
+15, -17, 64, 4, 1,
+
+
+ 1: func void sift(int[] a, int n){
+ 2:   var int i, j end i=2;
+ 3:   while (i*i<n)( j=i*i;
+ 4:   while (j<n)( a[j]=1; j=j+i);
+ 5:     while (a[++i])) }
+ 6: func void main(){
+ 7:   var int[] a; int n, i end
+ 8:   n=100; a=new int[n];
+ 9:   sift(a, n); i=2;
+10:   while (i<n)(
+11:     if (!a[i]) print(i); ++i) }
+2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97,
+
+
+ 1: var int[] set end
+ 2: func int check(int n){
+ 3:   while (n>0 && !set[n%10])(
+ 4:     set[n%10]=1; n=n/10); !n }
+ 5: func void main(){ var int i, j, k end
+ 6:   i=1234; set=new int[10];
+ 7:   while (i<=4987)( j=2;
+ 8:     while (j<=9876/i)( k=0;
+ 9:       while (k<10) set[k++]=0;
+10:       set[0]=1; set[j]=1;
+11:       if (check(i) && check(i*j))
+12:         println(i, j, i*j);
+13:       ++j);
+14:   ++i) }
+1738, 4, 6952,
+1963, 4, 7852,
+
+
+ 1: var int[] a; int n end
+ 2: func int pow(int m){
+ 3:   var int ans, i end ans=1; i=0;
+ 4:   while (i++<n ) ans=ans*m; ans }
+ 5: func int r2n(){
+ 6:   var int ans, i end ans=0; i=n-1;
+ 7:   while (i>=0) ans=ans*10+a[i--]; ans }
+ 8: func int next(){
+ 9:   var int ans, i end i=0; ans=1;
+10:   while (i<n && a[i]==9) a[i++]=1;
+11:   if (i<n) ++a[i] else ans=0; ans }
+12: func void narci() {
+13:   var int i, j, k end i=0;
+14:   while (i<n) a[i++]=1;
+15:   while (next())( k=r2n(); i=0; j=0;
+16:     while (j<n) i=i+pow(a[j++]);
+17:     if (k==i) println(i)) }
+18: func void main() { a=new int[10]; n=3;
+19:   while (n<=5)( narci(); ++n ) }
+153, 371, 1634, 9474, 54748, 92727,
+
+
+ 1: class Link { Node prob; Link next }
+ 2: class Node { int level; int[] board }
+ 3: const n=8;
+ 4: var Link head; int num, bound end
+ 5: func void depthfirst(){ var Link t; Node p, sub; int m, i end
+ 6:   p=head.prob; sub=null; m=subnodenum(p); i=0;
+ 7:   if (target(p))( outlist(head); ++num );
+ 8:   while (num<bound && i<m)
+ 9:     if ((sub=down(p, i++))!=null)( t=new Link; t.prob=sub;
+10:       t.next=head; head=t; depthfirst(); head=head.next ) }
+11: func int subnodenum(Node this){ if (this.level<n) n else 0 }
+12: func int target(Node this){ this.level==n }
+13: func Node down(Node this, int i){ var Node ans; int norm; int k end
+14:   ans=null; norm=this.level<n; k=this.level-1;
+15:   while (norm && k>=0)(
+16:     norm=i!=this.board[k] && i+this.level-k!=this.board[k]
+17:          && i-this.level+k!=this.board[k]; --k );
+18:   if (norm)( this.board[this.level]=i; ans=new Node;
+19:     ans.level=this.level+1; ans.board=new int[ans.level+1];
+20:     k=0; while (k<ans.level)( ans.board[k]=this.board[k]; ++k ) ); ans }
+21: func void outlist(Link this){
+22:   if (this.next!=null) outlist(this.next); outnode(this.prob) }
+23: func void outnode(Node this){ var int i end
+24:   if (this.level==n)( i=0; while (i<n) print(this.board[i++]); println() ) }
+25: func void main(){ bound=1; head=new Link; head.prob=new Node;
+26:   head.prob.board=new int[1]; depthfirst() }
+0, 4, 7, 5, 2, 6, 1, 3,
