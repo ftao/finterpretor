@@ -17,6 +17,9 @@ class Node:
     def __getitem__(self,ind):
         return self.chilren[ind]
 
+    def __len__(self):
+        return len(self.children)
+
     def child(self,ind):
         return self.chilren[ind]
 

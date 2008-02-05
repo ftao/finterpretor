@@ -11,6 +11,20 @@ tokens = ('id', 'num',
 
 literals = ['{', '}', ';', ",", "[", "]", '(', ')', '=', '+', '-', '*', '/', '%' ,'!', '@' ,'.', '?']
 
+#t_assignop = r'='
+#
+#t_addop = r'+'
+#
+#t_minusop = r'-'
+#
+#t_mulop = r'*'
+#
+#t_divop = r'/'
+#
+#t_modop = r'%'
+#
+#t_notop = r'!'
+
 
 t_orop = r'\|\|'
 
@@ -134,5 +148,6 @@ if __name__ == '__main__':
       lexer.input(test)
       while 1:
           tok = lexer.token()
+
           if not tok: break
           print tok

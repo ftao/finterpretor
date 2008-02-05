@@ -5,16 +5,45 @@ SmallC 语言解释器
 SmallC 不允许函数嵌套。
 '''
 import operator
-import copy
 import interpretor.smallc.lang as lang
+import copy
 
 class Namespace:
+    def __init__(self, upper = None):
+        self.upper = upper
+        self.ns = {}
+
+    def get(self, name):
+        if name in self.ns:
+            return self.ns[nama]
+        elif self.upper:
+            return self.upper.get(name)
+
+    def __getitem__(self, key):
+        return self.get(key)
+
+    def set(self, name, value):
+        if name in self.ns:
+            pass # raise Error
+        else:
+            self.ns[name] = value
+    def __setitem__(self, key, value):
+        self.set(key, value)
+
+class Namespace_:
     def __init__(self,upper = None):
         self.upper = upper
         self.s_const = {}
         self.s_var = {}
         self.s_type = {}
         self.s_function = {}
+
+    def get_any(self,name):
+        for type in ("const","var","type","function"):
+            if hasattr('s_'+self,type) and name in self.__dict__['s_'+self,type]:
+                return self.__dict__['s_'+self,type]
+        for type in ("const","var","type","function"):
+            return self.uppper.get(type,name)
 
     def get(self,type,name):
         if hasattr('s_'+self,type) and name in self.__dict__['s_'+self,type]:
@@ -44,76 +73,56 @@ class Namespace:
         else:
            self.__dict__["s_" + type][name] = value
 
+    def set_type(self,name,value):
+        self.set("type",name,value)
 
 class Function(Namespace):
-    def __init__(self,ret_type = "",paras = "",upper):
+    def __init__(self,ret_type = lang.Void(),paras = [],upper):
         self.upper = upper
-        #self.consts = {}
-        self.vars = {}
-        #self.types = {}
-        #self.functions = {}
+        self.ns = {}
+        self.ret_type = ret_type
         self.params = []
-
         self.statements = []
+        for x in paras:
+            self.add_param(x[0],x[1])
 
     def add_param(self,name,type):
-        self.params.append(type)
-        self.vars[name] = (type,None)
+        self.params.append(name)
+        self.set(name,lang.Object(type))
 
-class Execable:
+    def call(self,args,inter):
+        ns_copy = copy.copy(self.ns)
+        for i in range(len(self.params)):
+            self.set(self.params[i], args[i])
+        for st in self.statements:
+            ret = inter.on_st(st, self)
+        return ret.op("tcast", self.ret_type)
 
-    def execute(self):
-        pass
+class Function_(Namespace):
+    def __init__(self,ret_type = "",paras = "",upper):
+        self.s_upper = upper
+        #self.consts = {}
+        self.s_vars = {}
+        #self.types = {}
+        #self.functions = {}
+        self.s_params = []
 
-class LoopStatement(Execable):
+        self.s_statements = []
 
-    def __init__(self,node,exp,statement = None):
-        '''while(exp) st '''
-        self.exp = exp
-        self.statement = statement
-
-    def execute(self,ns):
-        while self.exp.execute(ns):
-            if self.statement:
-                self.statement.execute(ns)
-
-class CondStatement(Execable):
-
-    def __init__(self,exp,statement,else_statement = None):
-        self.exp = exp
-        self.statement = statement
-        self.else_statement = else_statement
-
-    def execute(self,ns):
-        if self.exp.execute():
-            self.statement.execute()
-        elif self.else_statement:
-            self.else_statement.execute()
+    def add_param(self,name,type):
+        self.s_params.append(name)
+        self.s_vars[name] = lang.Object(type)
 
 
-class Expression(Execable):
-    '''表达式计算引擎， 这是解释器很重要的一个部分.
-        直接在AST 上执行运算
-    '''
-    def __init__(self,node):
-        pass
 
-    def on_assign(self,node):
-        pass
-
-    def on_add(self,node):
-        pass
-
-    def execute(self,node):
-        pass
 
 def get_built_in_namespace():
     ns = Namespace()
-    ns.types = {
-        'int':'int',
-        'void':'void'
+    ns.s_type = {
+        'int':lang.Integer(),
+        'void':lang.Void()
     }
-    ns.functions = {
+    ns.s_function = {
         'print':'print',
         'println':'println'
     }
@@ -125,6 +134,7 @@ class Parser:
     def __init__(self,ast):
         self.ast = ast
         self.global_ns = get_built_in_namespace()
+        self.current_ns = global_ns
 
     def parse(self):
         '''walk the ast , build the golbal namespace'''
@@ -132,12 +142,11 @@ class Parser:
         #类定义
         for n in self.ast.get_by_type("classdecls"):
             name = n.get_by_type("id")[0].value
-            class_ns = Namespace()
-            self.global_ns['name'] = class_ns
+            struct = lang.Struct(name)
             decls = n.get_by_type("decl")
             for x in decls:
-                self.on_decl_inside_class(x,class_ns)
-
+                self.on_decl_inside_class(x,struct)
+            self.global_ns.set_type(name, struct)
         #常量
         for n in self.ast.get_by_type("condecl"):
             for x in n.get_by_type("condef"):
@@ -156,7 +165,11 @@ class Parser:
         type = self.on_type(node.child(0))
         for n in node.child(1).get_by_type('id'):
             ns.set("var",n.value,(type,None)) #None 不够好。 应该用一个未知的变量来处理。
-    def on_decl_inside_class(self,node,cls):
+
+    def on_decl_inside_class(self,node,struct):
+        type = self.on_type(node.child(0))
+        for n in node.child(1).get_by_type('id'):
+            struct.add_member(type,n.value) #None 不够好。 应该用一个未知的变量来处理。
 
     #函数形参定义
     def on_paradecl(self,node,ns):
@@ -165,7 +178,16 @@ class Parser:
         ns.add_param(name,type)
 
     def on_type(self,node):
-        return node
+        base = node.child(0).value
+        base_type = self.current_ns.get_type(base)
+        if not base_type:
+            pass # raise Error
+        else:
+            if len(node) > 1:
+                dim = len(node) - 1
+                return lang.Array(base_type, dim)
+            else:
+                return base_type
 
     def on_condef(self,node,ns):
         name = node.child(0)
@@ -188,22 +210,7 @@ class Parser:
             fns.statements = n.get_by_type("st")
 
 class Interpreter:
-    ops = {
-        '+' : operator.add,
-        '-' : operator.sub,
-        '*' : operator.mul,
-        '/' : operator.div,
-        '%' : operator.mod,
-        '<' : operator.lt,
-        '>' : operator.gt,
-        '<=': operator.le,
-        '>=': operator.ge
-    }
-    uniops = {
-        '-' : operator.neg,
-        '!' : operator.not_,
-        'chk' : lambda x : x
-    }
+
     def __init__(self,ast,global_ns):
         self.ast = ast
         self.global_ns = global_ns
@@ -241,8 +248,7 @@ class Interpreter:
         if node.child_or_none(1):
             lhs = self.on_orexp(node.child(0))
             rhs = self.on_orexp(node.child(2))
-            lhs.assign(rhs)
-            return lhs
+            return lhs.op("assign",rhs)
         else:
             return self.on_orexp(node.child(0))
 
@@ -250,12 +256,7 @@ class Interpreter:
         if node.child_or_none(1):
             lhs = self.on_orexp(node.child(0))
             rhs = self.on_andexp(node.child(2))
-            r = Variable(self.current_ns)
-            if lhs.value != 0 or rhs.value != 0:
-                r.value = 1
-            else:
-                r.value = 0
-            return r
+            return lhs.op("or",rhs)
         else:
             return self.on_andexp(node.child(0))
 
@@ -263,12 +264,7 @@ class Interpreter:
         if node.child_or_none(1):
             lhs = self.on_andexp(node.child(0))
             rhs = self.on_relexp(node.child(2))
-            r = Variable(self.current_ns)
-            if lhs.value != 0 and rhs.value != 0:
-                r.value = 1
-            else:
-                r.value = 0
-            return r
+            return lhs.op("and",rhs)
         else:
             return self.on_relexp(node.child(0))
 
@@ -276,10 +272,8 @@ class Interpreter:
         if node.child_or_none(1):
             lhs = self.on_relexp(node.child(0))
             rhs = self.on_term(node.child(2))
-            relop = node.child(1).child(0).value
-            r = Variable(self.current_ns)
-            r.value = self.ops[relop](lhs.value,rhs.value)
-            return r
+            relop = node.child(1).child(0).type[:-2]
+            return lhs.op(relop,rhs)
         else:
             return self.on_term(node.child(0))
 
@@ -287,10 +281,8 @@ class Interpreter:
         if node.child_or_none(1):
             lhs = self.on_term(node.child(0))
             rhs = self.on_factor(node.child(2))
-            addop = node.child(1).child(0).value
-            r = Variable(self.current_ns)
-            r.value = self.ops[addop](lhs.value,rhs.value)
-            return r
+            op = {'+':'add','-':'minus'}[node.child(1).child(0).value]
+            return lhs.op(op,rhs)
         else:
             return self.on_factor(node.child(0))
 
@@ -298,27 +290,17 @@ class Interpreter:
         if node.child_or_none(1):
             lhs = self.on_factor(node.child(0))
             rhs = self.on_uniexp(node.child(2))
-            multop = node.child(1).child(0).value
-            r = Variable(self.current_ns)
-            r.value = self.ops[multop](lhs.value,rhs.value)
-            return r
+            op =  {'*':'mul','/':'div','%':'mod'}[node.child(1).child(0).value]
+            return lhs.op(op,rhs)
         else:
             return self.on_uniexp(node.child(0))
 
     def on_uniexp(self,node):
         if node.child_or_none(1):
-            uniop = node.child(0).child(0).value
+            uniop = {'++':'inc','--':'dec',
+                    '-':'minus_','!':'not','chk':'chk'}[node.child(0).child(0).value]
             uniexp = self.on_uniexp(node.child(1))
-            if uniop == '++':
-                uniexp.value += 1
-                return uniexp
-            elif uniop == '--':
-                uniexp.value -= 1
-                return uniexp
-            else:
-                r = Variable(self.current_ns)
-                r.value = self.uniops[uniop](uniexp.value)
-                return r
+            return uniexp.op("uniop")
         else:
             return self.on_postexp(node.child(0))
 
@@ -326,16 +308,68 @@ class Interpreter:
     def on_postexp(self,node):
         if node.child_or_none(1):
             postexp = self.on_postexp(node.child(0))
-            postfix = node.child(1)
-            if isinstance(node,Node):
-                pass
+            postfix = node.child(1).child(0)
+            if isinstance(postfix,Node):
+                if postfix.type == 'apara':
+                    return postexp.call(self.on_apara(postfix.child(1)),self)
+                elif postfix.type =='sub':
+                    return postexp.op("index",self.on_sub(postfix.child(1)))
+                elif postfix.type == 'aselect':
+                    return postexp.op("member",postfix.child(1).value)
+                elif postfix.type == 'tcast':
+                    return postexp.op("tcast",self.on_type(postfix.child(1)))
             else:
-                if postfix == '++':
-                    ret = postexp.copy()
-                    postexp.value += 1
-                    return uniexp
-                elif uniop == '--':
-                    uniexp.value -= 1
-                    return uniexp
+                if postfix.value == '++':
+                    return postexp.op("inc_")
+                elif postfix.value == '--':
+                    return postexp.op("dec_")
         else:
             return self.on_entity(node.child(0))
+
+    def on_sub(self,node):
+        return self.on_exp(node.child(1))
+
+    def on_type(self,node):
+        base = node.child(0).value
+        base_type = self.current_ns.get_type(base)
+        if not base_type:
+            pass # raise Error
+        else:
+            if len(node) > 1:
+                dim = len(node) - 1
+                return lang.Array(base_type, dim)
+            else:
+                return base_type
+
+    def on_entity(self,node):
+        entity = node.child(0)
+        if entity.type == "id":
+            return self.current_ns.get_any(entity.value)
+        elif entity.type == "num":
+            return lang.Object(lang.Integer(), entity.value)
+        elif entity.type == "cast":
+            return self.on_cast(entity)
+        elif entity.type == "alloc":
+            return self.on_alloc(entity)
+        elif entity.type == "?": # input
+            inp = raw_input()
+            return lang.Object(lang.Integer(), int(inp))
+
+    def on_cast(self,node):
+        '''cast 的语义？ 最后一个statement 的值'''
+        for x in node.get_by_type("st"):
+            ret = self.on_statement(x)
+        return ret
+
+    def on_alloc(self,node):
+        if len(node) == 2:
+            return lang.Object(self.on_type(node.child(1)))
+        else:
+            ret = lang.Object(lang.Arrray(self.on_type(node.child(1),1)))
+            ret.alloc(self.on_exp(node.child(3)))
+            return ret
+
+    def on_apara(self,node):
+        pass
+
+
