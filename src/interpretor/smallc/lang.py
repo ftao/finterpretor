@@ -21,7 +21,7 @@ class Type:
         self.name = "type"
 
     def op_assign(self,lhs,rhs):
-        print "doing assign from %s = %s" %(lhs,rhs)
+        #print "doing assign from %s = %s" %(lhs,rhs)
         if lhs.type == rhs.type or rhs.type == nullType:
             lhs.value = rhs.value
             return lhs
@@ -63,7 +63,14 @@ class Integer(Type):
     def __init__(self):
         self.name = "int"
 
+    def init(self,obj,value):
+        if value is None or not isinstance(value,int):
+            obj.value = 0
+        else:
+            obj.value = value
+
     def op_print(self,obj):
+        #print "op_print",obj
         sys.stderr.write(str(obj.value) + " ")
         #print obj.value,
 
@@ -161,7 +168,7 @@ class Array(Type):
         if value is None or not isinstance(value,list):
             obj.value = []
         else:
-            obj.value
+            obj.value = value
 
     def op_assign(self,lhs,rhs):
         if lhs.type == rhs.type:
@@ -176,11 +183,12 @@ class Array(Type):
             pass
         ind = rhs.value
         #print "op_index " ,lhs.value , ind
-        return Object(self.base, lhs.value[ind])
+        return lhs.value[ind]
 
 
     def alloc(self,obj,size):
-        obj.value = [Object(obj.type.base)] * size.value
+        obj.value = [Object(obj.type.base) for i in range(size.value)]
+        #[Object(obj.type.base)] * size.value
 
 
 
@@ -207,7 +215,7 @@ class Struct(Type):
         if rhs in self.members:
             if lhs.value[rhs] is undefined:
                 lhs.value[rhs] = Object(self.members[rhs])
-            #print "get member " , lhs.value[rhs]
+            print "get member " , lhs.value[rhs]
             return lhs.value[rhs]
         else:
             print "%s Object dont't has '%s' member" %(self.name, rhs)

@@ -78,7 +78,7 @@ class Function(Namespace):
     def call(self,args,inter):
         #print "in function " , self.name
         #print "ret type " , self.ret_type
-        print "BEFOR CALL current ns for function %s : %s" %(self.name,self.ns)
+        #print "BEFOR CALL current ns for function %s : %s" %(self.name,self.ns)
         ns_now = self.ns
         self.ns = copy.copy(self.ns_org)
         old_current = inter.current_ns
@@ -94,7 +94,7 @@ class Function(Namespace):
         inter.current_ns = old_current
         #print "ret value %s -> %s" %(ret, ret.op("tcast", self.ret_type))
         #print "return from function " , self.name
-        print "current ns for function %s : %s" %(self.name,self.ns)
+        #print "current ns for function %s : %s" %(self.name,self.ns)
         return ret.op("tcast", self.ret_type)
 
     def __repr__(self):
@@ -290,7 +290,7 @@ class Interpreter:
             return self.on_exp(node)
 
     def on_cond(self,node):
-        #print node
+        print node
         exp = node.child(2)
         st = node.child(4)
         if self.on_exp(exp):
@@ -300,7 +300,7 @@ class Interpreter:
         return lang.Object(lang.void)
 
     def on_loop(self,node):
-        #print node
+        print node
         exp = node.child(2)
         ret = lang.Object(lang.void)
         while self.on_exp(exp):
@@ -309,7 +309,7 @@ class Interpreter:
         return ret
 
     def on_exp(self,node):
-        #print node
+        print node
         if len(node) > 1:
             lhs = self.on_orexp(node.child(0))
             rhs = self.on_orexp(node.child(2))

@@ -110,8 +110,20 @@ test1 = '''
    while(i < 1)(i++;print(i))
    }
 '''
-
 test = '''
+ class Link { Node prob; Link next }
+ class Node { int level; int[] board }
+ func void main(){ var int i, j; Link a; Node b end
+     b.board = new int[2];
+     b.board[1] = 2;
+     b.board[0] = 3;
+     print (b.board[0]);
+     print (b.board[1]);
+     b.level = 1;
+     print(b.level)
+    }
+'''
+test2 = '''
  func int gcd(int a, int b){ var int r end
    chk (a>1 && b>1);
    while (b!=0)(r=a%b; a=b; b=r);
@@ -122,7 +134,7 @@ test = '''
        println(i, j, gcd(i, j)))) }
 '''
 
-test4 = '''
+test = '''
  class Link { Node prob; Link next }
  class Node { int level; int[] board }
  const n=8;
