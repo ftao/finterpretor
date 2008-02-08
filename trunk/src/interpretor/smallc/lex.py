@@ -102,6 +102,15 @@ def find_column(input,token):
     column = (token.lexpos - i)+1
     return column
 
+test1 = '''
+ func void main(){ var int i, j end
+   print(2);
+   read();
+   i = 0;
+   while(i < 1)(i++;print(i))
+   }
+'''
+
 test = '''
  func int gcd(int a, int b){ var int r end
    chk (a>1 && b>1);
@@ -113,7 +122,7 @@ test = '''
        println(i, j, gcd(i, j)))) }
 '''
 
-test = '''
+test4 = '''
  class Link { Node prob; Link next }
  class Node { int level; int[] board }
  const n=8;
@@ -148,6 +157,5 @@ if __name__ == '__main__':
       lexer.input(test)
       while 1:
           tok = lexer.token()
-
           if not tok: break
           print tok

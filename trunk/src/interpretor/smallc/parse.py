@@ -17,13 +17,17 @@ def p_prog(p):
 
 #ÀàÉùÃ÷s
 def p_class_decls(p):
-    '''class_decls : classdecl class_decls
+    '''class_decls : class_decls classdecl
+                   | classdecl
                    | empty
     '''
-    if len(p) > 2 and p[2]:
-        p[0] = Node("class_decls",[p[1]] + p[2].getChildren())
-    else:
-        p[0] = p[1]
+    if len(p) > 2 :
+        if p[1]:
+            p[0] = Node("class_decls", p[1].getChildren() + [p[2]])
+        else:
+            p[0] = Node("class_decls", [p[2]])
+    elif p[1]:
+        p[0] = Node("class_decls",[p[1]])
 
 def p_classdecl(p):
     "classdecl : kw_class id '{' decllist '}'"

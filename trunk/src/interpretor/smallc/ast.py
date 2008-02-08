@@ -6,6 +6,7 @@ class Node:
             self.children = children
         else:
             self.children = [ ]
+
     def getChildren(self):
         return self.children
 
@@ -21,19 +22,35 @@ class Node:
         return len(self.children)
 
     def child(self,ind):
-        return self.chilren[ind]
+        return self.children[ind]
 
-    def child_or_none(self,ind):
-        if len(self.children) <= ind:
-            return None
-        else:
-            return self.chilren[ind]
+    def query(self,type = "lextoken"):
+        ret = []
+        for x in self.children:
+            if isinstance(x,Node):
+                if x.type == type:
+                    ret.append(x)
+            else:
+                if type == "lextoken":
+                    ret.append(x)
+        return ret
 
     def asList(self): # for backwards compatibility
         return self.getChildren()
 
     def __repr__(self):
-        return "(%s(%s))" %(self.type,repr(self.getChildren()))
+        #return "(%s(%s))" %(self.type,repr(self.getChildren()))
+        return "".join([str(x) for x in self.get_all_tokens()])
+
+    __str__ = __repr__
+    def get_all_tokens(self):
+        ret = []
+        for x in self.getChildren():
+            if isinstance(x,Node):
+                ret.extend(x.get_all_tokens())
+            else:
+                ret.append(x)
+        return ret
 
     def get_by_type(self,type,only_first_level = True):
         ret = []

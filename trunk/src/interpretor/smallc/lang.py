@@ -7,36 +7,65 @@ Small C 语言只有三种类型。
 4. 结构体 （数组）
 '''
 import operator
+import sys
+from interpretor.smallc.error import *
 
+#class Singleton(type):
+#    def __call__(cls, *args):
+#        if not hasattr(cls, 'instance'):
+#            cls.instance = super(Singleton, cls).__call__(*args)
+#        return cls.instance
 
-class Singleton(type):
-    def __call__(cls, *args):
-        if not hasattr(cls, 'instance'):
-            cls.instance = super(Singleton, cls).__call__(*args)
-        return cls.instance
+class Type:
+    def __init__(self):
+        self.name = "type"
 
-class Type(object):
     def op_assign(self,lhs,rhs):
-        if lhs.type == rhs.type:
+        print "doing assign from %s = %s" %(lhs,rhs)
+        if lhs.type == rhs.type or rhs.type == nullType:
             lhs.value = rhs.value
             return lhs
         else:
-            pass # Raise Error
+            raise AssignError(lhs.type,rhs.type)
+
+    def op_eq(self,lhs,rhs):
+        return Object(Integer(), int(lhs.value == rhs.value))
+
+    def op_ne(self,lhs,rhs):
+        return Object(Integer(), int(lhs.value != rhs.value))
 
     def alloc(self,size):
         pass
 
+    def op_tcast(self,obj,type):
+        #print " tcast %s --> %s" %(obj.type , type)
+
+        if obj.type == type:
+            ret = obj
+        else:
+            ret = Object(type) # TODO raise error ?
+        return ret
+
+    def __repr__(self):
+        return "<SmallC Type %s>" %self.name
+
+    __str__ = __repr__
+
+
 class Void(Type):
-    pass
+    def __init__(self):
+        self.name = "void"
+
 
 class Integer(Type):
     '''Small C 整数类型'''
 
-    def op_print(self,obj):
-        print obj.value,
+    def __init__(self):
+        self.name = "int"
 
-    def op_println(self,obj):
-        print obj.value
+    def op_print(self,obj):
+        sys.stderr.write(str(obj.value) + " ")
+        #print obj.value,
 
     def op_or(self,lhs,rhs):
         return Object(Integer(), int(bool(lhs.value or rhs.value)))
@@ -104,93 +133,129 @@ class Integer(Type):
         lhs.value -= 1
         return ret
 
-    def __repr__(self):
-        return "int"
-
     def __eq__(self,rhs):
         return type(self) == type(rhs)
 
-    __str__ = __repr__
+
 
 class Array(Type):
 
     def __init__(self,base,dim = 1):
         if dim > 1:
-            self.base = Array(self.base, dim-1)
-            dim = 1
+            self.base = Array(base, dim-1)
         else:
             self.base = base
-            self.dim = 1
+        self.dim = 1
+        self.name = self.base.name + "[]" * self.dim
 
     def __eq__(self,rhs):
         return type(self) == type(rhs) and self.base == rhs.base and self.dim == rhs.dim
 
-    def __repr__(self):
-        pass #return "int" + "[]" * self.dim
+#    def op_tcast(self,lhs,rhs):
+#        if lhs.type == rhs:
+#            return lhs
+#        elif rhs.type == NullType():
+#            return Object(NullType())
+
+    def init(self,obj,value):
+        if value is None or not isinstance(value,list):
+            obj.value = []
+        else:
+            obj.value
+
+    def op_assign(self,lhs,rhs):
+        if lhs.type == rhs.type:
+            lhs.value = rhs.value
+        elif rhs.type == NullType():
+            lhs.value = []
+        return lhs
 
     def op_index(self,lhs,rhs):
-        if rhs.type != Interger():
+        if rhs.type != Integer():
             #TODO do something here
             pass
         ind = rhs.value
-        if self.dim > 1:
-            return Object(Array(self.dim-1), lhs.value[ind])
-        else:
-            return Object(Integer(), lhs.value[ind])
+        #print "op_index " ,lhs.value , ind
+        return Object(self.base, lhs.value[ind])
+
 
     def alloc(self,obj,size):
-        obj.value = [Object(obj.type.base)] * size
+        obj.value = [Object(obj.type.base)] * size.value
 
-    __str__ = __repr__
+
 
 
 class Struct(Type):
 
-    def __init__(self,name,members = []):
+    def __init__(self,name):
         self.name = name
-        self.members = members
+        self.members = {}
+
+    def init(self,obj,value):
+        if value is None or value is undefined:
+            obj.value = {}
+        else:
+            obj.value = value
+        for name in self.members:
+            if name not in obj.value:
+                obj.value[name] = undefined
 
     def add_member(self,type,member_name):
-        self.members.append((type,member_name))
+        self.members[member_name] = type
 
     def op_member(self,lhs,rhs):
-        pass
+        if rhs in self.members:
+            if lhs.value[rhs] is undefined:
+                lhs.value[rhs] = Object(self.members[rhs])
+            #print "get member " , lhs.value[rhs]
+            return lhs.value[rhs]
+        else:
+            print "%s Object dont't has '%s' member" %(self.name, rhs)
+
+    def __repr__(self):
+        ret = "<SmallC Type %s{" %self.name
+        ret += ",".join(["%s:%s" %(x,self.members[x].name) for x in self.members])
+        ret += "}>"
+        return ret
 
     def __eq__(self,rhs):
         return type(self) == type(rhs) and self.name == rhs.name
 
-    def __repr__(self):
-        s = "class " + self.name + "{\n";
-        for (type,member_name) in self.members:
-            s += "\t" + type +" " +  member_name + "\n"
-        s += "}\n"
-        return s
-    __str__ = __repr__
+
 
 class Object:
 
     def __init__(self,type,value = None):
         self.type = type
-        self.value = value
-
-    def value(self):
-        return self.value
-
-    def type(self):
-        return self.type
+        if hasattr(self.type,"init"):
+            self.type.init(self,value)
+        else:
+            self.value = value
 
     def op(self,op,arg = None):
-        try:
+        #print self
+        if hasattr(self.type,"op_"+op):
             func = getattr(self.type,"op_"+op)
-            if arg:
+            if arg is not None:
                 return func(self,arg)
             else:
                 return func(self)
-        except AttributeError:
-            return None
+        else:
+            print "lhs :", self
+            print "rhs: ", arg
+            print dir(self.type)
+            raise UnsupportedOPError(op)
 
     def alloc(self,size = 1):
         self.type.alloc(self,size)
+
+    def __nonzero__(self):
+        return bool(self.value)
+
+    def __repr__(self):
+        return "SmallC Object <" + repr(self.type) + " : " + repr(self.value) +  ">"
+
+    __str__ = __repr__
 
 class ConstObject(Object):
 
@@ -198,49 +263,17 @@ class ConstObject(Object):
         if op == "assign" or op == "inc" or op == "inc_" or op == "dec" or op == "dec_":
             pass # raise Error
         else:
-            super(ConstObject, self).op(op,arg)
+            return Object.op(self,op,arg)
+            #return super(ConstObject, self).op(op,arg)
 
-#    def ops(self,op,arg):
-#        if op == '=':
-#            return self.type.op_assign(self,arg)
-#        elif op == '||':
-#            return self.type.op_or(self,arg)
-#        elif op == '&&':
-#            return self.type.op_and(self,arg)
-#        elif op == '==':
-#            return self.type.op_eq(self,arg)
-#        elif op == '!=':
-#            return self.type.op_neq(self,arg)
-#        elif op == '<':
-#            return self.type.op_lt(self,arg)
-#        elif op == '>':
-#            return self.type.op_gt(self,arg)
-#        elif op == '<=':
-#            return self.type.op_le(self,arg)
-#        elif op == '>=':
-#            return self.type.op_ge(self,arg)
-#        elif op == '+':
-#            return self.type.op_le(self,arg)
-#        elif op == '-':
-#            if arg:
-#                return self.type.op_minus(self,arg)
-#            else:
-#                return self.type.op_minus_(self)
-#        elif op == '*':
-#            return self.type.op_mul(self,arg)
-#        elif op == '/':
-#            return self.type.op_div(self,arg)
-#        elif op == '%':
-#            return self.type.op_mod(self,arg)
-#        elif op == '!':
-#            return self.type.op_not(self)
-#        elif op == '++':
-#            return self.type.op_not(self)
-#        elif op == 'chk':
-#            return self.type.op_chk(self)
-#        elif op == 'chk':
-#            return self.type.op_chk(self)
-#        elif op == '[]':
-#            return self.type.op_index(self,arg)
-#        elif op == '.':
-#            return self.type.op_member(self,arg)
+    def __repr__(self):
+        return "SmallC Const Object <" + repr(self.value) + " : " +  self.type.name+  ">"
+
+
+#some special values
+
+undefined = Object(Type)
+void = Void()
+nullType = Array(void)
+null = Object(nullType)
+
