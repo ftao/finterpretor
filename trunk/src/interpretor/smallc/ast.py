@@ -1,4 +1,4 @@
-
+#coding=gbk
 class Node:
     def __init__(self,type,children=None):
         self.type = type
@@ -35,14 +35,41 @@ class Node:
                     ret.append(x)
         return ret
 
+    def query_(self,q="*"):
+        '''查询的语法如下 [type|*] {>[type|*])
+        eg.  fdef  类型为fdef 的子结点
+             fdef>vdecl 类型为fdef的子结点下面的类型为vdecl的子结点
+             *>exp 第二层的exp结点
+             **>exp 所有类型为exp 的结点。（不管层次)
+             ××>?所有叶结点
+             ? 表示叶结点
+        '''
+        ret = []
+        qs = q.split(">")
+        for child in self.children:
+            if isinstance(child,Node):
+                if child.type == qs[0] or qs[0] == '*':
+                    if len(qs) > 1:
+                        ret.extend(child.query(">".join(qs[1:])))
+                    else:
+                        ret.append(child)
+                elif qs[0] == '**':
+                    if len(qs) == 2:
+                        if child.type == qs[1]:
+                            ret.append(child)
+                        ret.extend(child.query(qs))
+            elif qs[0] == '?':
+                ret.append(child)
+        return ret
+
     def asList(self): # for backwards compatibility
         return self.getChildren()
 
     def __repr__(self):
-        #return "(%s(%s))" %(self.type,repr(self.getChildren()))
-        return "".join([str(x) for x in self.get_all_tokens()])
+        return "".join([str(x) for x in self.query("**>?")])
 
     __str__ = __repr__
+
     def get_all_tokens(self):
         ret = []
         for x in self.getChildren():
@@ -62,13 +89,6 @@ class Node:
             else:
                 ret.extend(x.get_by_type(type,only_first_level))
         return ret
-
-def walk(node,process):
-    '''walk the ast , and do something to the nodes '''
-    process(node)
-    for x in node:
-        process(x)
-
 
 
 
