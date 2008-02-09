@@ -4,7 +4,6 @@ class Node:
         self.type = type
         self.children = filter(lambda child:isinstance(child,Node),children)
 
-
     def getChildren(self):
         return self.children
 
@@ -21,18 +20,7 @@ class Node:
     def child(self,ind):
         return self.children[ind]
 
-    def query(self,type = "lextoken"):
-        ret = []
-        for x in self.children:
-            if isinstance(x,Node):
-                if x.type == type:
-                    ret.append(x)
-            else:
-                if type == "lextoken":
-                    ret.append(x)
-        return ret
-
-    def query_(self,q="*"):
+    def query(self,q="*"):
         '''查询的语法如下 [type|*] {>[type|*])
         eg.  fdef  类型为fdef 的子结点
              fdef>vdecl 类型为fdef的子结点下面的类型为vdecl的子结点
@@ -44,53 +32,45 @@ class Node:
         ret = []
         qs = q.split(">")
         for child in self.children:
-            if isinstance(child,Node):
-                if child.type == qs[0] or qs[0] == '*':
-                    if len(qs) > 1:
-                        ret.extend(child.query(">".join(qs[1:])))
-                    else:
+            if child.type == qs[0] or qs[0] == '*':
+                if len(qs) > 1:
+                    ret.extend(child.query(">".join(qs[1:])))
+                else:
+                    ret.append(child)
+            elif qs[0] == '**':
+                if len(qs) == 2:
+                    if child.type == qs[1]:
                         ret.append(child)
-                elif qs[0] == '**':
-                    if len(qs) == 2:
-                        if child.type == qs[1]:
-                            ret.append(child)
-                        ret.extend(child.query(qs))
-            elif qs[0] == '?':
-                ret.append(child)
+                    ret.extend(child.query(q))
         return ret
 
 
     def __repr__(self):
-        return " ".join([str(x) for x in self.query("**>?")])
+        return " ".join([repr(x) for x in self.query("**>?")])
 
     __str__ = __repr__
 
-    def get_all_tokens(self):
-        ret = []
-        for x in self.getChildren():
-            if isinstance(x,Node):
-                ret.extend(x.get_all_tokens())
-            else:
-                ret.append(x)
-        return ret
 
-    def get_by_type(self,type,only_first_level = True):
-        ret = []
-        for x in filter(lambda x : x and isinstance(x,Node), self.getChildren()):
-            if x.type == type:
-                ret.append(x)
-                if not only_first_level:
-                    ret.extend(x.get_by_type(type,only_first_level))
-            else:
-                ret.extend(x.get_by_type(type,only_first_level))
-        return ret
+
 
 
 class Leaf(Node):
 
     def __init__(self,value,lineno,lexpos):
-        self.type = "lextoken"
+        #print 'init leaf with %s' %value
+        self.type = "?"
         self.value = value
         self.lineno = lineno
         self.lexpos = lexpos
+        self.children = []
 
+    def __len__(self):
+        return 0
+
+    def query(self,qs):
+        return []
+
+    def __repr__(self):
+        return str(self.value)
+
+    __str__ = __repr__

@@ -123,7 +123,7 @@ test = '''
      print(b.level)
     }
 '''
-test2 = '''
+test = '''
  func int gcd(int a, int b){ var int r end
    chk (a>1 && b>1);
    while (b!=0)(r=a%b; a=b; b=r);
@@ -134,7 +134,7 @@ test2 = '''
        println(i, j, gcd(i, j)))) }
 '''
 
-test = '''
+test3 = '''
  class Link { Node prob; Link next }
  class Node { int level; int[] board }
  const n=8;
