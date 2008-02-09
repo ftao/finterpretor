@@ -215,7 +215,7 @@ class Struct(Type):
         if rhs in self.members:
             if lhs.value[rhs] is undefined:
                 lhs.value[rhs] = Object(self.members[rhs])
-            print "get member " , lhs.value[rhs]
+            #print "get member " , lhs.value[rhs]
             return lhs.value[rhs]
         else:
             print "%s Object dont't has '%s' member" %(self.name, rhs)
@@ -249,9 +249,8 @@ class Object:
             else:
                 return func(self)
         else:
-            print "lhs :", self
-            print "rhs: ", arg
-            print dir(self.type)
+            #print "lhs :", self
+            #print "rhs: ", arg
             raise UnsupportedOPError(op)
 
     def alloc(self,size = 1):

@@ -10,7 +10,7 @@ import sys
 import interpretor.smallc.lang as lang
 from interpretor.smallc.parse import parse
 from interpretor.smallc.lex import test
-from interpretor.smallc.ast import Node
+from interpretor.smallc.ast import Node,Leaf
 from interpretor.smallc.error import *
 
 
@@ -85,6 +85,8 @@ class Function(Namespace):
         inter.current_ns = self
         #print id(old_current),id(self)
         #print id(old_current.ns),id(self.ns)
+        #ret = lang.Object(lang.void)
+        #print args
         for i in range(len(self.params)):
             self.set_param(self.params[i], args[i])
         for st in self.statements:
@@ -193,50 +195,50 @@ class MoreParser:
         #    print x.type
 
         #类定义
-        for n in self.ast.get_by_type("classdecl"):
-            name = n.child(1)
+        for n in self.ast.query("class_decls>classdecl"):
+            name = n.child(1).value
             struct = lang.Struct(name)
             self.global_ns.set(name, struct)
 
 
-        for n in self.ast.get_by_type("classdecl"):
-            name = n.child(1)
+        for n in self.ast.query("class_decls>classdecl"):
+            name = n.child(1).value
             struct = self.global_ns.get(name)
             for x in n.child(3):
                 self.on_decl_inside_class(x,struct)
 
         #常量
-        for n in self.ast.query("condecl"):
-            for x in n.get_by_type("condef"):
-                self.on_condef(x,self.global_ns)
+        for n in self.ast.query("condecl>condef"):
+            self.on_condef(n,self.global_ns)
 
         #变量
-        for n in self.ast.query("vdecl"):
-            for x in n.child(1):
-                self.on_decl(x,self.global_ns)
+        for decl in self.ast.query("vdecl>decllist>decl"):
+            self.on_decl(decl,self.global_ns)
 
         #函数
-        for n in self.ast.get_by_type("fdef"):
+        for n in self.ast.query("fdefs>fdef"):
             self.on_fdef(n,self.global_ns)
 
     def on_decl(self,node,ns):
         type = self.on_type(node.child(0))
-        for n in node.child(1):
-            ns.set(n,lang.Object(type))
+        for id in node.child(1):
+            ns.set(id.value,lang.Object(type))
 
     def on_decl_inside_class(self,node,struct):
         type = self.on_type(node.child(0))
-        for n in node.child(1):
-            struct.add_member(type,n)
+        #print struct
+        for id in node.child(1):
+            #print "on decl inside class" ,id.value
+            struct.add_member(type,id.value)
 
     #函数形参定义
     def on_paradecl(self,node,ns):
         type = self.on_type(node.child(0))
-        name = node.child(1)
+        name = node.child(1).value
         ns.add_param(name,type)
 
     def on_type(self,node):
-        base = node.child(0)
+        base = node.child(0).value
         base_type = self.current_ns.get(base)
         if not base_type:
             pass # raise Error
@@ -248,25 +250,24 @@ class MoreParser:
                 return base_type
 
     def on_condef(self,node,ns):
-        name = node.child(0)
-        value = node.child(-1)
-        if len(node.getChildren()) > 3:
+        #print node
+        name = node.child(0).value
+        value = node.child(-1).value
+        if len(node) > 3:
             value = -value
         ns.set(name,lang.ConstObject(lang.Integer(),value)) # type use lang.Integer()
 
     def on_fdef(self,node,ns):
-        name  = node.child(2).child(0)
+        name  = node.child(2).child(0).value
         fns = Function(name,self.current_ns)
         fns.ret_type = self.on_type(node.child(1))
         ns.set(name,fns)
 
-        for n in node.child(2).get_by_type("paradecl"):
-            self.on_paradecl(n,fns)
-        for n in node.get_by_type("vdecl"): #vdecl > decllist > decls
-            for x in n.get_by_type("decl"):
-                self.on_decl(x,fns)
-        for n in node.get_by_type("stlist"): # in fact it should be only one
-            fns.statements = n.get_by_type("st")
+        for para in node.query("head>paralist>paradecl"):
+            self.on_paradecl(para,fns)
+        for decl in node.query("funbody>vdecl>decllist>decl"):#vdecl > decllist > decls
+            self.on_decl(decl,fns)
+        fns.statements = node.query("funbody>stlist>st")
         fns.freeze()
 
 class Interpreter:
@@ -290,7 +291,7 @@ class Interpreter:
             return self.on_exp(node)
 
     def on_cond(self,node):
-        print node
+        #print node
         exp = node.child(2)
         st = node.child(4)
         if self.on_exp(exp):
@@ -300,7 +301,7 @@ class Interpreter:
         return lang.Object(lang.void)
 
     def on_loop(self,node):
-        print node
+        #print node
         exp = node.child(2)
         ret = lang.Object(lang.void)
         while self.on_exp(exp):
@@ -309,7 +310,7 @@ class Interpreter:
         return ret
 
     def on_exp(self,node):
-        print node
+        #print node
         if len(node) > 1:
             lhs = self.on_orexp(node.child(0))
             rhs = self.on_orexp(node.child(2))
@@ -346,7 +347,7 @@ class Interpreter:
              '>=':'ge'
             }
             #print "relop : " ,node.child(1)
-            relop = m[node.child(1)]
+            relop = m[node.child(1).value]
             return lhs.op(relop,rhs)
         else:
             return self.on_term(node.child(0))
@@ -355,7 +356,7 @@ class Interpreter:
         if len(node) > 1:
             lhs = self.on_term(node.child(0))
             rhs = self.on_factor(node.child(2))
-            op = {'+':'add','-':'minus'}[node.child(1).child(0)]
+            op = {'+':'add','-':'minus'}[node.child(1).child(0).value]
             return lhs.op(op,rhs)
         else:
             return self.on_factor(node.child(0))
@@ -364,7 +365,7 @@ class Interpreter:
         if len(node) > 1:
             lhs = self.on_factor(node.child(0))
             rhs = self.on_uniexp(node.child(2))
-            op =  {'*':'mul','/':'div','%':'mod'}[node.child(1).child(0)]
+            op =  {'*':'mul','/':'div','%':'mod'}[node.child(1).child(0).value]
             return lhs.op(op,rhs)
         else:
             return self.on_uniexp(node.child(0))
@@ -372,7 +373,7 @@ class Interpreter:
     def on_uniexp(self,node):
         if len(node) > 1:
             uniop = {'++':'inc','--':'dec',
-                    '-':'minus_','!':'not','chk':'chk'}[node.child(0).child(0)]
+                    '-':'minus_','!':'not','chk':'chk'}[node.child(0).child(0).value]
             uniexp = self.on_uniexp(node.child(1))
             return uniexp.op(uniop)
         else:
@@ -380,64 +381,59 @@ class Interpreter:
 
     #TODO error
     def on_postexp(self,node):
+        #print "on postexp" ,node
         if len(node) > 1:
             postexp = self.on_postexp(node.child(0))
             postfix = node.child(1).child(0)
-            if isinstance(postfix,Node):
-                if postfix.type == 'apara':
-                    if len(postfix) == 2:
-                        return postexp.call([],self)
-                    else:
-                        return postexp.call(self.on_apara(postfix.child(1)),self)
-                elif postfix.type =='sub':
-                    return postexp.op("index",self.on_exp(postfix.child(1)))
-                elif postfix.type == 'aselect':
-                    return postexp.op("member",postfix.child(1))
-                elif postfix.type == 'tcast':
-                    return postexp.op("tcast",self.on_type(postfix.child(1)))
-            else:
-                if postfix == '++':
+            if postfix.type == 'apara':
+                if len(postfix) == 2:
+                    return postexp.call([],self)
+                else:
+                    return postexp.call(self.on_apara(postfix),self)
+            elif postfix.type =='sub':
+                return postexp.op("index",self.on_exp(postfix.child(1)))
+            elif postfix.type == 'aselect':
+                return postexp.op("member",postfix.child(1).value)
+            elif postfix.type == 'tcast':
+                return postexp.op("tcast",self.on_type(postfix.child(1)))
+            if isinstance(postfix,Leaf):
+                if postfix.value == '++':
                     return postexp.op("inc_")
-                elif postfix == '--':
+                elif postfix.value == '--':
                     return postexp.op("dec_")
+
         else:
             return self.on_entity(node.child(0))
 
 
 
     def on_type(self,node):
-
-        base = node.child(0)
-
+        base = node.child(0).value
         base_type = self.current_ns.get(base)
-        if not base_type:
-            pass # raise Error
+        if len(node) > 1:
+            dim = len(node) - 1
+            return lang.Array(base_type, dim)
         else:
-            if len(node) > 1:
-                dim = len(node) - 1
-                return lang.Array(base_type, dim)
-            else:
-                return base_type
+            return base_type
 
     def on_entity(self,node):
-        #print node
         entity = node.child(0)
         #print entity
-        if isinstance(entity,Node):
-            if entity.type == "cast":
-                return self.on_cast(entity)
-            elif entity.type == "alloc":
-                return self.on_alloc(entity)
-            elif entity.type == "?": # input
-                return self.current_ns.get("read").call([],self)
-        else:
+        if entity.type == "cast":
+            return self.on_cast(entity)
+        elif entity.type == "alloc":
+            return self.on_alloc(entity)
+        elif entity.value == "?": # input
+            return self.current_ns.get("read").call([],self)
+        elif isinstance(entity,Leaf):
+            entity = entity.value
             if isinstance(entity,str):
                 return self.current_ns.get(entity)
             elif isinstance(entity,int):
                 return lang.Object(lang.Integer(), entity)
     def on_cast(self,node):
         '''cast 的语义？ 最后一个statement 的值'''
-        for x in node.get_by_type("st"):
+        for x in node.query("stlist>st"):
             ret = self.on_statement(x)
         return ret
 
@@ -445,13 +441,14 @@ class Interpreter:
         if len(node) == 2:
             ret =  lang.Object(self.on_type(node.child(1)))
         else:
-            ret = lang.Object(lang.Array(self.on_type(node.child(1)),1))
+            ret = lang.Object(lang.Array(self.on_type(node.child(1))))
             ret.alloc(self.on_exp(node.child(3)))
         #print "on_alloc " ,ret
         return ret
 
     def on_apara(self,node):
-        return [self.on_exp(x) for x in node.get_by_type('exp')]
+        #print "on_apara" , node.query("explist>exp")
+        return [self.on_exp(x) for x in node.query("explist>exp")]
 
 
 def run():
