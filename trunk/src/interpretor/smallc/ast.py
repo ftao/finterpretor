@@ -1,18 +1,15 @@
 #coding=gbk
 class Node:
-    def __init__(self,type,children=None):
+    def __init__(self,type,children=[],prod = None):
         self.type = type
-        if children:
-            self.children = children
-        else:
-            self.children = [ ]
+        self.children = filter(lambda child:isinstance(child,Node),children)
+
 
     def getChildren(self):
         return self.children
 
-
     def __iter__(self):
-        for n in self.getChildren():
+        for n in self.children:
             yield n
 
     def __getitem__(self,ind):
@@ -62,11 +59,9 @@ class Node:
                 ret.append(child)
         return ret
 
-    def asList(self): # for backwards compatibility
-        return self.getChildren()
 
     def __repr__(self):
-        return "".join([str(x) for x in self.query("**>?")])
+        return " ".join([str(x) for x in self.query("**>?")])
 
     __str__ = __repr__
 
@@ -91,4 +86,11 @@ class Node:
         return ret
 
 
+class Leaf(Node):
+
+    def __init__(self,value,lineno,lexpos):
+        self.type = "lextoken"
+        self.value = value
+        self.lineno = lineno
+        self.lexpos = lexpos
 

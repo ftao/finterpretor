@@ -2,7 +2,17 @@
 from ply import yacc
 
 from interpretor.smallc.lex import *
-from interpretor.smallc.ast import Node
+from interpretor.smallc.ast import Node,Leaf
+
+def all_to_node(func):
+    def wrapped(p):
+        for i in range(len(p)):
+            if p[i] and not isinstance(p[i], Node):
+                p[i] = Leaf(child, p.lineno(i), p.lexpos(i))
+        return func(p)
+    wrapped.__doc__ = func.__doc__
+    return wrapped
+
 
 start = 'prog'
 def p_empty(p):
@@ -13,7 +23,7 @@ def p_empty(p):
 def p_prog(p):
     '''prog : class_decls const_decls var_decls fdefs
     '''
-    p[0] = Node("prog", filter(lambda x : isinstance(x, Node) , p[1:]))
+    p[0] = Node("prog",p[1:])
 
 #类声明s
 def p_class_decls(p):
@@ -29,10 +39,12 @@ def p_class_decls(p):
     elif p[1]:
         p[0] = Node("class_decls",[p[1]])
 
+@all_to_node
 def p_classdecl(p):
     "classdecl : kw_class id '{' decllist '}'"
     p[0] = Node("classdecl",p[1:])
 
+@all_to_node
 def p_decllist(p):
     '''decllist : decl ';' decllist
                 | decl
@@ -47,16 +59,18 @@ def p_decl(p):
     p[0] = Node("decl",p[1:])
 
 #类型
+@all_to_node
 def p_type(p):
     '''type : type '[' ']'
             | id
     '''
+    #the final ast should like  id {'[' ']'}
     if len(p) > 2:
         p[0] = Node("type",p[1].getChildren() + p[2:])
     else:
         p[0] = Node("type",p[1:])
 
-
+@all_to_node
 def p_idlist(p):
     '''idlist : id ',' idlist
               | id
@@ -68,13 +82,14 @@ def p_idlist(p):
 
 
 #可能的常量声明
+@all_to_node
 def p_const_decls(p):
     '''const_decls : condecl ';'
                    | empty
     '''
     p[0] = p[1]
 
-
+@all_to_node
 def p_condecl(p):
     '''condecl : condecl ',' condef
                | kw_const condef
@@ -85,6 +100,7 @@ def p_condecl(p):
         p[0] = Node("condecl",p[1:])
 
 #常量定义
+@all_to_node
 def p_condef(p):
     '''condef : id '=' num
               | id '=' '-' num
@@ -99,6 +115,7 @@ def p_var_decls(p):
     '''
     p[0] = p[1]
 
+@all_to_node
 def p_vdecl(p):
     "vdecl : kw_var decllist kw_end"
     p[0] = Node("vdecl",p[1:])
@@ -114,17 +131,20 @@ def p_fdefs(p):
     else:
         p[0] = Node("fdefs",p[1:])
 
+@all_to_node
 def p_fdef(p):
     "fdef : kw_func type head '{' funbody '}'"
     p[0] = Node("fdef", p[1:])
     #p.parser.functions[p[2]] = p[4] #函数名对应的函数体
 
+@all_to_node
 def p_head(p):
     '''head : id '(' ')'
             | id '(' paralist ')'
     '''
     p[0] = Node("head", p[1:])
 
+@all_to_node
 def p_paralist(p):
     '''paralist : paradecl
                 | paradecl ',' paralist
@@ -134,9 +154,11 @@ def p_paralist(p):
     else:
         p[0] = Node("paralist",p[1:])
 
+@all_to_node
 def p_paradecl(p):
     "paradecl : type id "
     p[0] = Node("paradecl", p[1:])
+
 
 def p_funbody(p):
     '''funbody : vdecl stlist
@@ -145,12 +167,13 @@ def p_funbody(p):
     p[0] = Node("funcbody", p[1:])
 
 
-
+@all_to_node
 def p_stlist(p):
     '''stlist : st ';' stlist
               | st
     '''
     p[0] = Node("stlist", p[1:])
+
 
 def p_st(p):
     '''st : exp
@@ -160,19 +183,21 @@ def p_st(p):
     p[0] = Node("st",p[1:])
 
 
-
+@all_to_node
 def p_cond(p):
     '''cond : kw_if '(' exp ')' st
             | kw_if '(' exp ')' st  kw_else st
     '''
     p[0] = Node("cond",p[1:])
 
+@all_to_node
 def p_loop(p):
     '''loop : kw_while '(' exp ')'
             | kw_while '(' exp ')' st
     '''
     p[0] = Node("loop",p[1:])
 
+@all_to_node
 def p_exp(p):
     '''exp : orexp
            | orexp '=' orexp
@@ -180,24 +205,28 @@ def p_exp(p):
     p[0] = Node("exp",p[1:])
 
 
+@all_to_node
 def p_orexp(p):
     '''orexp : andexp
              | orexp  orop andexp
     '''
     p[0] = Node("orexp",p[1:])
 
+@all_to_node
 def p_andexp(p):
     '''andexp : relexp
               | andexp andop relexp
     '''
     p[0] = Node("andexp",p[1:])
 
+@all_to_node
 def p_relexp(p):
     '''relexp : term
               | relexp relop term
     '''
     p[0] = Node("relexp",p[1:])
 
+@all_to_node
 def p_relop(p):
     '''relop : eqop
              | neop
@@ -208,17 +237,20 @@ def p_relop(p):
     '''
     p[0] = p[1]
 
+
 def p_term(p):
     '''term : factor
             | term addop factor
     '''
     p[0] = Node("term",p[1:])
 
+@all_to_node
 def p_addop(p):
     '''addop : '+'
              | '-'
     '''
     p[0] = Node("addop",p[1:])
+
 
 def p_factor(p):
     '''factor : uniexp
@@ -226,6 +258,7 @@ def p_factor(p):
     '''
     p[0] = Node("factor",p[1:])
 
+@all_to_node
 def p_mulop(p):
     '''multop : '*'
               | '/'
@@ -234,12 +267,14 @@ def p_mulop(p):
     p[0] = Node("multop",p[1:])
 
 
+
 def p_uniexp(p):
     '''uniexp : uniop uniexp
               | postexp
     '''
     p[0] = Node("uniexp",p[1:])
 
+@all_to_node
 def p_uniop(p):
     '''uniop : '-'
              | '!'
@@ -256,6 +291,7 @@ def p_postexp(p):
     '''
     p[0] = Node("postexp",p[1:])
 
+@all_to_node
 def p_postfix(p):
     '''postfix : incop
                | decop
@@ -266,13 +302,14 @@ def p_postfix(p):
     '''
     p[0] = Node("postfix",p[1:])
 
+@all_to_node
 def p_apara(p):
     '''apara : '(' explist ')'
              | '(' ')'
     '''
     p[0] = Node("apara",p[1:])
 
-
+@all_to_node
 def p_explist(p):
     '''explist : exp
                | exp ',' explist
@@ -282,18 +319,22 @@ def p_explist(p):
     else:
         p[0] = Node("explist",p[1:])
 
+@all_to_node
 def p_sub(p):
     "sub : '[' exp ']'"
     p[0] = Node("sub",p[1:])
 
+@all_to_node
 def p_aselect(p):
     "aselect : '.' id"
     p[0] = Node("aselect",p[1:])
 
+@all_to_node
 def p_tcast(p):
     "tcast : ':' type"
     p[0] = Node("tcast",p[1:])
 
+@all_to_node
 def p_entity(p):
     '''entity : id
               | num
@@ -303,15 +344,18 @@ def p_entity(p):
     '''
     p[0] = Node("entity",p[1:])
 
+@all_to_node
 def p_cast(p):
     "cast : '(' stlist ')'"
     p[0] = Node("cast",p[1:])
 
+@all_to_node
 def p_alloc(p):
     '''alloc : kw_new type
              | kw_new type '[' exp ']'
     '''
     p[0] = Node("alloc",p[1:])
+
 
 def p_error(p):
     print p , "at line " , p.lineno
