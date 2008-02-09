@@ -5,6 +5,13 @@ Small C 语言只有三种类型。
 2. Void
 3. 数组
 4. 结构体 （数组）
+注意这个里面变量名是类似java 的引用机制。
+null 表示空引用。
+怎样处理特殊的null 值？ （用Object(nullType,None) 来表示。
+从程序中可以看到 null 似乎可以赋值给任何类型的对象。
+
+统一起见：
+未初始化的值为None  == null
 '''
 import operator
 import sys
@@ -15,6 +22,7 @@ from interpretor.smallc.error import *
 #        if not hasattr(cls, 'instance'):
 #            cls.instance = super(Singleton, cls).__call__(*args)
 #        return cls.instance
+
 
 class Type:
     def __init__(self):
@@ -63,16 +71,21 @@ class Integer(Type):
     def __init__(self):
         self.name = "int"
 
-    def init(self,obj,value):
-        if value is None or not isinstance(value,int):
-            obj.value = 0
-        else:
-            obj.value = value
+    def asBool(self,obj):
+        return bool(obj.value)
 
     def op_print(self,obj):
         #print "op_print",obj
         sys.stderr.write(str(obj.value) + " ")
         #print obj.value,
+
+    def op_assign(self,lhs,rhs):
+        #print "doing assign from %s = %s" %(lhs,rhs)
+        if lhs.type == rhs.type:
+            lhs.value = rhs.value
+            return lhs
+        else:
+            raise AssignError(lhs.type,rhs.type)
 
     def op_or(self,lhs,rhs):
         return Object(Integer(), int(bool(lhs.value or rhs.value)))
@@ -143,9 +156,22 @@ class Integer(Type):
     def __eq__(self,rhs):
         return type(self) == type(rhs)
 
+    def alloc(self,size = None):
+        if size:
+            ret = Object(Array(self))
+            ret.value = [self.alloc() for i in range(size.value)]
+            return ret
+        else:
+            ret = Object(self,0) # new int 这样的语义？
 
 
 class Array(Type):
+    '''Array 类似于C中的指针。
+    其值有三种情况：
+    1.未初始化 []
+    2.null 0
+    3.数组 一个非空列表
+    '''
 
     def __init__(self,base,dim = 1):
         if dim > 1:
@@ -165,17 +191,39 @@ class Array(Type):
 #            return Object(NullType())
 
     def init(self,obj,value):
-        if value is None or not isinstance(value,list):
+        if value is None:
             obj.value = []
-        else:
+        elif isinstance(value,list):
             obj.value = value
+        else:
+            pass
+            #raise Error
 
     def op_assign(self,lhs,rhs):
         if lhs.type == rhs.type:
             lhs.value = rhs.value
-        elif rhs.type == NullType():
+        elif rhs.type == nullType:  #  ??
             lhs.value = []
+        else:
+            pass
+            #raise value Error
         return lhs
+
+    def op_eq(self,lhs,rhs):
+        if lhs.type == rhs.type:
+            return Object(Integer(), int(lhs.value is rhs.value))
+        elif rhs.type is nullType:
+            return Object(Integer(), int(lhs.value == rhs.value))
+        else:
+            return Object(Integer(), 0)
+
+    def op_ne(self,lhs,rhs):
+        if lhs.type == rhs.type:
+            return Object(Integer(), int(lhs.value is not rhs.value))
+        elif rhs.type is nullType:
+            return Object(Integer(), int(lhs.value != rhs.value))
+        else:
+            return Object(Integer(), 1)
 
     def op_index(self,lhs,rhs):
         if rhs.type != Integer():
@@ -186,10 +234,13 @@ class Array(Type):
         return lhs.value[ind]
 
 
-    def alloc(self,obj,size):
-        obj.value = [Object(obj.type.base) for i in range(size.value)]
-        #[Object(obj.type.base)] * size.value
-
+    def alloc(self,size = None):
+        if size:
+            ret = Object(Array(self))
+            ret.value = [self.alloc() for i in range(size.value)]
+            return ret
+        else:
+            return Object(self)
 
 
 
@@ -199,21 +250,38 @@ class Struct(Type):
         self.name = name
         self.members = {}
 
-    def init(self,obj,value):
-        if value is None or value is undefined:
-            obj.value = {}
-        else:
-            obj.value = value
-        for name in self.members:
-            if name not in obj.value:
-                obj.value[name] = undefined
+#    def init(self,obj,value):
+#        if value is None:
+#            obj.value = {}
+#            for name in self.members:
+#                if name not in obj.value:
+#                    obj.value[name] = None
+#        elif isinstance(value,dict):
+#            obj.value = value
+#        else:
+#            pass
+#            #raise Error
 
     def add_member(self,type,member_name):
         self.members[member_name] = type
 
+    def op_assign(self,lhs,rhs):
+        if lhs.type == rhs.type or rhs.type == nullType:
+            lhs.value = rhs.value
+            return lhs
+        else:
+            raise AssignError(lhs.type,rhs.type)
+
+    def op_eq(self,lhs,rhs):
+        return Object(Integer(), int(lhs.type == rhs.type and lhs.value is rhs.value))
+
+    def op_ne(self,lhs,rhs):
+        return Object(Integer(), int(lhs.type != rhs.type or lhs.value is not rhs.value))
+
+
     def op_member(self,lhs,rhs):
         if rhs in self.members:
-            if lhs.value[rhs] is undefined:
+            if lhs.value[rhs] is None:
                 lhs.value[rhs] = Object(self.members[rhs])
             #print "get member " , lhs.value[rhs]
             return lhs.value[rhs]
@@ -229,16 +297,38 @@ class Struct(Type):
     def __eq__(self,rhs):
         return type(self) == type(rhs) and self.name == rhs.name
 
+    def alloc(self,size = None):
+        if size:
+            ret = Object(Array(self))
+            ret.value = [self.alloc() for i in range(size.value)]
+            return ret
+        else:
+            ret = Object(self)
+            for name in self.members:
+                ret.value[name] = Object(self.members[name])
+            return ret
+
+class NullType(Type):
+    def asBool(self,obj):
+        return False
 
 
 class Object:
 
     def __init__(self,type,value = None):
         self.type = type
-        if hasattr(self.type,"init"):
-            self.type.init(self,value)
+        self.value = value
+        #if hasattr(self.type,"init"):
+        #    self.type.init(self,value)
+        #else:
+        #    self.value = value
+
+    def asBool(self):
+        if hasattr(self.type, "asBool"):
+            return self.type.asBool(self)
         else:
-            self.value = value
+            #raise Erro (cant't convert to bool value)
+            return True
 
     def op(self,op,arg = None):
         #print self
@@ -281,6 +371,6 @@ class ConstObject(Object):
 
 undefined = Object(Type)
 void = Void()
-nullType = Array(void)
+nullType = NullType()
 null = Object(nullType)
 
