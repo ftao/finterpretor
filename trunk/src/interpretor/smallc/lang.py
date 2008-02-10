@@ -10,12 +10,11 @@ null 表示空引用。
 怎样处理特殊的null 值？ （用Object(nullType,None) 来表示。
 从程序中可以看到 null 似乎可以赋值给任何类型的对象。
 
-统一起见：
-未初始化的值为None  == null
+
 '''
 import operator
 import sys
-from interpretor.smallc.error import *
+import interpretor.smallc.error
 
 #class Singleton(type):
 #    def __call__(cls, *args):
@@ -34,13 +33,15 @@ class Type:
             lhs.value = rhs.value
             return lhs
         else:
-            raise AssignError(lhs.type,rhs.type)
+            raise error.AssignError(lhs.type,rhs.type)
 
     def op_eq(self,lhs,rhs):
-        return Object(Integer(), int(lhs.value == rhs.value))
+        return Object(intType, int(lhs.value is rhs.value))
 
     def op_ne(self,lhs,rhs):
-        return Object(Integer(), int(lhs.value != rhs.value))
+        ret = self.op_eq(lhs,rhs)
+        ret.value = [1,0][ret.value]
+        return ret
 
     def alloc(self,size):
         pass
@@ -76,8 +77,8 @@ class Integer(Type):
 
     def op_print(self,obj):
         #print "op_print",obj
-        sys.stderr.write(str(obj.value) + " ")
-        #print obj.value,
+        #sys.stderr.write(str(obj.value) + " ")
+        print >>sys.stderr, obj.value
 
     def op_assign(self,lhs,rhs):
         #print "doing assign from %s = %s" %(lhs,rhs)
@@ -85,52 +86,53 @@ class Integer(Type):
             lhs.value = rhs.value
             return lhs
         else:
-            raise AssignError(lhs.type,rhs.type)
+            raise error.AssignError(lhs.type,rhs.type)
 
     def op_or(self,lhs,rhs):
-        return Object(Integer(), int(bool(lhs.value or rhs.value)))
+        return Object(intType, int(bool(lhs.value or rhs.value)))
 
     def op_and(self,lhs,rhs):
-        return Object(Integer(), int(bool(lhs.value and rhs.value)))
+        return Object(intType, int(bool(lhs.value and rhs.value)))
 
     def op_eq(self,lhs,rhs):
-        return Object(Integer(), int(lhs.value == rhs.value))
+        return Object(intType, int(lhs.value == rhs.value))
 
     def op_ne(self,lhs,rhs):
-        return Object(Integer(), int(lhs.value != rhs.value))
+        return Object(intType, int(lhs.value != rhs.value))
 
     def op_lt(self,lhs,rhs):
-        return Object(Integer(), int(lhs.value < rhs.value))
+        return Object(intType, int(lhs.value < rhs.value))
 
     def op_gt(self,lhs,rhs):
-        return Object(Integer(), int(lhs.value > rhs.value))
+        return Object(intType, int(lhs.value > rhs.value))
 
     def op_le(self,lhs,rhs):
-        return Object(Integer(), int(lhs.value <= rhs.value))
+        return Object(intType, int(lhs.value <= rhs.value))
 
     def op_ge(self,lhs,rhs):
-        return Object(Integer(), int(lhs.value >= rhs.value))
+        return Object(intType, int(lhs.value >= rhs.value))
 
     def op_add(self,lhs,rhs):
-        return Object(Integer(), lhs.value + rhs.value)
+        return Object(intType, lhs.value + rhs.value)
 
     def op_minus(self,lhs,rhs):
-        return Object(Integer(), lhs.value - rhs.value)
+        #print "op_minu %s - %s " %(lhs,rhs)
+        return Object(intType, lhs.value - rhs.value)
 
     def op_mul(self,lhs,rhs):
-        return Object(Integer(), lhs.value * rhs.value)
+        return Object(intType, lhs.value * rhs.value)
 
     def op_div(self,lhs,rhs):
-        return Object(Integer(), lhs.value / rhs.value)
+        return Object(intType, lhs.value / rhs.value)
 
     def op_mod(self,lhs,rhs):
-        return Object(Integer(), lhs.value % rhs.value)
+        return Object(intType, lhs.value % rhs.value)
 
     def op_minus_(self,rhs):
-        return Object(Integer(), - rhs.value)
+        return Object(intType, - rhs.value)
 
     def op_not(self,rhs):
-        return Object(Integer(), int(not rhs.value) )
+        return Object(intType, int(not rhs.value) )
 
     def op_inc(self,rhs):
         rhs.value += 1
@@ -144,12 +146,12 @@ class Integer(Type):
         pass
 
     def op_inc_(self,lhs):
-        ret = Object(Integer(), lhs.value)
+        ret = Object(intType, lhs.value)
         lhs.value += 1
         return ret
 
     def op_dec_(self,lhs):
-        ret = Object(Integer(), lhs.value)
+        ret = Object(intType, lhs.value)
         lhs.value -= 1
         return ret
 
@@ -160,9 +162,11 @@ class Integer(Type):
         if size:
             ret = Object(Array(self))
             ret.value = [self.alloc() for i in range(size.value)]
+            #print "alloc " , ret
             return ret
         else:
             ret = Object(self,0) # new int 这样的语义？
+            return ret
 
 
 class Array(Type):
@@ -182,7 +186,7 @@ class Array(Type):
         self.name = self.base.name + "[]" * self.dim
 
     def __eq__(self,rhs):
-        return type(self) == type(rhs) and self.base == rhs.base and self.dim == rhs.dim
+        return type(self) == type(rhs) and self.base == rhs.base
 
 #    def op_tcast(self,lhs,rhs):
 #        if lhs.type == rhs:
@@ -190,47 +194,51 @@ class Array(Type):
 #        elif rhs.type == NullType():
 #            return Object(NullType())
 
-    def init(self,obj,value):
-        if value is None:
-            obj.value = []
-        elif isinstance(value,list):
-            obj.value = value
-        else:
-            pass
-            #raise Error
+#    def init(self,obj,value):
+#        if value is None:
+#            obj.value = []
+#        elif isinstance(value,list):
+#            obj.value = value
+#        else:
+#            pass
+#            #raise Error
+
+    def op_print(self,obj):
+        print "print ..............." ,obj.value
 
     def op_assign(self,lhs,rhs):
-        if lhs.type == rhs.type:
+        if lhs.type == rhs.type or rhs.type == nullType:
             lhs.value = rhs.value
-        elif rhs.type == nullType:  #  ??
-            lhs.value = []
         else:
+            print >> sys.stderr, "assign error %s,%s" %(lhs,rhs)
             pass
             #raise value Error
         return lhs
 
     def op_eq(self,lhs,rhs):
         if lhs.type == rhs.type:
-            return Object(Integer(), int(lhs.value is rhs.value))
+            return Object(intType, int(lhs.value is rhs.value))
         elif rhs.type is nullType:
-            return Object(Integer(), int(lhs.value == rhs.value))
+            return Object(intType, int(lhs.value == rhs.value))
         else:
-            return Object(Integer(), 0)
+            return Object(intType, 0)
 
     def op_ne(self,lhs,rhs):
         if lhs.type == rhs.type:
-            return Object(Integer(), int(lhs.value is not rhs.value))
+            return Object(intType, int(lhs.value is not rhs.value))
         elif rhs.type is nullType:
-            return Object(Integer(), int(lhs.value != rhs.value))
+            return Object(intType, int(lhs.value != rhs.value))
         else:
-            return Object(Integer(), 1)
+            return Object(intType, 1)
 
     def op_index(self,lhs,rhs):
-        if rhs.type != Integer():
+        if rhs.type != intType or lhs.value is None:
             #TODO do something here
-            pass
+            print >>sys.stderr , "index error %s[$s]" %(lhs,rhs)
+            sys.exit()
         ind = rhs.value
-        #print "op_index " ,lhs.value , ind
+        if ind < 0 or ind >= len(lhs.value):
+            raise error.IndexError(lhs.value,(0,len(lhs.value)))
         return lhs.value[ind]
 
 
@@ -270,19 +278,24 @@ class Struct(Type):
             lhs.value = rhs.value
             return lhs
         else:
-            raise AssignError(lhs.type,rhs.type)
+            raise error.AssignError(lhs.type,rhs.type)
 
     def op_eq(self,lhs,rhs):
-        return Object(Integer(), int(lhs.type == rhs.type and lhs.value is rhs.value))
+        if lhs.type == rhs.type or lhs.value is None:
+            return Object(intType, int(lhs.value is rhs.value))
+        else:
+            return Object(intType, int(0))
 
-    def op_ne(self,lhs,rhs):
-        return Object(Integer(), int(lhs.type != rhs.type or lhs.value is not rhs.value))
 
 
     def op_member(self,lhs,rhs):
+        if lhs.value is None:
+            print "%s is null " %lhs
+
+            #raise error here ?
         if rhs in self.members:
-            if lhs.value[rhs] is None:
-                lhs.value[rhs] = Object(self.members[rhs])
+            #if lhs.value[rhs] is None:
+            #    lhs.value[rhs] = Object(self.members[rhs])
             #print "get member " , lhs.value[rhs]
             return lhs.value[rhs]
         else:
@@ -304,6 +317,7 @@ class Struct(Type):
             return ret
         else:
             ret = Object(self)
+            ret.value = {}
             for name in self.members:
                 ret.value[name] = Object(self.members[name])
             return ret
@@ -312,23 +326,33 @@ class NullType(Type):
     def asBool(self,obj):
         return False
 
+    def op_eq(self,lhs,rhs):
+        return Object(intType, int(lhs.type == rhs.type and lhs.value is rhs.value))
+
+    def op_ne(self,lhs,rhs):
+        return Object(intType, int(lhs.type != rhs.type or lhs.value is not rhs.value))
+
 
 class Object:
 
     def __init__(self,type,value = None):
         self.type = type
         self.value = value
+        if value is None and type is intType:
+            #print "set default 0 value"
+            self.value = 0
         #if hasattr(self.type,"init"):
         #    self.type.init(self,value)
         #else:
         #    self.value = value
 
-    def asBool(self):
+    def __nonzero__(self):
+        #print >>sys.stderr , "__nonzero__" , self.value
         if hasattr(self.type, "asBool"):
             return self.type.asBool(self)
         else:
             #raise Erro (cant't convert to bool value)
-            return True
+            return bool(self.value)
 
     def op(self,op,arg = None):
         #print self
@@ -341,13 +365,10 @@ class Object:
         else:
             #print "lhs :", self
             #print "rhs: ", arg
-            raise UnsupportedOPError(op)
+            raise error.UnsupportedOPError(op)
 
     def alloc(self,size = 1):
         self.type.alloc(self,size)
-
-    def __nonzero__(self):
-        return bool(self.value)
 
     def __repr__(self):
         return "SmallC Object <" + repr(self.type) + " : " + repr(self.value) +  ">"
@@ -369,8 +390,8 @@ class ConstObject(Object):
 
 #some special values
 
-undefined = Object(Type)
+intType = Integer()
 void = Void()
 nullType = NullType()
-null = Object(nullType)
+null = Object(nullType,None)
 

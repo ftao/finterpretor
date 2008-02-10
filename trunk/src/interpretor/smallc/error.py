@@ -42,3 +42,10 @@ class UnsupportedOPError(LangError):
     def __str__(self):
         return "unsupported operation %s" %(self.op)
 
+class IndexError(LangError):
+    def __init__(self,ind,range):
+        self.index = ind
+        self.range = range
+
+    def __str__(self):
+        return "index %s out of range %s" %(self.index ,repr(self.range))

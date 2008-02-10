@@ -11,8 +11,13 @@ import interpretor.smallc.lang as lang
 from interpretor.smallc.parse import parse
 from interpretor.smallc.lex import test
 from interpretor.smallc.ast import Node,Leaf
-from interpretor.smallc.error import *
+import interpretor.smallc.error
 
+def copy_ns(ns_dict):
+    ret = copy.copy(ns_dict)
+    for x in ret:
+        ret[x] = copy.copy(ns_dict[x])
+    return ret
 
 
 class Namespace:
@@ -28,7 +33,7 @@ class Namespace:
             return self.upper.get(name)
         else:
             #print self.ns
-            raise NameError(name)
+            raise error.NameError(name)
 
     def __getitem__(self, key):
         return self.get(key)
@@ -36,7 +41,7 @@ class Namespace:
     def set(self, name, value):
         #print self.name,id(self.ns)
         if name in self.ns:
-            raise MultipleError(name)
+            raise error.MultipleError(name)
         else:
             self.ns[name] = value
 
@@ -60,7 +65,8 @@ class Function(Namespace):
         self.set(name,lang.Object(type))
 
     def freeze(self):
-        self.ns_org = copy.copy(self.ns)
+        self.ns_org = copy_ns(self.ns)
+        #print "freeze" ,self.ns_org
 
     def set_param(self, name, value):
         if name not in self.ns:
@@ -80,7 +86,9 @@ class Function(Namespace):
         #print "ret type " , self.ret_type
         #print "BEFOR CALL current ns for function %s : %s" %(self.name,self.ns)
         ns_now = self.ns
-        self.ns = copy.copy(self.ns_org)
+        self.ns = copy_ns(self.ns_org)
+        #print "call self.ns" , self.ns
+        #print "call self.ns_org", self.ns_org
         old_current = inter.current_ns
         inter.current_ns = self
         #print id(old_current),id(self)
@@ -148,8 +156,7 @@ class ReadFunc(Function):
                 self.input["isEOF"] = 1
         else:
             inp = raw_input()
-
-        return lang.Object(lang.Integer(), int(inp))
+        return lang.Object(lang.intType, int(inp))
     def __repr__(self):
         return "function %s" %(self.name)
 
@@ -163,14 +170,14 @@ class EofFunc(Function):
                 self.input["InputBuff"] = raw_input()
             except EOFError,e:
                 self.input["isEOF"] = 1
-        return lang.Object(lang.Integer(), self.input["isEOF"])
+        return lang.Object(lang.intType, self.input["isEOF"])
     def __repr__(self):
         return "function %s" %(self.name)
 
 def get_built_in_namespace():
     ns = Namespace()
     ns.ns = {
-        'int':lang.Integer(),
+        'int':lang.intType,
         'void':lang.void,
         'null':lang.null,
         'print':PrintFunc(),
@@ -255,7 +262,7 @@ class MoreParser:
         value = node.child(-1).value
         if len(node) > 3:
             value = -value
-        ns.set(name,lang.ConstObject(lang.Integer(),value)) # type use lang.Integer()
+        ns.set(name,lang.ConstObject(lang.intType,value)) # type use lang.intType
 
     def on_fdef(self,node,ns):
         name  = node.child(2).child(0).value
@@ -291,7 +298,7 @@ class Interpreter:
             return self.on_exp(node)
 
     def on_cond(self,node):
-        #print node
+        print node
         exp = node.child(2)
         st = node.child(4)
         if self.on_exp(exp):
@@ -301,7 +308,7 @@ class Interpreter:
         return lang.Object(lang.void)
 
     def on_loop(self,node):
-        #print node
+        print node
         exp = node.child(2)
         ret = lang.Object(lang.void)
         while self.on_exp(exp):
@@ -310,7 +317,7 @@ class Interpreter:
         return ret
 
     def on_exp(self,node):
-        #print node
+        print node
         if len(node) > 1:
             lhs = self.on_orexp(node.child(0))
             rhs = self.on_orexp(node.child(2))
@@ -430,7 +437,7 @@ class Interpreter:
             if isinstance(entity,str):
                 return self.current_ns.get(entity)
             elif isinstance(entity,int):
-                return lang.Object(lang.Integer(), entity)
+                return lang.Object(lang.intType, entity)
     def on_cast(self,node):
         '''cast 的语义？ 最后一个statement 的值'''
         for x in node.query("stlist>st"):
@@ -439,10 +446,9 @@ class Interpreter:
 
     def on_alloc(self,node):
         if len(node) == 2:
-            ret =  lang.Object(self.on_type(node.child(1)))
+            ret =  self.on_type(node.child(1)).alloc()
         else:
-            ret = lang.Object(lang.Array(self.on_type(node.child(1))))
-            ret.alloc(self.on_exp(node.child(3)))
+            ret = self.on_type(node.child(1)).alloc(self.on_exp(node.child(3)))
         #print "on_alloc " ,ret
         return ret
 
