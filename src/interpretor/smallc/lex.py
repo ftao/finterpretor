@@ -102,28 +102,33 @@ def find_column(input,token):
     column = (token.lexpos - i)+1
     return column
 
-test1 = '''
+test = '''
  func void main(){ var int i, j end
    print(2);
-   read();
-   i = 0;
-   while(i < 1)(i++;print(i))
+   i = 1;
+   if(i)(
+       a
+       print(1);
+       print(2)
+   )
    }
 '''
-test = '''
+test2 = '''
  class Link { Node prob; Link next }
  class Node { int level; int[] board }
  func void main(){ var int i, j; Link a; Node b end
+     b = new Node;
      b.board = new int[2];
      b.board[1] = 2;
      b.board[0] = 3;
      print (b.board[0]);
      print (b.board[1]);
      b.level = 1;
-     print(b.level)
+     print(b.level);
     }
 '''
-test = '''
+
+test3 = '''
  func int gcd(int a, int b){ var int r end
    chk (a>1 && b>1);
    while (b!=0)(r=a%b; a=b; b=r);
@@ -133,34 +138,100 @@ test = '''
      if (!eof())( j=read();
        println(i, j, gcd(i, j)))) }
 '''
+test3= '''
+  var int[] a; int n end
+  func int pow(int m){
+   var int ans, i end ans=1; i=0;
+    while (i++<n ) ans=ans*m; ans }
+  func int r2n(){
+    var int ans, i end ans=0; i=n-1;
+    while (i>=0) ans=ans*10+a[i--]; ans }
+  func int next(){
+    var int ans, i end i=0; ans=1;
+   while (i<n && a[i]==9) a[i++]=1;
+   if (i<n) ++a[i] else ans=0; ans }
+ func void narci() {
+   var int i, j, k end i=0;
+   while (i<n) a[i++]=1;
+   while (next())( k=r2n(); i=0; j=0;
+     while (j<n) i=i+pow(a[j++]);
+     if (k==i) println(i)) }
+ func void main() { a=new int[10]; n=3;
+   while (n<=5)( narci(); ++n ) }
 
-test3 = '''
- class Link { Node prob; Link next }
- class Node { int level; int[] board }
- const n=8;
- var Link head; int num, bound end
- func void depthfirst(){ var Link t; Node p, sub; int m, i end
-   p=head.prob; sub=null; m=subnodenum(p); i=0;
-   if (target(p))( outlist(head); ++num );
-   while (num<bound && i<m)
-     if ((sub=down(p, i++))!=null)( t=new Link; t.prob=sub;
-       t.next=head; head=t; depthfirst(); head=head.next ) }
- func int subnodenum(Node this){ if (this.level<n) n else 0 }
- func int target(Node this){ this.level==n }
- func Node down(Node this, int i){ var Node ans; int norm; int k end
-   ans=null; norm=this.level<n; k=this.level-1;
-   while (norm && k>=0)(
-     norm=i!=this.board[k] && i+this.level-k!=this.board[k]
-          && i-this.level+k!=this.board[k]; --k );
-   if (norm)( this.board[this.level]=i; ans=new Node;
-     ans.level=this.level+1; ans.board=new int[ans.level+1];
-     k=0; while (k<ans.level)( ans.board[k]=this.board[k]; ++k ) ); ans }
- func void outlist(Link this){
-   if (this.next!=null) outlist(this.next); outnode(this.prob) }
- func void outnode(Node this){ var int i end
-   if (this.level==n)( i=0; while (i<n) print(this.board[i++]); println() ) }
- func void main(){ bound=1; head=new Link; head.prob=new Node;
-   head.prob.board=new int[1]; depthfirst() }
+'''
+
+test = '''
+class Link { Node prob; Link next }
+class Node { int level; int[] board }
+const n=8;
+var Link head; int num, bound end
+func void depthfirst(){
+    var
+        Link t;
+        Node p, sub;
+        int m, i
+    end
+    p=head.prob;
+    sub=null;
+    m=subnodenum(p);
+    i=0;
+    if (target(p))( outlist(head); ++num );
+    while (num<bound && i<m)
+        if ((sub=down(p, i++))!=null)(
+             t=new Link;
+             t.prob=sub;
+             t.next=head;
+             head=t;
+             depthfirst();
+             head=head.next
+        )
+}
+func int subnodenum(Node this){ if (this.level<n) n else 0 }
+func int target(Node this){ this.level==n }
+func Node down(Node this, int i){
+    var Node ans; int norm; int k end
+    print(this.board);
+    ans=null; norm=this.level<n; k=this.level-1;
+    while (norm && k>=0)(
+        norm=i!=this.board[k] && i+this.level-k!=this.board[k]
+          && i-this.level+k!=this.board[k];
+        --k
+    );
+    if (norm)(
+        this.board[this.level]=i;
+        ans=new Node;
+        ans.level=this.level+1;
+        ans.board=new int[ans.level+1];
+        k=0;
+        while (k<ans.level)(
+            ans.board[k]=this.board[k]; ++k
+        )
+    );
+    ans
+}
+func void outlist(Link this){
+    if (this.next!=null)
+        outlist(this.next);
+    outnode(this.prob)
+}
+func void outnode(Node this){
+    var int i end
+    if (this.level==n)(
+        i=0;
+        while (i<n)
+            print(this.board[i++]);
+        println()
+    )
+}
+func void main(){
+    bound=1;
+    head=new Link;
+    head.prob=new Node;
+    head.prob.board=new int[1];
+
+    depthfirst()
+}
 '''
 lex.lex()
 
