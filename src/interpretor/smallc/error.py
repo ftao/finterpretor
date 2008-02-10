@@ -21,6 +21,16 @@ class TCastError(LangError):
     def __str__(self):
         return "Cant't convert from %s to %s" %(self.lhs, self.rhs)
 
+class TypeError(LangError):
+
+    def __init__(self,lhs,rhs):
+        self.lhs = lhs
+        self.rhs = rhs
+
+    def __str__(self):
+        return "Except %s , got %s" %(self.lhs,self.rhs)
+
+
 class NameError(LangError):
     def __init__(self,name):
         self.name = name
@@ -49,3 +59,23 @@ class IndexError(LangError):
 
     def __str__(self):
         return "index %s out of range %s" %(self.index ,repr(self.range))
+
+
+class ChkFailError(LangError):
+    def __str__(self):
+        return "chk failed"
+
+class NullError(LangError):
+    def __init__(self,obj):
+        self.obj = obj
+
+    def __str__(self):
+        return "%s is null." %(self.obj)
+
+class MemberError(LangError):
+    def __init__(self,obj,member):
+        self.obj = obj
+        self.member = member
+
+    def __str__(self):
+        return "%s don't have '%s' member ." %(self.obj,self.name)

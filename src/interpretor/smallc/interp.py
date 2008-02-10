@@ -66,7 +66,6 @@ class Function(Namespace):
 
     def freeze(self):
         self.ns_org = copy_ns(self.ns)
-        #print "freeze" ,self.ns_org
 
     def set_param(self, name, value):
         if name not in self.ns:
@@ -75,40 +74,27 @@ class Function(Namespace):
             self.ns[name].op("assign",value)
 
     def set(self, name, value):
-        #print self.name,id(self.ns)
         if name in self.ns:
             raise MultipleError(name)
         else:
             self.ns[name] = value
 
     def call(self,args,inter):
-        #print "in function " , self.name
-        #print "ret type " , self.ret_type
-        #print "BEFOR CALL current ns for function %s : %s" %(self.name,self.ns)
         ns_now = self.ns
         self.ns = copy_ns(self.ns_org)
-        #print "call self.ns" , self.ns
-        #print "call self.ns_org", self.ns_org
+
         old_current = inter.current_ns
         inter.current_ns = self
-        #print id(old_current),id(self)
-        #print id(old_current.ns),id(self.ns)
-        #ret = lang.Object(lang.void)
-        #print args
+
         for i in range(len(self.params)):
             self.set_param(self.params[i], args[i])
         for st in self.statements:
-            #print st
             ret = inter.on_statement(st)
         self.ns = ns_now
         inter.current_ns = old_current
-        #print "ret value %s -> %s" %(ret, ret.op("tcast", self.ret_type))
-        #print "return from function " , self.name
-        #print "current ns for function %s : %s" %(self.name,self.ns)
         return ret.op("tcast", self.ret_type)
 
     def __repr__(self):
-        #return "Namespace in function %s : %s" %(self.name, repr(self.ns))
         return "Function %s " %self.name
 
 class PrintFunc(Function):
@@ -116,7 +102,6 @@ class PrintFunc(Function):
         self.name = "print"
 
     def call(self,args,inter):
-        #print "in function print"
         for x in args:
             x.op("print")
         return lang.Object(lang.void)
@@ -129,7 +114,6 @@ class PrintlnFunc(Function):
         self.name = "println"
 
     def call(self,args,inter):
-        #print "in function println"
         for x in args:
             x.op("print")
         print
@@ -198,9 +182,6 @@ class MoreParser:
     def parse(self):
         '''walk the ast , build the golbal namespace'''
 
-        #for x in self.ast.getChildren():
-        #    print x.type
-
         #类定义
         for n in self.ast.query("class_decls>classdecl"):
             name = n.child(1).value
@@ -233,9 +214,7 @@ class MoreParser:
 
     def on_decl_inside_class(self,node,struct):
         type = self.on_type(node.child(0))
-        #print struct
         for id in node.child(1):
-            #print "on decl inside class" ,id.value
             struct.add_member(type,id.value)
 
     #函数形参定义
@@ -298,7 +277,7 @@ class Interpreter:
             return self.on_exp(node)
 
     def on_cond(self,node):
-        print node
+        #print node
         exp = node.child(2)
         st = node.child(4)
         if self.on_exp(exp):
@@ -308,7 +287,7 @@ class Interpreter:
         return lang.Object(lang.void)
 
     def on_loop(self,node):
-        print node
+        #print node
         exp = node.child(2)
         ret = lang.Object(lang.void)
         while self.on_exp(exp):
@@ -317,10 +296,11 @@ class Interpreter:
         return ret
 
     def on_exp(self,node):
-        print node
+        #print node
         if len(node) > 1:
             lhs = self.on_orexp(node.child(0))
             rhs = self.on_orexp(node.child(2))
+            self.on_token(node.child(1))
             return lhs.op("assign",rhs)
         else:
             return self.on_orexp(node.child(0))
@@ -329,6 +309,7 @@ class Interpreter:
         if len(node) > 1:
             lhs = self.on_orexp(node.child(0))
             rhs = self.on_andexp(node.child(2))
+            self.on_token(node.child(1))
             return lhs.op("or",rhs)
         else:
             return self.on_andexp(node.child(0))
@@ -337,6 +318,7 @@ class Interpreter:
         if len(node) > 1:
             lhs = self.on_andexp(node.child(0))
             rhs = self.on_relexp(node.child(2))
+            self.on_token(node.child(1))
             return lhs.op("and",rhs)
         else:
             return self.on_relexp(node.child(0))
@@ -353,8 +335,7 @@ class Interpreter:
              '<=':'le',
              '>=':'ge'
             }
-            #print "relop : " ,node.child(1)
-            relop = m[node.child(1).value]
+            relop = m[self.on_token(node.child(1))]
             return lhs.op(relop,rhs)
         else:
             return self.on_term(node.child(0))
@@ -363,7 +344,7 @@ class Interpreter:
         if len(node) > 1:
             lhs = self.on_term(node.child(0))
             rhs = self.on_factor(node.child(2))
-            op = {'+':'add','-':'minus'}[node.child(1).child(0).value]
+            op = {'+':'add','-':'minus'}[self.on_token(node.child(1).child(0))]
             return lhs.op(op,rhs)
         else:
             return self.on_factor(node.child(0))
@@ -372,7 +353,7 @@ class Interpreter:
         if len(node) > 1:
             lhs = self.on_factor(node.child(0))
             rhs = self.on_uniexp(node.child(2))
-            op =  {'*':'mul','/':'div','%':'mod'}[node.child(1).child(0).value]
+            op =  {'*':'mul','/':'div','%':'mod'}[self.on_token(node.child(1).child(0))]
             return lhs.op(op,rhs)
         else:
             return self.on_uniexp(node.child(0))
@@ -380,15 +361,14 @@ class Interpreter:
     def on_uniexp(self,node):
         if len(node) > 1:
             uniop = {'++':'inc','--':'dec',
-                    '-':'minus_','!':'not','chk':'chk'}[node.child(0).child(0).value]
+                    '-':'minus_','!':'not','chk':'chk'}[self.on_token(node.child(0).child(0))]
             uniexp = self.on_uniexp(node.child(1))
             return uniexp.op(uniop)
         else:
             return self.on_postexp(node.child(0))
 
-    #TODO error
     def on_postexp(self,node):
-        #print "on postexp" ,node
+
         if len(node) > 1:
             postexp = self.on_postexp(node.child(0))
             postfix = node.child(1).child(0)
@@ -400,22 +380,22 @@ class Interpreter:
             elif postfix.type =='sub':
                 return postexp.op("index",self.on_exp(postfix.child(1)))
             elif postfix.type == 'aselect':
-                return postexp.op("member",postfix.child(1).value)
+                return postexp.op("member",self.on_token(postfix.child(1)))
             elif postfix.type == 'tcast':
                 return postexp.op("tcast",self.on_type(postfix.child(1)))
             if isinstance(postfix,Leaf):
-                if postfix.value == '++':
+                value = self.on_token(postfix)
+                if value == '++':
                     return postexp.op("inc_")
-                elif postfix.value == '--':
+                elif value == '--':
                     return postexp.op("dec_")
-
         else:
             return self.on_entity(node.child(0))
 
 
 
     def on_type(self,node):
-        base = node.child(0).value
+        base = self.on_token(node.child(0))
         base_type = self.current_ns.get(base)
         if len(node) > 1:
             dim = len(node) - 1
@@ -425,19 +405,20 @@ class Interpreter:
 
     def on_entity(self,node):
         entity = node.child(0)
-        #print entity
         if entity.type == "cast":
             return self.on_cast(entity)
         elif entity.type == "alloc":
             return self.on_alloc(entity)
-        elif entity.value == "?": # input
-            return self.current_ns.get("read").call([],self)
         elif isinstance(entity,Leaf):
-            entity = entity.value
+            entity = self.on_token(entity)
             if isinstance(entity,str):
-                return self.current_ns.get(entity)
+                if entity == '?': #input
+                    return self.current_ns.get("read").call([],self)
+                else:
+                    return self.current_ns.get(entity)
             elif isinstance(entity,int):
                 return lang.Object(lang.intType, entity)
+
     def on_cast(self,node):
         '''cast 的语义？ 最后一个statement 的值'''
         for x in node.query("stlist>st"):
@@ -449,12 +430,13 @@ class Interpreter:
             ret =  self.on_type(node.child(1)).alloc()
         else:
             ret = self.on_type(node.child(1)).alloc(self.on_exp(node.child(3)))
-        #print "on_alloc " ,ret
         return ret
 
     def on_apara(self,node):
-        #print "on_apara" , node.query("explist>exp")
         return [self.on_exp(x) for x in node.query("explist>exp")]
+
+    def on_token(self,node):
+        return node.value
 
 
 def run():

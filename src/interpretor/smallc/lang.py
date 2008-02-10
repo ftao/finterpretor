@@ -14,7 +14,7 @@ null 表示空引用。
 '''
 import operator
 import sys
-import interpretor.smallc.error
+import interpretor.smallc.error as error
 
 #class Singleton(type):
 #    def __call__(cls, *args):
@@ -22,32 +22,59 @@ import interpretor.smallc.error
 #            cls.instance = super(Singleton, cls).__call__(*args)
 #        return cls.instance
 
+#修饰符函数
+
+def require_same(func):
+    def wrapped(self,lhs,rhs):
+        if (rhs.type != self):
+            raise error.TypeError(rhs,self)
+        return func(self,lhs,rhs)
+    return wrapped
+
+def require_same_or_null(func):
+    def wrapped(self,lhs,rhs):
+        if (rhs.type != self and rhs.type != nullType):
+            raise error.TypeError(self,rhs.type)
+        return func(self,lhs,rhs)
+    return wrapped
+
+def require_int(func):
+    def wrapped(self,lhs,rhs):
+        if (rhs.type != intType):
+            raise error.TypeError(self,rhs.type)
+        return func(self,lhs,rhs)
+    return wrapped
+
+def require_str(func):
+    def wrapped(self,lhs,rhs):
+        if (not isinstance(rhs,str)):
+            raise error.TypeError("id",rhs.type)
+        return func(self,lhs,rhs)
+    return wrapped
+
+
 
 class Type:
     def __init__(self):
         self.name = "type"
 
+    @require_same
     def op_assign(self,lhs,rhs):
-        #print "doing assign from %s = %s" %(lhs,rhs)
-        if lhs.type == rhs.type or rhs.type == nullType:
-            lhs.value = rhs.value
-            return lhs
-        else:
-            raise error.AssignError(lhs.type,rhs.type)
+        lhs.value = rhs.value
+        return lhs
 
+    @require_same
     def op_eq(self,lhs,rhs):
         return Object(intType, int(lhs.value is rhs.value))
 
+    @require_same
     def op_ne(self,lhs,rhs):
         ret = self.op_eq(lhs,rhs)
         ret.value = [1,0][ret.value]
         return ret
 
-    def alloc(self,size):
-        pass
 
     def op_tcast(self,obj,type):
-        #print " tcast %s --> %s" %(obj.type , type)
 
         if obj.type == type:
             ret = obj
@@ -55,8 +82,22 @@ class Type:
             ret = Object(type) # TODO raise error ?
         return ret
 
+    def alloc(self,size = None):
+        if size:
+            ret = Object(Array(self))
+            ret.value = [self.alloc() for i in range(size.value)]
+            return ret
+        else:
+            return self.alloc_one()
+
     def __repr__(self):
         return "<SmallC Type %s>" %self.name
+
+    def __eq__(self,rhs):
+        return type(self) == type(rhs)
+
+    def __ne__(self,rhs):
+        return not self.__eq__(rhs)
 
     __str__ = __repr__
 
@@ -80,53 +121,58 @@ class Integer(Type):
         #sys.stderr.write(str(obj.value) + " ")
         print >>sys.stderr, obj.value
 
-    def op_assign(self,lhs,rhs):
-        #print "doing assign from %s = %s" %(lhs,rhs)
-        if lhs.type == rhs.type:
-            lhs.value = rhs.value
-            return lhs
-        else:
-            raise error.AssignError(lhs.type,rhs.type)
 
+    @require_same
     def op_or(self,lhs,rhs):
         return Object(intType, int(bool(lhs.value or rhs.value)))
 
+    @require_same
     def op_and(self,lhs,rhs):
         return Object(intType, int(bool(lhs.value and rhs.value)))
 
+    @require_same
     def op_eq(self,lhs,rhs):
         return Object(intType, int(lhs.value == rhs.value))
 
+    @require_same
     def op_ne(self,lhs,rhs):
         return Object(intType, int(lhs.value != rhs.value))
 
+    @require_same
     def op_lt(self,lhs,rhs):
         return Object(intType, int(lhs.value < rhs.value))
 
+    @require_same
     def op_gt(self,lhs,rhs):
         return Object(intType, int(lhs.value > rhs.value))
 
+    @require_same
     def op_le(self,lhs,rhs):
         return Object(intType, int(lhs.value <= rhs.value))
 
+    @require_same
     def op_ge(self,lhs,rhs):
         return Object(intType, int(lhs.value >= rhs.value))
-
+    @require_same
     def op_add(self,lhs,rhs):
         return Object(intType, lhs.value + rhs.value)
 
+    @require_same
     def op_minus(self,lhs,rhs):
-        #print "op_minu %s - %s " %(lhs,rhs)
         return Object(intType, lhs.value - rhs.value)
 
+    @require_same
     def op_mul(self,lhs,rhs):
         return Object(intType, lhs.value * rhs.value)
 
+    @require_same
     def op_div(self,lhs,rhs):
         return Object(intType, lhs.value / rhs.value)
 
+    @require_same
     def op_mod(self,lhs,rhs):
         return Object(intType, lhs.value % rhs.value)
+
 
     def op_minus_(self,rhs):
         return Object(intType, - rhs.value)
@@ -143,7 +189,9 @@ class Integer(Type):
         return rhs
 
     def op_chk(self,rhs):
-        pass
+        if rhs.value == 0:
+            raise error.ChkFailError()
+        return rhs
 
     def op_inc_(self,lhs):
         ret = Object(intType, lhs.value)
@@ -155,18 +203,8 @@ class Integer(Type):
         lhs.value -= 1
         return ret
 
-    def __eq__(self,rhs):
-        return type(self) == type(rhs)
-
-    def alloc(self,size = None):
-        if size:
-            ret = Object(Array(self))
-            ret.value = [self.alloc() for i in range(size.value)]
-            #print "alloc " , ret
-            return ret
-        else:
-            ret = Object(self,0) # new int 这样的语义？
-            return ret
+    def alloc_one(self):
+        return Object(self,0)
 
 
 class Array(Type):
@@ -188,67 +226,34 @@ class Array(Type):
     def __eq__(self,rhs):
         return type(self) == type(rhs) and self.base == rhs.base
 
-#    def op_tcast(self,lhs,rhs):
-#        if lhs.type == rhs:
-#            return lhs
-#        elif rhs.type == NullType():
-#            return Object(NullType())
-
-#    def init(self,obj,value):
-#        if value is None:
-#            obj.value = []
-#        elif isinstance(value,list):
-#            obj.value = value
-#        else:
-#            pass
-#            #raise Error
 
     def op_print(self,obj):
-        print "print ..............." ,obj.value
+        print obj.value,
 
+    @require_same_or_null
     def op_assign(self,lhs,rhs):
-        if lhs.type == rhs.type or rhs.type == nullType:
-            lhs.value = rhs.value
-        else:
-            print >> sys.stderr, "assign error %s,%s" %(lhs,rhs)
-            pass
-            #raise value Error
+        lhs.value = rhs.value
         return lhs
 
+    @require_same_or_null
     def op_eq(self,lhs,rhs):
-        if lhs.type == rhs.type:
-            return Object(intType, int(lhs.value is rhs.value))
-        elif rhs.type is nullType:
-            return Object(intType, int(lhs.value == rhs.value))
-        else:
-            return Object(intType, 0)
+        return Object(intType, int(lhs.value is rhs.value))
 
+    @require_same_or_null
     def op_ne(self,lhs,rhs):
-        if lhs.type == rhs.type:
-            return Object(intType, int(lhs.value is not rhs.value))
-        elif rhs.type is nullType:
-            return Object(intType, int(lhs.value != rhs.value))
-        else:
-            return Object(intType, 1)
+        return Object(intType, int(not (lhs.value is rhs.value)))
 
     def op_index(self,lhs,rhs):
         if rhs.type != intType or lhs.value is None:
-            #TODO do something here
-            print >>sys.stderr , "index error %s[$s]" %(lhs,rhs)
-            sys.exit()
+            raise Error.TypeError(lhs,rhs)
         ind = rhs.value
         if ind < 0 or ind >= len(lhs.value):
             raise error.IndexError(lhs.value,(0,len(lhs.value)))
         return lhs.value[ind]
 
 
-    def alloc(self,size = None):
-        if size:
-            ret = Object(Array(self))
-            ret.value = [self.alloc() for i in range(size.value)]
-            return ret
-        else:
-            return Object(self)
+    def alloc_one(self):
+        return Object(self)
 
 
 
@@ -258,48 +263,34 @@ class Struct(Type):
         self.name = name
         self.members = {}
 
-#    def init(self,obj,value):
-#        if value is None:
-#            obj.value = {}
-#            for name in self.members:
-#                if name not in obj.value:
-#                    obj.value[name] = None
-#        elif isinstance(value,dict):
-#            obj.value = value
-#        else:
-#            pass
-#            #raise Error
-
     def add_member(self,type,member_name):
         self.members[member_name] = type
 
+    @require_same_or_null
     def op_assign(self,lhs,rhs):
-        if lhs.type == rhs.type or rhs.type == nullType:
-            lhs.value = rhs.value
-            return lhs
-        else:
-            raise error.AssignError(lhs.type,rhs.type)
+        lhs.value = rhs.value
+        return lhs
 
+
+    @require_same_or_null
     def op_eq(self,lhs,rhs):
-        if lhs.type == rhs.type or lhs.value is None:
-            return Object(intType, int(lhs.value is rhs.value))
-        else:
-            return Object(intType, int(0))
+        return Object(intType, int(lhs.value is rhs.value))
 
+    @require_same_or_null
+    def op_ne(self,lhs,rhs):
+        return Object(intType, int(not (lhs.value is rhs.value)))
 
 
     def op_member(self,lhs,rhs):
         if lhs.value is None:
-            print "%s is null " %lhs
+            raise error.NullError(lhs)
+        if not isinstance(rhs,str):
+            raise error.TypeError("id",lhs)
+        if rhs not in self.members:
+            raise error.MemberError(lhs,rhs)
 
-            #raise error here ?
-        if rhs in self.members:
-            #if lhs.value[rhs] is None:
-            #    lhs.value[rhs] = Object(self.members[rhs])
-            #print "get member " , lhs.value[rhs]
-            return lhs.value[rhs]
-        else:
-            print "%s Object dont't has '%s' member" %(self.name, rhs)
+        return lhs.value[rhs]
+
 
     def __repr__(self):
         ret = "<SmallC Type %s{" %self.name
@@ -310,17 +301,20 @@ class Struct(Type):
     def __eq__(self,rhs):
         return type(self) == type(rhs) and self.name == rhs.name
 
+    def alloc_one(self):
+        ret = Object(self)
+        ret.value = {}
+        for name in self.members:
+            ret.value[name] = Object(self.members[name])
+        return ret
+
     def alloc(self,size = None):
         if size:
             ret = Object(Array(self))
             ret.value = [self.alloc() for i in range(size.value)]
             return ret
         else:
-            ret = Object(self)
-            ret.value = {}
-            for name in self.members:
-                ret.value[name] = Object(self.members[name])
-            return ret
+            return self.alloc_one()
 
 class NullType(Type):
     def asBool(self,obj):
@@ -338,16 +332,12 @@ class Object:
     def __init__(self,type,value = None):
         self.type = type
         self.value = value
+        #TODO ugly here
         if value is None and type is intType:
-            #print "set default 0 value"
             self.value = 0
-        #if hasattr(self.type,"init"):
-        #    self.type.init(self,value)
-        #else:
-        #    self.value = value
+
 
     def __nonzero__(self):
-        #print >>sys.stderr , "__nonzero__" , self.value
         if hasattr(self.type, "asBool"):
             return self.type.asBool(self)
         else:
@@ -355,7 +345,6 @@ class Object:
             return bool(self.value)
 
     def op(self,op,arg = None):
-        #print self
         if hasattr(self.type,"op_"+op):
             func = getattr(self.type,"op_"+op)
             if arg is not None:
@@ -363,12 +352,8 @@ class Object:
             else:
                 return func(self)
         else:
-            #print "lhs :", self
-            #print "rhs: ", arg
             raise error.UnsupportedOPError(op)
 
-    def alloc(self,size = 1):
-        self.type.alloc(self,size)
 
     def __repr__(self):
         return "SmallC Object <" + repr(self.type) + " : " + repr(self.value) +  ">"
