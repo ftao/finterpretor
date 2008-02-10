@@ -57,7 +57,6 @@ class Node:
 class Leaf(Node):
 
     def __init__(self,value,lineno,lexpos):
-        #print 'init leaf with %s' %value
         self.type = "?"
         self.value = value
         self.lineno = lineno

@@ -104,13 +104,11 @@ def find_column(input,token):
 
 test = '''
  func void main(){ var int i, j end
-   print(2);
    i = 1;
-   if(i)(
-       a
-       print(1);
-       print(2)
-   )
+   j = i;
+   j ++;
+   print(i);
+   print(j)
    }
 '''
 test2 = '''
@@ -191,7 +189,6 @@ func int subnodenum(Node this){ if (this.level<n) n else 0 }
 func int target(Node this){ this.level==n }
 func Node down(Node this, int i){
     var Node ans; int norm; int k end
-    print(this.board);
     ans=null; norm=this.level<n; k=this.level-1;
     while (norm && k>=0)(
         norm=i!=this.board[k] && i+this.level-k!=this.board[k]
