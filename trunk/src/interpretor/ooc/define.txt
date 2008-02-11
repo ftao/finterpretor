@@ -1,0 +1,164 @@
+(1) <prog> ::= <classdecl>{<classdecl>}
+(2) <classdecl> ::= 'class' [ 'abstract' ] id [ ':' id ] '{' [<condecl>][ 'static' <memebr>]
+[ 'private' <member>] [ 'public' <member>] [ 'redef' {<cfdef>}] '}'
+(3) <condecl> ::= 'const' <condef>{ ',' <condef>} ';'
+(4) <condef> ::= id '=' [ '-' ] num
+(5) <member> ::= [<vdecl>]{<fdef>}
+(6) <vdecl> ::= 'var' <decllist> 'end'
+(7) <decllist> ::= <decl>{ ';' <decl>}
+(8) <decl> ::= <type> <idlist>
+(9) <type> ::= id {'[]'}
+(10) <idlist> ::= id {',' id }
+(11) <fdef> ::= <afdef> | <cfdef>
+(12) <afdef> ::= 'func' 'abstract' <type> id '(' [<type> {','<type>}] ')'
+(13) <cfdef> ::= 'func' <type> <head> '{' [<vdecl>]<slist> '}'
+(14) <head> ::=id '('[<paralist>]')'
+(15) <stlist>::= <st>{';'<st>}
+(16) <paralist> ::= <paradecl>{','<paradecl>}
+(17) <st>::= <exp> | <cond> | <loop>
+(18) <paradecl> ::= <type> id
+(19) <cond> ::= 'if' '(' <exp> ')' <st>[ 'else' <st>]
+(20) <loop> ::= 'while' '(' <exp> ')' [<st>]
+(21) <exp> ::= <orexp>[ '=' <orexp>]
+(22) <orexp> ::= <andexp>{ '||' <andexp>}
+(23) <andexp> ::= <relexp>{ '&&' <relexp>}
+(24) <relexp> ::= <term>[<relop> <term>]
+(25) <relop> ::= '==' | '!=' | '<' | '>' | '<=' | '>='
+(26) <term> ::= <factor>{<addop> <factor>}
+(27) <addop> ::= '+' | '-'
+(28) <factor> ::= <uniexp>{<multop> <uniexp>}
+(29) <multop> ::= '*' | '/' | '%'
+(30) <uniexp> ::= {<uniop>}<postexp>
+(31) <uniop> ::= '-' | '!' | '++' | '--' | 'chk'
+(32) <postexp> ::= <entity>{<postfix>}
+(33) <postfix> ::= '++' | '--' | <apara> | <index> | <aselect> | <tcast>
+(34) <apara> ::= '(' [<exp>{ ',' <exp>}] ')'
+(35) <index> ::= '[' <exp> ']'
+(36) <aselect> ::= '.' id
+(37) <tcast> ::= ':' <type>
+(38) <entity> ::= id | num | <cast> | <alloc>
+(39) <cast> ::= '('<stlist>')'
+(40) <alloc> ::= 'new' <type> [ '[' <exp> ']' ]
+
+
+
+ 1: class abstract Node { public func abstract int target() func abstract int subnodenum()
+ 2:   func abstract Node down(int) func abstract void output(int) }
+ 3: class abstract Mono:Node { public func abstract Node up() }
+ 4: class Backtracking { private var Mono prob; int num, bound end
+ 5: public func Backtracking constructor(Mono p, int b){ prob=p; bound=b; this }
+ 6:   func void depthfirst(){ var int m, i end  m=prob.subnodenum(); i=0;
+ 7:     if (prob.target())( prob.output(1); ++num);
+ 8:     while (num<bound && i<m)
+ 9:       if (prob.down(i++)!=null)( depthfirst(); prob.up()) } }
+10: class Queens:Mono { private var int n, level; int[] board, column, d1, d2 end
+11: public func Queens constructor(int k){ n=k; board=new int[n];
+12:     column=new int[n]; d1=new int[2*n-1]; d2=new int[2*n-1]; this }
+13: redef func int target(){ level==n }
+14:   func int subnodenum(){ if (level<n) n else 0 }
+15:   func Node down(int i){ var Queens ans; int norm, k end ans=null;
+16:     if (level<n && !column[i] && !d1[level+i] && !d2[level-i+n-1])(
+17:       column[i]=1; d1[level+i]=1; d2[level-i+n-1]=1;
+18:       board[level++]=i; ans=this); ans }
+19:   func Node up(){ var int i end
+20:     i=board[--level]; column[i]=0; d1[level+i]=0; d2[level-i+n-1]=0; this }
+21:   func void output(int b){ var int i end
+22:     if (level==n)( i=0; while (i<n) print(board[i++]); println() ) } }
+23: class Main { static func void main(){
+24:     new Backtracking.constructor(new Queens.constructor(8), 1).depthfirst() } }
+0, 4, 7, 5, 2, 6, 1, 3,
+
+ 1: class abstract Node { public func abstract int target()
+ 2:   func abstract int subnodenum()
+ 3:   func abstract Node down(int)
+ 4:   func abstract void output(int)  }
+ 5: class Back { private var Link head; int num, bound end
+ 6: public func Back constructor(Node p, int b){
+ 7:     head=new Link.constructor(p, null); bound=b; this }
+ 8:   func void depthfirst(){ var Node p, sub; int m, i end
+ 9:     p=head.prob; m=p.subnodenum(); i=0;
+10:     if (p.target())( head.output(1); ++num);
+11:     while (num<bound && i<m)
+12:     if ((sub=p.down(i++))!=null)(
+13:       head=new Link.constructor(sub, head); depthfirst(); head=head.next) } }
+14: class Link { public var Node prob; Link next end
+15:   func Link constructor(Node p, Link n){ prob=p; next=n; this }
+16:   func void output(int b){ if (next!=null) next.output(0); prob.output(b) } }
+17: class Queens:Node { const n=8;
+18: private var int level; int[] board end
+19: public func Queens constructor1(){ board=new int[1]; this }
+20:   func Queens constructor2(int lev, int[] b){ var int k end
+21:     level=lev; board=new int[level+1];
+22:     k=0; while (k<level)( board[k]=b[k]; ++k); this }
+23: redef func int target(){ level==n }
+24:   func int subnodenum(){ if (level<n) n else 0 }
+25:   func Node down(int i){ var Queens ans; int norm, k end
+26:     norm=level<n; k=level-1; ans=null;
+27:     while (norm && k>=0)( norm=i!=board[k] && i+level-k!=board[k] && i-level+k!=board[k]; --k );
+28:       if (norm)( board[level]=i; ans=new Queens.constructor2(level+1, board) ); ans }
+29:   func void output(int b){ var int i end  if (level==n)( i=0; while (i<n) print(board[i++]); println() ) } }
+30: class Main { static func void main(){
+31:   new Back.constructor(new Queens.constructor1(), 1).depthfirst() } }
+0, 4, 7, 5, 2, 6, 1, 3,
+
+ 1: class abstract Node { public func abstract int target()
+ 2:   func abstract int subnodenum() func abstract Node down(int)
+ 3:   func abstract void output(int)  }
+ 4: class LabelBack { private var Link head; int num, bound; Set nodeset end
+ 5: public func LabelBack constructor(Node p, int b, Set s){
+ 6:     head=new Link.constructor(p, null);
+ 7:     bound=b; nodeset=s; nodeset.add(p); this }
+ 8:   func void depthfirst(){ var Node p, sub; int m, i end
+ 9:     p=head.prob; m=p.subnodenum(); i=0;
+10:     if (p.target())( head.output(1); ++num);
+11:     while (num<bound && i<m)
+12:       if ((sub=p.down(i++))!=null && !nodeset.contains(sub))(
+13:         head=new Link.constructor(sub, head); nodeset.add(sub);
+14:         depthfirst(); head=head.next; nodeset.remove(sub)) } }
+15: class Link { public var Node prob; Link next end
+16:   func Link constructor(Node p, Link n){ prob=p; next=n; this }
+17:   func void output(int b){ if (next!=null) next.output(0); prob.output(b) } }
+18: class abstract Set { public func abstract int contains(Object)
+19:   func abstract void add(Object) func abstract void remove(Object) }
+20: class abstract PairNode:Node { public func abstract int tag1()
+21:   func abstract int tag2() }
+22: class Knight:PairNode { static var int m, n; int[][] move, board end
+23: private var int x, y, level end
+24: public func Knight constructor1(int mm, int nn, int[][] mov){
+25:   var int i end m=mm; n=nn; move=mov; level=1;
+26:     board=new int[][m]; i=0; while (i<m) board[i++]=new int[m]; this }
+27:   func Knight constructor2(int lev, int xx, int yy){ level=lev; x=xx; y=yy; this }
+28: redef func int target(){ level==m*m }
+29:   func int subnodenum(){ if (level<m*m) n else 0 }
+30:   func Node down(int i){ var int x1, y1 end x1=x+move[i][0]; y1=y+move[i][1];
+31:     if (x1>=0 && x1<m && y1>=0 && y1<m)
+32:       new Knight.constructor2(level+1, x1, y1) else null }
+33:   func void output(int b){ var int i, j end board[x][y]=level;
+34:     if (level==m*m)( i=0;
+35:       while (i<m)( j=0;
+36:         while (j<m)( print(board[i][j]); ++j); println(); ++i)) }
+37:   func int tag1(){ x }   func int tag2(){ y } }
+38: class Bmatrix:Set { private var int[][] set end
+39: public func Bmatrix constructor(int row, int column) { var int i end
+40:     set=new int[][row]; i=0; while (i<row) set[i++]=new int[column]; this }
+41: redef func int contains(Object o){ var int k1, k2 end
+42:     k1=o:PairNode.tag1(); k2=o:PairNode.tag2();
+43:     k1>=0 && k1<set.length && k2>=0 && k2<set[k1].length && set[k1][k2] }
+44:   func void add(Object o){ var int k1, k2 end
+45:     k1=o:PairNode.tag1(); k2=o:PairNode.tag2();
+46:     if (k1>=0 && k1<set.length && k2>=0 && k2<set[k1].length) set[k1][k2]=1 }
+47:   func void remove(Object o){ var int k1, k2 end
+48:     k1=o:PairNode.tag1(); k2=o:PairNode.tag2();
+49:     if (k1>=0 && k1<set.length && k2>=0 && k2<set[k1].length) set[k1][k2]=0 } }
+50: class Main {
+51: static func void main(){ var int n, i; int[][] move; Set nset end n=5;
+52:   nset=new Bmatrix.constructor(n, n); move=new int[][8];
+53:   i=0; while (i<8) move[i++]=new int[2]; move[0][0]=2; move[0][1]=1; move[1][0]=1; move[1][1]=2;
+54:   move[2][0]=-1; move[2][1]=2; move[3][0]=-2; move[3][1]=1; move[4][0]=-2; move[4][1]=-1;
+55:   move[5][0]=-1; move[5][1]=-2; move[6][0]=1; move[6][1]=-2; move[7][0]=2; move[7][1]=-1;
+56:   new LabelBack.constructor(new Knight.constructor1(n, 8, move), 1, nset).depthfirst() } }
+1, 6, 15, 10, 21,
+14, 9, 20, 5, 16,
+19, 2, 7, 22, 11,
+8, 13, 24, 17, 4,
+25, 18, 3, 12, 23,
