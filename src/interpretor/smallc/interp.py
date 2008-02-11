@@ -11,7 +11,7 @@ import interpretor.smallc.lang as lang
 from interpretor.smallc.parse import parse
 from interpretor.smallc.lex import test
 from interpretor.smallc.ast import Node,Leaf
-import interpretor.smallc.error
+import interpretor.smallc.error as error
 
 def copy_ns(ns_dict):
     ret = copy.copy(ns_dict)
@@ -265,7 +265,11 @@ class Interpreter:
 
     def run(self):
         self.current_ns = self.global_ns
-        self.current_ns.get("main").call([],self)
+        try:
+            self.current_ns.get("main").call([],self)
+        except error.LangError,e:
+            print "error at line %d near token '%s': %s" %(self.current_token.lineno,self.current_token.value,str(e))
+
 
     def on_statement(self,node):
         node = node.child(0)
@@ -299,8 +303,8 @@ class Interpreter:
         #print node
         if len(node) > 1:
             lhs = self.on_orexp(node.child(0))
-            rhs = self.on_orexp(node.child(2))
             self.on_token(node.child(1))
+            rhs = self.on_orexp(node.child(2))
             return lhs.op("assign",rhs)
         else:
             return self.on_orexp(node.child(0))
@@ -308,8 +312,8 @@ class Interpreter:
     def on_orexp(self,node):
         if len(node) > 1:
             lhs = self.on_orexp(node.child(0))
-            rhs = self.on_andexp(node.child(2))
             self.on_token(node.child(1))
+            rhs = self.on_andexp(node.child(2))
             return lhs.op("or",rhs)
         else:
             return self.on_andexp(node.child(0))
@@ -317,8 +321,8 @@ class Interpreter:
     def on_andexp(self,node):
         if len(node) > 1:
             lhs = self.on_andexp(node.child(0))
-            rhs = self.on_relexp(node.child(2))
             self.on_token(node.child(1))
+            rhs = self.on_relexp(node.child(2))
             return lhs.op("and",rhs)
         else:
             return self.on_relexp(node.child(0))
@@ -326,7 +330,6 @@ class Interpreter:
     def on_relexp(self,node):
         if len(node) > 1:
             lhs = self.on_relexp(node.child(0))
-            rhs = self.on_term(node.child(2))
             m = {
              '==':'eq',
              '!=':'ne',
@@ -336,6 +339,8 @@ class Interpreter:
              '>=':'ge'
             }
             relop = m[self.on_token(node.child(1))]
+            rhs = self.on_term(node.child(2))
+
             return lhs.op(relop,rhs)
         else:
             return self.on_term(node.child(0))
@@ -343,8 +348,8 @@ class Interpreter:
     def on_term(self,node):
         if len(node) > 1:
             lhs = self.on_term(node.child(0))
-            rhs = self.on_factor(node.child(2))
             op = {'+':'add','-':'minus'}[self.on_token(node.child(1).child(0))]
+            rhs = self.on_factor(node.child(2))
             return lhs.op(op,rhs)
         else:
             return self.on_factor(node.child(0))
@@ -352,8 +357,8 @@ class Interpreter:
     def on_factor(self,node):
         if len(node) > 1:
             lhs = self.on_factor(node.child(0))
-            rhs = self.on_uniexp(node.child(2))
             op =  {'*':'mul','/':'div','%':'mod'}[self.on_token(node.child(1).child(0))]
+            rhs = self.on_uniexp(node.child(2))
             return lhs.op(op,rhs)
         else:
             return self.on_uniexp(node.child(0))
@@ -436,6 +441,7 @@ class Interpreter:
         return [self.on_exp(x) for x in node.query("explist>exp")]
 
     def on_token(self,node):
+        self.current_token = node
         return node.value
 
 

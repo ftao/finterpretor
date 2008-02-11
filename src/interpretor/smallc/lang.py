@@ -32,25 +32,15 @@ def require_same(func):
     return wrapped
 
 def require_same_or_null(func):
+
     def wrapped(self,lhs,rhs):
         if (rhs.type != self and rhs.type != nullType):
             raise error.TypeError(self,rhs.type)
         return func(self,lhs,rhs)
     return wrapped
 
-def require_int(func):
-    def wrapped(self,lhs,rhs):
-        if (rhs.type != intType):
-            raise error.TypeError(self,rhs.type)
-        return func(self,lhs,rhs)
-    return wrapped
 
-def require_str(func):
-    def wrapped(self,lhs,rhs):
-        if (not isinstance(rhs,str)):
-            raise error.TypeError("id",rhs.type)
-        return func(self,lhs,rhs)
-    return wrapped
+
 
 
 
@@ -94,7 +84,7 @@ class Type:
         return "<SmallC Type %s>" %self.name
 
     def __eq__(self,rhs):
-        return type(self) == type(rhs)
+        return self.name == rhs.name
 
     def __ne__(self,rhs):
         return not self.__eq__(rhs)
@@ -117,9 +107,7 @@ class Integer(Type):
         return bool(obj.value)
 
     def op_print(self,obj):
-        #print "op_print",obj
-        #sys.stderr.write(str(obj.value) + " ")
-        print >>sys.stderr, obj.value
+        print obj.value,
 
 
     @require_same
@@ -220,12 +208,7 @@ class Array(Type):
             self.base = Array(base, dim-1)
         else:
             self.base = base
-        self.dim = 1
-        self.name = self.base.name + "[]" * self.dim
-
-    def __eq__(self,rhs):
-        return type(self) == type(rhs) and self.base == rhs.base
-
+        self.name = self.base.name + "[]"
 
     def op_print(self,obj):
         print obj.value,
@@ -298,9 +281,6 @@ class Struct(Type):
         ret += "}>"
         return ret
 
-    def __eq__(self,rhs):
-        return type(self) == type(rhs) and self.name == rhs.name
-
     def alloc_one(self):
         ret = Object(self)
         ret.value = {}
@@ -308,13 +288,6 @@ class Struct(Type):
             ret.value[name] = Object(self.members[name])
         return ret
 
-    def alloc(self,size = None):
-        if size:
-            ret = Object(Array(self))
-            ret.value = [self.alloc() for i in range(size.value)]
-            return ret
-        else:
-            return self.alloc_one()
 
 class NullType(Type):
     def asBool(self,obj):
@@ -364,19 +337,19 @@ class ConstObject(Object):
 
     def op(self,op,arg = None):
         if op == "assign" or op == "inc" or op == "inc_" or op == "dec" or op == "dec_":
-            pass # raise Error
+            raise error.UnsupportedOPError(op)
         else:
             return Object.op(self,op,arg)
-            #return super(ConstObject, self).op(op,arg)
 
     def __repr__(self):
         return "SmallC Const Object <" + repr(self.value) + " : " +  self.type.name+  ">"
 
+    __str__ = __repr__
 
 #some special values
 
 intType = Integer()
 void = Void()
 nullType = NullType()
-null = Object(nullType,None)
+null = ConstObject(nullType,None)
 
