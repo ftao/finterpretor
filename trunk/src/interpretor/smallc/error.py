@@ -3,15 +3,6 @@
 class LangError(Exception):
     pass
 
-class AssignError(LangError):
-
-    def __init__(self,lhs,rhs):
-        self.lhs = lhs
-        self.rhs = rhs
-
-    def __str__(self):
-        return "Cant't assign from %s to %s" %(self.lhs, self.rhs)
-
 class TCastError(LangError):
 
     def __init__(self,lhs,rhs):
@@ -50,7 +41,7 @@ class UnsupportedOPError(LangError):
         self.op = op
 
     def __str__(self):
-        return "unsupported operation %s" %(self.op)
+        return "unsupported operation '%s'" %(self.op)
 
 class IndexError(LangError):
     def __init__(self,ind,range):
