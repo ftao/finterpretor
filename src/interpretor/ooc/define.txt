@@ -11,7 +11,7 @@
 (10) <idlist> ::= id {',' id }
 (11) <fdef> ::= <afdef> | <cfdef>
 (12) <afdef> ::= 'func' 'abstract' <type> id '(' [<type> {','<type>}] ')'
-(13) <cfdef> ::= 'func' <type> <head> '{' [<vdecl>]<slist> '}'
+(13) <cfdef> ::= 'func' <type> <head> '{' [<vdecl>]<stlist> '}'
 (14) <head> ::=id '('[<paralist>]')'
 (15) <stlist>::= <st>{';'<st>}
 (16) <paralist> ::= <paradecl>{','<paradecl>}

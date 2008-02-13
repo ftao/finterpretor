@@ -9,7 +9,7 @@ tokens = ('id', 'num',
           'orop','andop','eqop', 'neop', 'ltop', 'gtop', 'leop', 'geop', 'chkop', 'incop', 'decop',
           'kw_class', 'kw_const', 'kw_var', 'kw_end', 'kw_func', 'kw_while', 'kw_if', 'kw_else', 'kw_new')
 
-literals = ['{', '}', ';', ",", "[", "]", '(', ')', '=', '+', '-', '*', '/', '%' ,'!', '@' ,'.', '?']
+literals = ['{', '}', ';', ",", "[", "]", '(', ')', '=', '+', '-', '*', '/', '%' ,'!', '@' ,'.', '?', ':']
 
 #t_assignop = r'='
 #

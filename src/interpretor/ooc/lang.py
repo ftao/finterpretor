@@ -14,7 +14,8 @@ null 表示空引用。
 '''
 import operator
 import sys
-import interpretor.smallc.error as error
+import interpretor.ooc.error as error
+import interpretor
 
 #class Singleton(type):
 #    def __call__(cls, *args):
@@ -81,7 +82,7 @@ class Type:
             return self.alloc_one()
 
     def __repr__(self):
-        return "<SmallC Type %s>" %self.name
+        return "<ooc Type %s>" %self.name
 
     def __eq__(self,rhs):
         return self.name == rhs.name
@@ -238,16 +239,62 @@ class Array(Type):
     def alloc_one(self):
         return Object(self)
 
+#class ClassType():
+#    def __init__(self,name):
+#        self.name = name
+#        self.member = {}
+#
+#    def add_member(self,type,member_name):
+#        self.members[member_name] = type
+#
+#    def op_member(self,lhs,rhs):
+#        if lhs.value is None:
+#            raise error.NullError(lhs)
+#        if not isinstance(rhs,str):
+#            raise error.TypeError("id",lhs)
+#        if rhs not in self.members:
+#            raise error.MemberError(lhs,rhs)
+#
+#        return lhs.member[rhs]
 
 
-class Struct(Type):
+class Class(Type):
 
-    def __init__(self,name):
+    def __init__(self,name,global_ns,base = None,decorate = None):
         self.name = name
+        self.base = base
+        self.global_ns = global_ns
+        self.decorate = decorate
         self.members = {}
+        self.by_decorate = {
+            'static':[],
+            'private':[],
+            'public':[],
+            'static':[],
+            'redef':[],
+            'const':[]
+        }
+        self.by_type = {
+            'var':[],
+            'func':[]
+        }
+        self.cls_var = {}
 
-    def add_member(self,type,member_name):
-        self.members[member_name] = type
+
+    def add_var(self,name,value,decorate):
+        self.members[name] = (value,decorate)
+        self.by_type['var'].append(name)
+        self.by_decorate[decorate].append(name)
+        if decorate  == "static":
+            self.cls_var[name] = Object(value)
+        elif decorate == "const":
+            self.cls_var[name] = value
+
+    def add_func(self,name,value,decorate):
+        self.members[name] = (value,decorate)
+        self.by_type['func'].append(name)
+        self.by_decorate[decorate].append(name)
+
 
     @require_same_or_null
     def op_assign(self,lhs,rhs):
@@ -263,30 +310,82 @@ class Struct(Type):
     def op_ne(self,lhs,rhs):
         return Object(intType, int(not (lhs.value is rhs.value)))
 
+    def op_get(self,lhs,rhs):
+        print "get %s from %s" %(rhs,lhs)
+        try:
+            self.op_member(lhs,rhs)
+        except error.MemberError:
+            return self.global_ns.get(rhs)
 
     def op_member(self,lhs,rhs):
         if lhs.value is None:
             raise error.NullError(lhs)
         if not isinstance(rhs,str):
             raise error.TypeError("id",lhs)
-        if rhs not in self.members:
-            raise error.MemberError(lhs,rhs)
 
-        return lhs.value[rhs]
-
+        if rhs in lhs.value:
+            return lhs.value[rhs]
+        else:
+            ret = self.get_cls_member(rhs)
+            if rhs in self.by_type['func']:
+                ret = (ret,lhs)
+        return ret
 
     def __repr__(self):
-        ret = "<SmallC Type %s{" %self.name
-        ret += ",".join(["%s:%s" %(x,self.members[x].name) for x in self.members])
+        ret = "<OOC Type %s{" %self.name
+        #ret += ",".join(["%s:%s" %(x,self.members[x].name) for x in self.members])
         ret += "}>"
         return ret
 
     def alloc_one(self):
         ret = Object(self)
         ret.value = {}
-        for name in self.members:
-            ret.value[name] = Object(self.members[name])
+        if self.base:
+            self.base.insert_public(ret.value)
+        for name in self.by_type['var']:
+            if self.members[name][1] not in ['const','static']:
+                ret.value[name] = Object(self.members[name][0])
         return ret
+
+    def insert_public(self,value):
+        if self.base:
+            self.base.insert_public(value)
+        for name in self.by_type['var']:
+            if self.members[name][1] == "public":
+                value[name] = Object(self.members[name][0])
+        return value
+
+    def get_cls_member(self, name):
+        '''
+         类名字空间访问， 获得类变量，常量，函数
+        可以访问非static 函数
+        '''
+        if name in self.cls_var:
+            ret = self.cls_var[name]
+            return ret
+        elif name in self.by_type["func"]:
+            return self.members[name][0]
+        elif self.base:
+            return self.base.get_cls_member(name)
+        else:
+            raise error.MemberError(self,name)
+
+    def op_get_cls(self,name):
+        try:
+            self.op_member_cls(name)
+        except error.MemberError:
+            return self.global_ns.get(name)
+
+    def op_member_cls(self,name):
+        '''
+         当 ClassA.var  这样的调用出现时执行的操作
+        '''
+        if name not in self.members or self.members[name][1] not in ("static","const"):
+            raise error.MemberError(self,name)
+        if name in self.cls_var:
+            return self.cls_var[name]
+        if name in self.by_type['func'] and name in self.by_decorate["static"]:
+            return (self.members[name][0],None)
 
 
 class NullType(Type):
@@ -329,7 +428,7 @@ class Object:
 
 
     def __repr__(self):
-        return "SmallC Object <" + repr(self.type) + " : " + repr(self.value) +  ">"
+        return "OOC Object <" + repr(self.type) + " : " + repr(self.value) +  ">"
 
     __str__ = __repr__
 
@@ -342,7 +441,7 @@ class ConstObject(Object):
             return Object.op(self,op,arg)
 
     def __repr__(self):
-        return "SmallC Const Object <" + repr(self.value) + " : " +  self.type.name+  ">"
+        return "OOC Const Object <" + repr(self.value) + " : " +  self.type.name+  ">"
 
     __str__ = __repr__
 
