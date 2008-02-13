@@ -7,9 +7,10 @@ import ply.lex as lex
 
 tokens = ('id', 'num',
           'orop','andop','eqop', 'neop', 'ltop', 'gtop', 'leop', 'geop', 'chkop', 'incop', 'decop',
-          'kw_class', 'kw_const', 'kw_var', 'kw_end', 'kw_func', 'kw_while', 'kw_if', 'kw_else', 'kw_new')
+          'kw_class', 'kw_const', 'kw_var', 'kw_end', 'kw_func', 'kw_while', 'kw_if', 'kw_else', 'kw_new',
+          "kw_abstract","kw_private","kw_public","kw_redef","kw_static")
 
-literals = ['{', '}', ';', ",", "[", "]", '(', ')', '=', '+', '-', '*', '/', '%' ,'!', '@' ,'.', '?']
+literals = ['{', '}', ';', ",", "[", "]", '(', ')', '=', '+', '-', '*', '/', '%' ,'!', '@' ,'.', '?', ':']
 
 #t_assignop = r'='
 #
@@ -69,6 +70,11 @@ reserved  = {
     "if":      "kw_if",
     "else":    "kw_else",
     "new":     "kw_new",
+    "static":  "kw_static",
+    "private": "kw_private",
+    "public":  "kw_public",
+    "abstract":"kw_abstract",
+    "redef":   "kw_redef",
     "chk":     "chkop"
 }
 
@@ -103,133 +109,32 @@ def find_column(input,token):
     return column
 
 test = '''
- func void main(){ var int i, j end
-   i = 1;
-   j = i;
-   j ++;
-   print(i);
-   print(j)
-   }
-'''
-test2 = '''
- class Link { Node prob; Link next }
- class Node { int level; int[] board }
- func void main(){ var int i, j; Link a; Node b end
-     b = new Node;
-     b.board = new int[2];
-     b.board[1] = 2;
-     b.board[0] = 3;
-     print (b.board[0]);
-     print (b.board[1]);
-     b.level = 1;
-     print(b.level);
-    }
-'''
-
-test3 = '''
- func int gcd(int a, int b){ var int r end
-   chk (a>1 && b>1);
-   while (b!=0)(r=a%b; a=b; b=r);
-   a }
- func void main(){ var int i, j end
-   while (!eof())( i=read();
-     if (!eof())( j=read();
-       println(i, j, gcd(i, j)))) }
-'''
-test3= '''
-  var int[] a; int n end
-  func int pow(int m){
-   var int ans, i end ans=1; i=0;
-    while (i++<n ) ans=ans*m; ans }
-  func int r2n(){
-    var int ans, i end ans=0; i=n-1;
-    while (i>=0) ans=ans*10+a[i--]; ans }
-  func int next(){
-    var int ans, i end i=0; ans=1;
-   while (i<n && a[i]==9) a[i++]=1;
-   if (i<n) ++a[i] else ans=0; ans }
- func void narci() {
-   var int i, j, k end i=0;
-   while (i<n) a[i++]=1;
-   while (next())( k=r2n(); i=0; j=0;
-     while (j<n) i=i+pow(a[j++]);
-     if (k==i) println(i)) }
- func void main() { a=new int[10]; n=3;
-   while (n<=5)( narci(); ++n ) }
-
+ class abstract Node { public func abstract int target() func abstract int subnodenum()
+   func abstract Node down(int) func abstract void output(int) }
+ class abstract Mono:Node { public func abstract Node up() }
+ class Backtracking { private var Mono prob; int num, bound end
+ public func Backtracking constructor(Mono p, int b){ prob=p; bound=b; this }
+   func void depthfirst(){ var int m, i end  m=prob.subnodenum(); i=0;
+     if (prob.target())( prob.output(1); ++num);
+     while (num<bound && i<m)
+       if (prob.down(i++)!=null)( depthfirst(); prob.up()) } }
+ class Queens:Mono { private var int n, level; int[] board, column, d1, d2 end
+ public func Queens constructor(int k){ n=k; board=new int[n];
+     column=new int[n]; d1=new int[2*n-1]; d2=new int[2*n-1]; this }
+ redef func int target(){ level==n }
+   func int subnodenum(){ if (level<n) n else 0 }
+   func Node down(int i){ var Queens ans; int norm, k end ans=null;
+     if (level<n && !column[i] && !d1[level+i] && !d2[level-i+n-1])(
+       column[i]=1; d1[level+i]=1; d2[level-i+n-1]=1;
+       board[level++]=i; ans=this); ans }
+   func Node up(){ var int i end
+     i=board[--level]; column[i]=0; d1[level+i]=0; d2[level-i+n-1]=0; this }
+   func void output(int b){ var int i end
+     if (level==n)( i=0; while (i<n) print(board[i++]); println() ) } }
+ class Main { static func void main(){
+     new Backtracking.constructor(new Queens.constructor(8), 1).depthfirst() } }
 '''
 
-test = '''
-class Link { Node prob; Link next }
-class Node { int level; int[] board }
-const n=8;
-var Link head; int num, bound end
-func void depthfirst(){
-    var
-        Link t;
-        Node p, sub;
-        int m, i
-    end
-    p=head.prob;
-    sub=null;
-    m=subnodenum(p);
-    i=0;
-    if (target(p))( outlist(head); ++num );
-    while (num<bound && i<m)
-        if ((sub=down(p, i++))!=null)(
-             t=new Link;
-             t.prob=sub;
-             t.next=head;
-             head=t;
-             depthfirst();
-             head=head.next
-        )
-}
-func int subnodenum(Node this){ if (this.level<n) n else 0 }
-func int target(Node this){ this.level==n }
-func Node down(Node this, int i){
-    var Node ans; int norm; int k end
-    ans=null; norm=this.level<n; k=this.level-1;
-    while (norm && k>=0)(
-        norm=i!=this.board[k] && i+this.level-k!=this.board[k]
-          && i-this.level+k!=this.board[k];
-        --k
-    );
-    if (norm)(
-        this.board[this.level]=i;
-        ans=new Node;
-        ans.level=this.level+1;
-        ans.board=new int[ans.level+1];
-        k=0;
-        while (k<ans.level)(
-            ans.board[k]=this.board[k]; ++k
-        )
-    );
-    ans
-}
-func void outlist(Link this){
-    if (this.next!=null)
-        outlist(this.next);
-    outnode(this.prob)
-}
-func void outnode(Node this){
-    var int i end
-    if (this.level==n)(
-        i=0;
-        while (i<n)
-            print(this.board[i++]);
-        println()
-    )
-}
-func void main(){
-    bound=1;
-    head=new Link;
-    head.prob=new Node;
-    head.prob.board=new int[1];
-
-    depthfirst()
-}
-'''
 lex.lex()
 
 if __name__ == '__main__':

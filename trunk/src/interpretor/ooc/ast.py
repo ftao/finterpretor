@@ -2,7 +2,7 @@
 class Node:
     def __init__(self,type,children=[],prod = None):
         self.type = type
-        self.children = filter(lambda child:isinstance(child,Node),children)
+        self.children = children #filter(lambda child:isinstance(child,Node),children)
 
     def getChildren(self):
         return self.children
@@ -32,6 +32,8 @@ class Node:
         ret = []
         qs = q.split(">")
         for child in self.children:
+            if child is None:
+                continue
             if child.type == qs[0] or qs[0] == '*':
                 if len(qs) > 1:
                     ret.extend(child.query(">".join(qs[1:])))

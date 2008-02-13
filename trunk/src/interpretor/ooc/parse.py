@@ -1,8 +1,8 @@
 #coding=gbk
 from ply import yacc
 
-from interpretor.smallc.lex import *
-from interpretor.smallc.ast import Node,Leaf
+from interpretor.ooc.lex import *
+from interpretor.ooc.ast import Node,Leaf
 
 #def sall_to_nodee(func):
 #    def wrapped(p):
@@ -26,31 +26,137 @@ def p_empty(p):
 
 #程序
 def p_prog(p):
-    '''prog : class_decls const_decls var_decls fdefs
+    '''prog : prog classdecl
+            | classdecl
     '''
-    p[0] = Node("prog",p[1:])
-
-#类声明s
-def p_class_decls(p):
-    '''class_decls : class_decls classdecl
-                   | classdecl
-                   | empty
-    '''
-    if len(p) > 2 :
-        if p[1]:
-            p[0] = Node("class_decls", p[1].getChildren() + [p[2]])
-        else:
-            p[0] = Node("class_decls", [p[2]])
-    elif p[1]:
-        p[0] = Node("class_decls",[p[1]])
-
+    if len(p) > 2:
+        p[0] = Node("prog",p[1].getChildren() + [p[2]])
+    else:
+        p[0] = Node("prog",[p[1]])
 
 
 
 def p_classdecl(p):
-    "classdecl : kw_class id '{' decllist '}'"
+    "classdecl : kw_class pos_abstract id pos_superclass '{' pos_condecl pos_static pos_private pos_public pos_redef '}'"
     all_to_node(p)
     p[0] = Node("classdecl",p[1:])
+
+
+def p_pos_abstract(p):
+    '''pos_abstract : kw_abstract
+                    | empty
+    '''
+    all_to_node(p)
+    if p[1] != None:
+        p[0] = Node("pos_abstract",p[1:])
+    else:
+        p[0] = p[1]
+
+def p_pos_superclass(p):
+    '''pos_superclass : ':' id
+                      | empty
+    '''
+    all_to_node(p)
+    if len(p) > 2:
+        p[0] = Node("pos_superclass",p[1:])
+    else:
+        p[0] = p[1]
+
+#可能的常量声明
+def p_pos_condecl(p):
+    '''pos_condecl : condecl ';'
+                   | empty
+    '''
+    all_to_node(p)
+    if p[1] != None:
+        p[0] = Node("pos_condecl",p[1:])
+    else:
+        p[0] = p[1]
+
+
+def p_condecl(p):
+    '''condecl : condecl ',' condef
+               | kw_const condef
+    '''
+    all_to_node(p)
+    if len(p) > 3:
+        p[0] = Node("condecl",p[1].getChildren() + p[3:])
+    else:
+        p[0] = Node("condecl",p[1:])
+
+#常量定义
+
+def p_condef(p):
+    '''condef : id '=' num
+              | id '=' '-' num
+    '''
+    all_to_node(p)
+    p[0] = Node("condef",p[1:])
+
+
+def p_pos_static(p):
+    '''pos_static : kw_static member
+                  | empty
+    '''
+    all_to_node(p)
+    if p[1] != None:
+        p[0] = Node("pos_static",p[1:])
+    else:
+        p[0] = p[1]
+
+def p_pos_private(p):
+    '''pos_private : kw_private member
+                  | empty
+    '''
+    all_to_node(p)
+    if p[1] != None:
+        p[0] = Node("pos_private",p[1:])
+    else:
+        p[0] = p[1]
+
+def p_pos_public(p):
+    '''pos_public : kw_public member
+                  | empty
+    '''
+    all_to_node(p)
+    if p[1] != None:
+        p[0] = Node("pos_public",p[1:])
+    else:
+        p[0] = p[1]
+
+def p_pos_redef(p):
+    '''pos_redef : kw_redef cfdef_list
+                 | kw_redef
+                 | empty
+    '''
+    all_to_node(p)
+    if p[1] != None:
+        p[0] = Node("pos_public",p[1:])
+    else:
+        p[0] = p[1]
+
+def p_cfdefs(p):
+    '''cfdef_list : cfdef_list cfdef
+                  | cfdef
+    '''
+    if len(p) > 2:
+        p[0] = Node("cfdef_list",p[1].getChildren() + [p[2]])
+    else:
+        p[0] = Node("cfdef_list",p[1:])
+
+
+def p_member(p):
+    '''member : vdecl fdefs
+              | vdecl
+              | fdefs
+              | empty
+    '''
+    p[0] = Node("member",p[1:])
+
+def p_vdecl(p):
+    "vdecl : kw_var decllist kw_end"
+    all_to_node(p)
+    p[0] = Node("vdecl",p[1:])
 
 
 def p_decllist(p):
@@ -92,50 +198,6 @@ def p_idlist(p):
         p[0] = Node("idlist",p[1:])
 
 
-#可能的常量声明
-
-def p_const_decls(p):
-    '''const_decls : condecl ';'
-                   | empty
-    '''
-    all_to_node(p)
-    p[0] = p[1]
-
-
-def p_condecl(p):
-    '''condecl : condecl ',' condef
-               | kw_const condef
-    '''
-    all_to_node(p)
-    if len(p) > 3:
-        p[0] = Node("condecl",p[1].getChildren() + p[3:])
-    else:
-        p[0] = Node("condecl",p[1:])
-
-#常量定义
-
-def p_condef(p):
-    '''condef : id '=' num
-              | id '=' '-' num
-    '''
-    all_to_node(p)
-    p[0] = Node("condef",p[1:])
-
-
-#变量声明
-def p_var_decls(p):
-    '''var_decls : vdecl
-                 | empty
-    '''
-    p[0] = p[1]
-
-
-def p_vdecl(p):
-    "vdecl : kw_var decllist kw_end"
-    all_to_node(p)
-    p[0] = Node("vdecl",p[1:])
-
-
 #函数定义s
 def p_fdefs(p):
     ''' fdefs : fdef fdefs
@@ -146,11 +208,34 @@ def p_fdefs(p):
     else:
         p[0] = Node("fdefs",p[1:])
 
-
 def p_fdef(p):
-    "fdef : kw_func type head '{' funbody '}'"
+    '''fdef : afdef
+            | cfdef
+    '''
+    p[0] = Node("fdef",p[1:])
+
+
+def p_afdef(p):
+    '''afdef : kw_func kw_abstract type id '(' type_list ')'
+             | kw_func kw_abstract type id '('  ')'
+    '''
     all_to_node(p)
-    p[0] = Node("fdef", p[1:])
+    p[0] = Node("afdef", p[1:])
+
+def p_typelist(p):
+    '''type_list : type_list ',' type
+                 | type
+    '''
+    if len(p) > 2:
+        p[0] = Node("type_list",p[1].getChildren() + [p[3]])
+    else:
+        p[0] = Node("type_list",p[1:])
+
+
+def p_cfdef(p):
+    "cfdef : kw_func type head '{' funbody '}'"
+    all_to_node(p)
+    p[0] = Node("cfdef", p[1:])
 
 
 
@@ -328,7 +413,7 @@ def p_postfix(p):
     '''postfix : incop
                | decop
                | apara
-               | sub
+               | index
                | aselect
                | tcast
     '''
@@ -355,10 +440,10 @@ def p_explist(p):
         p[0] = Node("explist",p[1:])
 
 
-def p_sub(p):
-    "sub : '[' exp ']'"
+def p_index(p):
+    "index : '[' exp ']'"
     all_to_node(p)
-    p[0] = Node("sub",p[1:])
+    p[0] = Node("index",p[1:])
 
 
 def p_aselect(p):
@@ -378,7 +463,6 @@ def p_entity(p):
               | num
               | cast
               | alloc
-              | '?'
     '''
     all_to_node(p)
     p[0] = Node("entity",p[1:])
@@ -414,5 +498,4 @@ def parse(data):
 
 if __name__ == '__main__':
     n =  parse(test)
-    print len(n.query("vdecl>decllist>decl"))
-    print len(n.query("class_decls>classdecl"))
+    print len(n.query("classdecl>pos_static"))

@@ -184,13 +184,13 @@ class MoreParser:
 
         #类定义
         for n in self.ast.query("class_decls>classdecl"):
-            name = n.child(1).value
+            name = self.on_token(n.child(1))
             struct = lang.Struct(name)
             self.global_ns.set(name, struct)
 
 
         for n in self.ast.query("class_decls>classdecl"):
-            name = n.child(1).value
+            name = self.on_token(n.child(1))
             struct = self.global_ns.get(name)
             for x in n.child(3):
                 self.on_decl_inside_class(x,struct)
@@ -220,11 +220,11 @@ class MoreParser:
     #函数形参定义
     def on_paradecl(self,node,ns):
         type = self.on_type(node.child(0))
-        name = node.child(1).value
+        name = self.on_token(node.child(1))
         ns.add_param(name,type)
 
     def on_type(self,node):
-        base = node.child(0).value
+        base = self.on_token(node.child(0))
         base_type = self.current_ns.get(base)
         if not base_type:
             pass # raise Error
@@ -237,14 +237,14 @@ class MoreParser:
 
     def on_condef(self,node,ns):
         #print node
-        name = node.child(0).value
-        value = node.child(-1).value
+        name = self.on_token(node.child(0))
+        value = self.on_token(node.child(-1))
         if len(node) > 3:
             value = -value
         ns.set(name,lang.ConstObject(lang.intType,value)) # type use lang.intType
 
     def on_fdef(self,node,ns):
-        name  = node.child(2).child(0).value
+        name  = self.on_token(node.child(2).child(0))
         fns = Function(name,self.current_ns)
         fns.ret_type = self.on_type(node.child(1))
         ns.set(name,fns)
@@ -255,6 +255,10 @@ class MoreParser:
             self.on_decl(decl,fns)
         fns.statements = node.query("funbody>stlist>st")
         fns.freeze()
+
+    def on_token(self,node):
+        self.current_token = node
+        return node.value
 
 class Interpreter:
 

@@ -69,4 +69,4 @@ class MemberError(LangError):
         self.member = member
 
     def __str__(self):
-        return "%s don't have '%s' member ." %(self.obj,self.name)
+        return "%s don't have '%s' member ." %(self.obj,self.member)

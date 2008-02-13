@@ -1,17 +1,16 @@
 #coding=gbk
 '''
-SmallC 语言解释器
+ooc 语言解释器
 工作在抽象语法树上。
-SmallC 不允许函数嵌套。
 '''
 import operator
 import copy
 import sys
-import interpretor.smallc.lang as lang
-from interpretor.smallc.parse import parse
-from interpretor.smallc.lex import test
-from interpretor.smallc.ast import Node,Leaf
-import interpretor.smallc.error as error
+import interpretor.ooc.lang as lang
+from interpretor.ooc.parse import parse
+from interpretor.ooc.lex import test
+from interpretor.ooc.ast import Node,Leaf
+import interpretor.ooc.error as error
 
 def copy_ns(ns_dict):
     ret = copy.copy(ns_dict)
@@ -28,37 +27,38 @@ class Namespace:
 
     def get(self, name):
         if name in self.ns:
-            return self.ns[name]
+            return self.ns[name][0]
         elif self.upper:
             return self.upper.get(name)
         else:
-            #print self.ns
             raise error.NameError(name)
 
     def __getitem__(self, key):
         return self.get(key)
 
-    def set(self, name, value):
+    def set(self, name, value, decorate = None):
         #print self.name,id(self.ns)
         if name in self.ns:
             raise error.MultipleError(name)
         else:
-            self.ns[name] = value
+            self.ns[name] = (value,decorate)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value, decorate):
         self.set(key, value)
 
     def __repr__(self):
         return "Namespace %s" %(self.name)
 
+
 class Function(Namespace):
-    def __init__(self,name,upper,ret_type = lang.void):
+    def __init__(self,name,cls,ret_type = lang.void, decorate = None):
         self.name = name
-        self.upper = upper
-        self.ns = {}
-        self.ret_type = ret_type
         self.params = []
-        self.statements = []
+        self.ns = {}
+        self.cls = cls
+        self.ret_type = ret_type
+        self.decorate = decorate
+        self.obj = None
 
     def add_param(self,name,type):
         self.params.append(name)
@@ -73,15 +73,29 @@ class Function(Namespace):
         else:
             self.ns[name].op("assign",value)
 
+    def get(self, name):
+        print "geting " ,name
+        if name in self.ns:
+            return self.ns[name]
+        else:
+            if self.decorate == "static":#如果调用的静态方法
+                return self.cls.op_get_cls(name)
+            else:
+                return self.obj.op("get", name)
+
+
     def set(self, name, value):
         if name in self.ns:
             raise MultipleError(name)
         else:
             self.ns[name] = value
 
-    def call(self,args,inter):
+    def call(self,obj,args,inter):
         ns_now = self.ns
         self.ns = copy_ns(self.ns_org)
+
+        obj_now = self.obj
+        self.obj = obj
 
         old_current = inter.current_ns
         inter.current_ns = self
@@ -97,77 +111,17 @@ class Function(Namespace):
     def __repr__(self):
         return "Function %s " %self.name
 
-class PrintFunc(Function):
-    def __init__(self):
-        self.name = "print"
-
-    def call(self,args,inter):
-        for x in args:
-            x.op("print")
-        return lang.Object(lang.void)
-
-    def __repr__(self):
-        return "function %s" %(self.name)
-
-class PrintlnFunc(Function):
-    def __init__(self):
-        self.name = "println"
-
-    def call(self,args,inter):
-        for x in args:
-            x.op("print")
-        print
-        return lang.Object(lang.void)
-    def __repr__(self):
-        return "function %s" %(self.name)
-
-
-inputFlags = {
-    "InputBuff" : "",
-    "isEOF" : 0
-}
-class ReadFunc(Function):
-    def __init__(self,input):
-        self.name = "read"
-        self.input = input
-    def call(self,args,inter):
-        if self.input["InputBuff"]:
-            inp = self.input["InputBuff"]
-            try:
-                self.input["InputBuff"] = ""
-                self.input["InputBuff"] = raw_input()
-            except EOFError,e:
-                self.input["isEOF"] = 1
-        else:
-            inp = raw_input()
-        return lang.Object(lang.intType, int(inp))
-    def __repr__(self):
-        return "function %s" %(self.name)
-
-class EofFunc(Function):
-    def __init__(self,input):
-        self.name = "eof"
-        self.input = input
-    def call(self,args,inter):
-        if not self.input["InputBuff"] and not self.input["isEOF"]:
-            try:
-                self.input["InputBuff"] = raw_input()
-            except EOFError,e:
-                self.input["isEOF"] = 1
-        return lang.Object(lang.intType, self.input["isEOF"])
-    def __repr__(self):
-        return "function %s" %(self.name)
 
 def get_built_in_namespace():
     ns = Namespace()
     ns.ns = {
-        'int':lang.intType,
-        'void':lang.void,
-        'null':lang.null,
-        'print':PrintFunc(),
-        'println':PrintlnFunc(),
-        'read':ReadFunc(inputFlags),
-        'eof':EofFunc(inputFlags)
+        'int':(lang.intType,"builtin"),
+        'void':(lang.void,"builtin"),
+        'null':(lang.null,"builtin"),
+#        'print':PrintFunc(),
+#        'println':PrintlnFunc(),
+#        'read':ReadFunc(inputFlags),
+#        'eof':EofFunc(inputFlags)
     }
     return ns
 
@@ -183,49 +137,94 @@ class MoreParser:
         '''walk the ast , build the golbal namespace'''
 
         #类定义
-        for n in self.ast.query("class_decls>classdecl"):
-            name = n.child(1).value
-            struct = lang.Struct(name)
-            self.global_ns.set(name, struct)
+        for n in self.ast.query("classdecl"):
+            name = self.on_token(n.child(2))
+            base_cls = None
+            decorate = None
+            if n.child(3):
+                base = self.on_token(n.child(3).child(1))
+                base_cls = self.current_ns.get(base)
+            if n.child(1):
+                decorate = "abstract"
+            cls = lang.Class(name, self.global_ns, base_cls, decorate)
+            #print cls
+            self.global_ns.set(name, cls, decorate)
+            #print self.global_ns.get(name)
+
+        for n in self.ast.query("classdecl"):
+            name = self.on_token(n.child(2))
+            cls = self.global_ns.get(name)
+            #常量
+            for con in n.query("pos_condecl>condecl>condef"):
+                self.on_condef(con, cls)
+
+            for mem in n.query("pos_static>member"):
+                self.on_member(mem, cls, "static")
+
+            for mem in n.query("pos_private>member"):
+                self.on_member(mem, cls, "private")
+
+            for mem in n.query("pos_public>member"):
+                self.on_member(mem, cls, "public")
+
+            for cfdef in n.query("pos_redef>member>cfdef_list>cfdef"):
+                self.on_cfdef(cfdef, cls, "redef")
 
 
-        for n in self.ast.query("class_decls>classdecl"):
-            name = n.child(1).value
-            struct = self.global_ns.get(name)
-            for x in n.child(3):
-                self.on_decl_inside_class(x,struct)
+    def on_member(self,node,cls,decorate):
+        print "on_member", node
+        for decl in node.query("vdecl>decllist>decl"):
+            self.on_decl_inside_class(decl,cls,decorate)
+        for afdef in node.query("fdefs>fdef>afdef"):
+            self.on_afdef(afdef,cls,decorate)
+        for cfdef in node.query("fdefs>fdef>cfdef"):
+            self.on_cfdef(cfdef,cls,decorate)
 
-        #常量
-        for n in self.ast.query("condecl>condef"):
-            self.on_condef(n,self.global_ns)
 
-        #变量
-        for decl in self.ast.query("vdecl>decllist>decl"):
-            self.on_decl(decl,self.global_ns)
-
-        #函数
-        for n in self.ast.query("fdefs>fdef"):
-            self.on_fdef(n,self.global_ns)
-
-    def on_decl(self,node,ns):
+    def on_decl_inside_class(self,node,cls,decorate):
         type = self.on_type(node.child(0))
         for id in node.child(1):
-            ns.set(id.value,lang.Object(type))
+            cls.add_var(self.on_token(id),type,decorate)
 
-    def on_decl_inside_class(self,node,struct):
+
+    def on_afdef(self,node,cls,decorate):
+        "抽象函数声明"
+        #TODO Not Finished
+        name  = self.on_token(node.child(3))
+        fns = Function(name,cls,self.on_type(node.child(2)),decorate)
+        fns.argType = []
+        cls.add_func(name,fns,decorate)
+        for type in node.query("type_list>type"):
+            fns.argType.append(self.on_type(type))
+        fns.freeze()
+
+
+    def on_cfdef(self,node,cls,decorate):
+        name  = self.on_token(node.child(2).child(0))
+        fns = Function(name,cls,self.on_type(node.child(1)),decorate)
+        cls.add_func(name,fns,decorate)
+
+        for para in node.query("head>paralist>paradecl"):
+            self.on_paradecl(para,fns)
+        for decl in node.query("funbody>vdecl>decllist>decl"):#vdecl > decllist > decls
+            self.on_decl_in_func(decl,fns)
+        fns.statements = node.query("funbody>stlist>st")
+        fns.freeze()
+
+    def on_decl_in_func(self,node,ns):
         type = self.on_type(node.child(0))
         for id in node.child(1):
-            struct.add_member(type,id.value)
-
+            ns.set(self.on_token(id),lang.Object(type))
     #函数形参定义
     def on_paradecl(self,node,ns):
         type = self.on_type(node.child(0))
-        name = node.child(1).value
+        name = self.on_token(node.child(1))
         ns.add_param(name,type)
 
     def on_type(self,node):
-        base = node.child(0).value
+        base = self.on_token(node.child(0))
         base_type = self.current_ns.get(base)
+        print base_type
         if not base_type:
             pass # raise Error
         else:
@@ -235,26 +234,17 @@ class MoreParser:
             else:
                 return base_type
 
-    def on_condef(self,node,ns):
+    def on_condef(self,node,cls):
         #print node
-        name = node.child(0).value
-        value = node.child(-1).value
+        name = self.on_token(n.child(0))
+        value = self.on_token(n.child(-1))
         if len(node) > 3:
             value = -value
-        ns.set(name,lang.ConstObject(lang.intType,value)) # type use lang.intType
+        cls.add_member(name,lang.ConstObject(lang.intType,value),'const') # type use lang.intType
 
-    def on_fdef(self,node,ns):
-        name  = node.child(2).child(0).value
-        fns = Function(name,self.current_ns)
-        fns.ret_type = self.on_type(node.child(1))
-        ns.set(name,fns)
-
-        for para in node.query("head>paralist>paradecl"):
-            self.on_paradecl(para,fns)
-        for decl in node.query("funbody>vdecl>decllist>decl"):#vdecl > decllist > decls
-            self.on_decl(decl,fns)
-        fns.statements = node.query("funbody>stlist>st")
-        fns.freeze()
+    def on_token(self,node):
+        self.current_token = node
+        return node.value
 
 class Interpreter:
 
@@ -266,9 +256,15 @@ class Interpreter:
     def run(self):
         self.current_ns = self.global_ns
         try:
-            self.current_ns.get("main").call([],self)
+            main_cls = self.current_ns.get("Main")
+            print main_cls
+            main = main_cls.op_member_cls("main")
+            print main
+            main[0].call(main[1],[],self)
         except error.LangError,e:
-            print "error at line %d near token '%s': %s" %(self.current_token.lineno,self.current_token.value,str(e))
+            print e
+            raise
+            #print "error at line %d near token '%s': %s" %(self.current_token.lineno,self.current_token.value,str(e))
 
 
     def on_statement(self,node):
@@ -378,14 +374,23 @@ class Interpreter:
             postexp = self.on_postexp(node.child(0))
             postfix = node.child(1).child(0)
             if postfix.type == 'apara':
+                print postexp
+                func = postexp[0]
+                obj = postexp[1]
                 if len(postfix) == 2:
-                    return postexp.call([],self)
+                    return func.call(obj,[],self)
                 else:
-                    return postexp.call(self.on_apara(postfix),self)
+                    return func.call(obj,self.on_apara(postfix),self)
             elif postfix.type =='sub':
                 return postexp.op("index",self.on_exp(postfix.child(1)))
             elif postfix.type == 'aselect':
-                return postexp.op("member",self.on_token(postfix.child(1)))
+                if isinstance(postexp, lang.Object):
+                    return postexp.op("member",self.on_token(postfix.child(1)))
+                elif isinstance(postexp, lang.Class):
+                    return postexp.op_member_cls(self.on_token(postfix.child(1)))
+                else:
+                    raise error.UnsupportedOPError("member")
+
             elif postfix.type == 'tcast':
                 return postexp.op("tcast",self.on_type(postfix.child(1)))
             if isinstance(postfix,Leaf):
@@ -415,12 +420,13 @@ class Interpreter:
         elif entity.type == "alloc":
             return self.on_alloc(entity)
         elif isinstance(entity,Leaf):
+            print 'get leaf ....',entity,type(entity)
             entity = self.on_token(entity)
             if isinstance(entity,str):
-                if entity == '?': #input
-                    return self.current_ns.get("read").call([],self)
-                else:
-                    return self.current_ns.get(entity)
+                #if entity == '?': #input
+                #    return self.current_ns.get("read").call([],self)
+                #else:
+                return self.current_ns.get(entity)
             elif isinstance(entity,int):
                 return lang.Object(lang.intType, entity)
 
