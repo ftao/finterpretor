@@ -28,7 +28,7 @@ import interpretor
 def require_same(func):
     def wrapped(self,lhs,rhs):
         if (rhs.type != self):
-            raise error.TypeError(rhs,self)
+            raise error.TypeError(self,rhs.type)
         return func(self,lhs,rhs)
     return wrapped
 
@@ -40,10 +40,42 @@ def require_same_or_null(func):
         return func(self,lhs,rhs)
     return wrapped
 
+def require_same_base_or_null(func):
+    '''
+    是否相容？ 看的是原来的类型。自身看的是原来的类型
+    '''
+    def wrapped(self,lhs,rhs):
+        base = rhs.real_type
+        if base == nullType:
+            return func(self,lhs,rhs)
+        while(base):
+            if base == self:
+                break
+            else:
+                try:
+                    base = base.base
+                except AtrributeError,e:
+                    base = None
+        else:#break out so mathces
+            raise error.TypeError(self,rhs.real_type)
+        return func(self,lhs,rhs)
+    return wrapped
 
-
-
-
+def is_same_base_or_null(t1,t2):
+    if t2 == nullType:
+        return True
+    base = t2
+    while(base is not None):
+        if base == t1:
+            break
+        else:
+            try:
+                base = base.base
+            except AtrributeError,e:
+                base = None
+    else:
+        return False
+    return True
 
 class Type:
     def __init__(self):
@@ -70,7 +102,7 @@ class Type:
         if obj.type == type:
             ret = obj
         else:
-            ret = Object(type) # TODO raise error ?
+            raise error.TCastError(obj,type)
         return ret
 
     def alloc(self,size = None):
@@ -108,7 +140,7 @@ class Integer(Type):
         return bool(obj.value)
 
     def op_print(self,obj):
-        print obj.value,
+        print >>sys.stderr,obj.value,
 
 
     @require_same
@@ -295,41 +327,55 @@ class Class(Type):
         self.by_type['func'].append(name)
         self.by_decorate[decorate].append(name)
 
+    def op_print(self,lhs):
+        print "op_print..............",lhs
 
-    @require_same_or_null
+    @require_same_base_or_null
     def op_assign(self,lhs,rhs):
+        if rhs.real_type != self: #实际类型改变了
+            #print "%s type changes to %s" %(lhs,rhs.type)
+            lhs.real_type = rhs.real_type
         lhs.value = rhs.value
+        #print lhs
         return lhs
 
 
-    @require_same_or_null
+    @require_same_base_or_null
     def op_eq(self,lhs,rhs):
         return Object(intType, int(lhs.value is rhs.value))
 
-    @require_same_or_null
+    @require_same_base_or_null
     def op_ne(self,lhs,rhs):
         return Object(intType, int(not (lhs.value is rhs.value)))
 
     def op_get(self,lhs,rhs):
-        print "get %s from %s" %(rhs,lhs)
+        #print "get %s from %s" %(rhs,lhs)
         try:
-            self.op_member(lhs,rhs)
+            return self.op_member(lhs,rhs)
         except error.MemberError:
             return self.global_ns.get(rhs)
 
     def op_member(self,lhs,rhs):
+        '''
+        ins.var 这种类型的引用
+        '''
+        #print "get %s from  %s" %(rhs,lhs)
         if lhs.value is None:
             raise error.NullError(lhs)
         if not isinstance(rhs,str):
             raise error.TypeError("id",lhs)
 
         if rhs in lhs.value:
+            #实例变量 自己的或基类的
             return lhs.value[rhs]
         else:
-            ret = self.get_cls_member(rhs)
-            if rhs in self.by_type['func']:
+            #类变量/函数
+            #由于可能有子类来调用， 这里用real_type
+            rt = lhs.real_type
+            ret = rt.get_cls_member(rhs)
+            if rhs in rt.by_type['func']:
                 ret = (ret,lhs)
-        return ret
+            return ret
 
     def __repr__(self):
         ret = "<OOC Type %s{" %self.name
@@ -356,9 +402,7 @@ class Class(Type):
         return value
 
     def get_cls_member(self, name):
-        '''
-         类名字空间访问， 获得类变量，常量，函数
-        可以访问非static 函数
+        '''对一个类唯一的成员。 包括static , const 变量 和所有方法
         '''
         if name in self.cls_var:
             ret = self.cls_var[name]
@@ -371,8 +415,11 @@ class Class(Type):
             raise error.MemberError(self,name)
 
     def op_get_cls(self,name):
+        '''
+        在static 方法中可以访问的名字空间
+        '''
         try:
-            self.op_member_cls(name)
+            return self.op_member_cls(name)
         except error.MemberError:
             return self.global_ns.get(name)
 
@@ -387,8 +434,29 @@ class Class(Type):
         if name in self.by_type['func'] and name in self.by_decorate["static"]:
             return (self.members[name][0],None)
 
+    def op_tcast(self,obj,type):
+        if obj.type == type:
+            return obj
+        elif type == void:
+            return Object(void)
+        else:
+            ret = Object(type)
+            try:
+                ret.op("assign",obj)
+            except error.TypeError:
+                raise error.TCastError(obj,type)
+            return ret
 
 class NullType(Type):
+
+    @require_same_base_or_null
+    def op_assign(self,lhs,rhs):
+        if rhs.type != self: #实际类型改变了
+            #print "type changes to",rhs.type
+            lhs.type = rhs.type
+        lhs.value = rhs.value
+        return lhs
+
     def asBool(self,obj):
         return False
 
@@ -398,11 +466,16 @@ class NullType(Type):
     def op_ne(self,lhs,rhs):
         return Object(intType, int(lhs.type != rhs.type or lhs.value is not rhs.value))
 
+    def __repr__(self):
+        return "<ooc Type Null>"
+
+    __str__ = __repr__
 
 class Object:
 
     def __init__(self,type,value = None):
         self.type = type
+        self.real_type = type
         self.value = value
         #TODO ugly here
         if value is None and type is intType:

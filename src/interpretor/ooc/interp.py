@@ -74,13 +74,15 @@ class Function(Namespace):
             self.ns[name].op("assign",value)
 
     def get(self, name):
-        print "geting " ,name
+        #print "getting %s from %s" %(name,self.obj)
         if name in self.ns:
             return self.ns[name]
         else:
             if self.decorate == "static":#如果调用的静态方法
                 return self.cls.op_get_cls(name)
             else:
+                if name == "this":
+                    return self.obj
                 return self.obj.op("get", name)
 
 
@@ -91,10 +93,11 @@ class Function(Namespace):
             self.ns[name] = value
 
     def call(self,obj,args,inter):
+        #print "calling func %s in obj %s with args %s" %(self.name,obj,args)
         ns_now = self.ns
         self.ns = copy_ns(self.ns_org)
 
-        obj_now = self.obj
+        old_obj = self.obj
         self.obj = obj
 
         old_current = inter.current_ns
@@ -106,22 +109,82 @@ class Function(Namespace):
             ret = inter.on_statement(st)
         self.ns = ns_now
         inter.current_ns = old_current
+        self.obj = old_obj
         return ret.op("tcast", self.ret_type)
 
     def __repr__(self):
         return "Function %s " %self.name
+class PrintFunc(Function):
+    def __init__(self):
+        self.name = "print"
 
+    def call(self,obj,args,inter):
+        for x in args:
+            x.op("print")
+        return lang.Object(lang.void)
+
+    def __repr__(self):
+        return "function %s" %(self.name)
+
+class PrintlnFunc(Function):
+    def __init__(self):
+        self.name = "println"
+
+    def call(self,obj,args,inter):
+        for x in args:
+            x.op("print")
+        print
+        return lang.Object(lang.void)
+    def __repr__(self):
+        return "function %s" %(self.name)
+
+
+inputFlags = {
+    "InputBuff" : "",
+    "isEOF" : 0
+}
+class ReadFunc(Function):
+    def __init__(self,input):
+        self.name = "read"
+        self.input = input
+    def call(self,obj,args,inter):
+        if self.input["InputBuff"]:
+            inp = self.input["InputBuff"]
+            try:
+                self.input["InputBuff"] = ""
+                self.input["InputBuff"] = raw_input()
+            except EOFError,e:
+                self.input["isEOF"] = 1
+        else:
+            inp = raw_input()
+        return lang.Object(lang.intType, int(inp))
+    def __repr__(self):
+        return "function %s" %(self.name)
+
+class EofFunc(Function):
+    def __init__(self,input):
+        self.name = "eof"
+        self.input = input
+    def call(self,obj,args,inter):
+        if not self.input["InputBuff"] and not self.input["isEOF"]:
+            try:
+                self.input["InputBuff"] = raw_input()
+            except EOFError,e:
+                self.input["isEOF"] = 1
+        return lang.Object(lang.intType, self.input["isEOF"])
+    def __repr__(self):
+        return "function %s" %(self.name)
 
 def get_built_in_namespace():
     ns = Namespace()
     ns.ns = {
-        'int':(lang.intType,"builtin"),
-        'void':(lang.void,"builtin"),
-        'null':(lang.null,"builtin"),
-#        'print':PrintFunc(),
-#        'println':PrintlnFunc(),
-#        'read':ReadFunc(inputFlags),
-#        'eof':EofFunc(inputFlags)
+        'int': (lang.intType,"builtin"),
+        'void': (lang.void,"builtin"),
+        'null': (lang.null,"builtin"),
+        'print': ((PrintFunc(),None),"builtin"),
+        'println': ((PrintlnFunc(),None),"builtin"),
+        'read': ((ReadFunc(inputFlags),None),"builtin"),
+        'eof': ((EofFunc(inputFlags),None),"builtin")
     }
     return ns
 
@@ -167,12 +230,11 @@ class MoreParser:
             for mem in n.query("pos_public>member"):
                 self.on_member(mem, cls, "public")
 
-            for cfdef in n.query("pos_redef>member>cfdef_list>cfdef"):
+            for cfdef in n.query("pos_redef>cfdef_list>cfdef"):
                 self.on_cfdef(cfdef, cls, "redef")
 
 
     def on_member(self,node,cls,decorate):
-        print "on_member", node
         for decl in node.query("vdecl>decllist>decl"):
             self.on_decl_inside_class(decl,cls,decorate)
         for afdef in node.query("fdefs>fdef>afdef"):
@@ -224,7 +286,6 @@ class MoreParser:
     def on_type(self,node):
         base = self.on_token(node.child(0))
         base_type = self.current_ns.get(base)
-        print base_type
         if not base_type:
             pass # raise Error
         else:
@@ -257,15 +318,12 @@ class Interpreter:
         self.current_ns = self.global_ns
         try:
             main_cls = self.current_ns.get("Main")
-            print main_cls
             main = main_cls.op_member_cls("main")
-            print main
             main[0].call(main[1],[],self)
-        except error.LangError,e:
-            print e
+        except Exception,e:
+        #except error.LangError,e:
+            print "error at line %d near token '%s': %s" %(self.current_token.lineno,self.current_token.value,str(e))
             raise
-            #print "error at line %d near token '%s': %s" %(self.current_token.lineno,self.current_token.value,str(e))
-
 
     def on_statement(self,node):
         node = node.child(0)
@@ -360,6 +418,7 @@ class Interpreter:
             return self.on_uniexp(node.child(0))
 
     def on_uniexp(self,node):
+
         if len(node) > 1:
             uniop = {'++':'inc','--':'dec',
                     '-':'minus_','!':'not','chk':'chk'}[self.on_token(node.child(0).child(0))]
@@ -374,14 +433,13 @@ class Interpreter:
             postexp = self.on_postexp(node.child(0))
             postfix = node.child(1).child(0)
             if postfix.type == 'apara':
-                print postexp
                 func = postexp[0]
                 obj = postexp[1]
                 if len(postfix) == 2:
                     return func.call(obj,[],self)
                 else:
                     return func.call(obj,self.on_apara(postfix),self)
-            elif postfix.type =='sub':
+            elif postfix.type =='index':
                 return postexp.op("index",self.on_exp(postfix.child(1)))
             elif postfix.type == 'aselect':
                 if isinstance(postexp, lang.Object):
@@ -420,13 +478,13 @@ class Interpreter:
         elif entity.type == "alloc":
             return self.on_alloc(entity)
         elif isinstance(entity,Leaf):
-            print 'get leaf ....',entity,type(entity)
             entity = self.on_token(entity)
             if isinstance(entity,str):
                 #if entity == '?': #input
                 #    return self.current_ns.get("read").call([],self)
                 #else:
-                return self.current_ns.get(entity)
+                ret = self.current_ns.get(entity)
+                return ret
             elif isinstance(entity,int):
                 return lang.Object(lang.intType, entity)
 
