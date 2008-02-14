@@ -131,7 +131,7 @@ def p_pos_redef(p):
     '''
     all_to_node(p)
     if p[1] != None:
-        p[0] = Node("pos_public",p[1:])
+        p[0] = Node("pos_redef",p[1:])
     else:
         p[0] = p[1]
 

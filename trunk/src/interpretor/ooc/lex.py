@@ -113,7 +113,7 @@ test = '''
    func abstract Node down(int) func abstract void output(int) }
  class abstract Mono:Node { public func abstract Node up() }
  class Backtracking { private var Mono prob; int num, bound end
- public func Backtracking constructor(Mono p, int b){ prob=p; bound=b; this }
+ public func Backtracking constructor(Mono p, int b){prob=p;bound=b; this }
    func void depthfirst(){ var int m, i end  m=prob.subnodenum(); i=0;
      if (prob.target())( prob.output(1); ++num);
      while (num<bound && i<m)
