@@ -23,8 +23,8 @@ import interpretor
 #            cls.instance = super(Singleton, cls).__call__(*args)
 #        return cls.instance
 
-#修饰符函数
 
+#修饰符函数
 def require_same(func):
     def wrapped(self,lhs,rhs):
         if (rhs.type != self):
@@ -61,21 +61,6 @@ def require_same_base_or_null(func):
         return func(self,lhs,rhs)
     return wrapped
 
-def is_same_base_or_null(t1,t2):
-    if t2 == nullType:
-        return True
-    base = t2
-    while(base is not None):
-        if base == t1:
-            break
-        else:
-            try:
-                base = base.base
-            except AtrributeError,e:
-                base = None
-    else:
-        return False
-    return True
 
 class Type:
     def __init__(self):
@@ -229,11 +214,7 @@ class Integer(Type):
 
 
 class Array(Type):
-    '''Array 类似于C中的指针。
-    其值有三种情况：
-    1.未初始化 []
-    2.null 0
-    3.数组 一个非空列表
+    '''Array
     '''
 
     def __init__(self,base,dim = 1):
@@ -270,24 +251,6 @@ class Array(Type):
 
     def alloc_one(self):
         return Object(self)
-
-#class ClassType():
-#    def __init__(self,name):
-#        self.name = name
-#        self.member = {}
-#
-#    def add_member(self,type,member_name):
-#        self.members[member_name] = type
-#
-#    def op_member(self,lhs,rhs):
-#        if lhs.value is None:
-#            raise error.NullError(lhs)
-#        if not isinstance(rhs,str):
-#            raise error.TypeError("id",lhs)
-#        if rhs not in self.members:
-#            raise error.MemberError(lhs,rhs)
-#
-#        return lhs.member[rhs]
 
 
 class Class(Type):
@@ -357,7 +320,8 @@ class Class(Type):
 
     def op_member(self,lhs,rhs):
         '''
-        ins.var 这种类型的引用
+        ins.var 这种类型的引用.
+        可以获得当前类的私有，公有和基类的公有成员
         '''
         #print "get %s from  %s" %(rhs,lhs)
         if lhs.value is None:
@@ -377,6 +341,28 @@ class Class(Type):
                 ret = (ret,lhs)
             return ret
 
+    def op_member_no_private(self,lhs,rhs):
+        '''
+        ins.var 这种类型的引用
+        这种方法只可以获得类或其基类的public 成员
+        '''
+        #print "get %s from  %s" %(rhs,lhs)
+        if lhs.value is None:
+            raise error.NullError(lhs)
+        if not isinstance(rhs,str):
+            raise error.TypeError("id",lhs)
+
+        if rhs in lhs.value:
+            #实例变量 自己的或基类的
+            return lhs.value[rhs]
+        else:
+            #类变量/函数
+            #由于可能有子类来调用， 这里用real_type
+            rt = lhs.real_type
+            ret = rt.get_cls_member(rhs)
+            if rhs in rt.by_type['func']:
+                ret = (ret,lhs)
+            return ret
     def __repr__(self):
         ret = "<OOC Type %s{" %self.name
         #ret += ",".join(["%s:%s" %(x,self.members[x].name) for x in self.members])
@@ -401,16 +387,20 @@ class Class(Type):
                 value[name] = Object(self.members[name][0])
         return value
 
-    def get_cls_member(self, name):
+    def get_cls_member(self, name, no_private = False):
         '''对一个类唯一的成员。 包括static , const 变量 和所有方法
         '''
+        if no_private and name in self.by_decorate['private']:
+            #TODO 应该用一个更好的提示
+            raise error.MemberError(self,name)
+
         if name in self.cls_var:
             ret = self.cls_var[name]
             return ret
         elif name in self.by_type["func"]:
             return self.members[name][0]
         elif self.base:
-            return self.base.get_cls_member(name)
+            return self.base.get_cls_member(name,True) #基类的私有成员总是不能访问的
         else:
             raise error.MemberError(self,name)
 
@@ -426,6 +416,7 @@ class Class(Type):
     def op_member_cls(self,name):
         '''
          当 ClassA.var  这样的调用出现时执行的操作
+        TODO: 是否考虑继承？
         '''
         if name not in self.members or self.members[name][1] not in ("static","const"):
             raise error.MemberError(self,name)

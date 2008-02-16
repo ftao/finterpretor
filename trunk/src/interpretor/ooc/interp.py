@@ -20,12 +20,16 @@ def copy_ns(ns_dict):
 
 
 class Namespace:
-    def __init__(self,upper = None):
-        self.upper = upper
+    '''名字空间。 出现ID时从名字空间中获得对应的对象
+    实际上只有一个全局名字空间是这个类的实例。其他都是对应子类的实例。
+    '''
+    def __init__(self, upper=None):
+        self.upper = upper #上级名字空间？
         self.ns = {}
         self.name = "global"
 
     def get(self, name):
+        "取得name 对应的对象"
         if name in self.ns:
             return self.ns[name][0]
         elif self.upper:
@@ -37,20 +41,24 @@ class Namespace:
         return self.get(key)
 
     def set(self, name, value, decorate = None):
-        #print self.name,id(self.ns)
+        "将名字加入到名字空间,检查重复定义"
         if name in self.ns:
             raise error.MultipleError(name)
         else:
             self.ns[name] = (value,decorate)
 
-    def __setitem__(self, key, value, decorate):
-        self.set(key, value)
-
     def __repr__(self):
         return "Namespace %s" %(self.name)
 
+    __str__ = __repr__
 
 class Function(Namespace):
+    '''函数。 Namespace 的子类。
+    OOC 语言中的函数都属于某一个类
+    名字，对应类，返回类型，修饰符(public,static,redef等）
+    参数有add_param 方法增加
+    TODO: abstract 的问题？
+    '''
     def __init__(self,name,cls,ret_type = lang.void, decorate = None):
         self.name = name
         self.params = []
@@ -58,43 +66,55 @@ class Function(Namespace):
         self.cls = cls
         self.ret_type = ret_type
         self.decorate = decorate
-        self.obj = None
+        self.obj = None  #调用函数的对象。
 
     def add_param(self,name,type):
+        '增加一个参数'
         self.params.append(name)
         self.set(name,lang.Object(type))
 
     def freeze(self):
+        '函数定义完成后,冻结这个函数'
         self.ns_org = copy_ns(self.ns)
 
     def set_param(self, name, value):
+        '''函数调用时，设置参数的值'''
         if name not in self.ns:
             raise NameError(name)
         else:
-            self.ns[name].op("assign",value)
+            self.ns[name].op("assign",value)  #注意这里，使用op_assign来设置参数可保证语义正确
 
     def get(self, name):
-        #print "getting %s from %s" %(name,self.obj)
+        '''取得name 对应的对象
+         函数中访问一个名字，来源可能有：
+         函数名字空间，实例变量，类变量，类方法，全局名字
+        '''
         if name in self.ns:
             return self.ns[name]
         else:
             if self.decorate == "static":#如果调用的静态方法
+                #类静态变量，对全局名字空间的访问包含在这个调用中，下同。
                 return self.cls.op_get_cls(name)
             else:
-                if name == "this":
+                if name == "this":   #对于this 特殊处理
                     return self.obj
+                #通过实例可以访问的变量。包括实例变量和类变量
                 return self.obj.op("get", name)
 
 
     def set(self, name, value):
+        '增加名字。函数自己的名字空间中没有修饰符的区别'
         if name in self.ns:
             raise MultipleError(name)
         else:
             self.ns[name] = value
 
     def call(self,obj,args,inter):
+        '在obj 上调用本函数，参数为args, 解释器对象是inter'
         #print "calling func %s in obj %s with args %s" %(self.name,obj,args)
+        #下面三个是现场保护， 名字空间字典,调用对象，解释器但前名字空间
         ns_now = self.ns
+        #这里的copy_ns 是一个半深半浅的复制
         self.ns = copy_ns(self.ns_org)
 
         old_obj = self.obj
@@ -107,13 +127,21 @@ class Function(Namespace):
             self.set_param(self.params[i], args[i])
         for st in self.statements:
             ret = inter.on_statement(st)
+
+        #恢复现场
         self.ns = ns_now
         inter.current_ns = old_current
         self.obj = old_obj
+
+        #转换成返回类型
         return ret.op("tcast", self.ret_type)
 
     def __repr__(self):
         return "Function %s " %self.name
+
+    __str__ = __repr__
+
+#下面是几个内置函数，或者说是操作符。
 class PrintFunc(Function):
     def __init__(self):
         self.name = "print"
@@ -190,16 +218,16 @@ def get_built_in_namespace():
 
 
 class MoreParser:
-    '''在AST 基础上进一步处理，根据声明语句建立名字空间和函数对象'''
+    '''在AST 基础上进一步处理，根据声明语句解析类声明'''
     def __init__(self,ast):
         self.ast = ast
         self.global_ns = get_built_in_namespace()
         self.current_ns = self.global_ns
 
     def parse(self):
-        '''walk the ast , build the golbal namespace'''
+        '''walk the ast , build the golbal namespace and classses '''
 
-        #类定义
+        #类定义  注意这里分了两步来解析类声明。用来解决嵌套问题。 一个类的成员是另一个尚未定义的类
         for n in self.ast.query("classdecl"):
             name = self.on_token(n.child(2))
             base_cls = None
@@ -210,9 +238,7 @@ class MoreParser:
             if n.child(1):
                 decorate = "abstract"
             cls = lang.Class(name, self.global_ns, base_cls, decorate)
-            #print cls
             self.global_ns.set(name, cls, decorate)
-            #print self.global_ns.get(name)
 
         for n in self.ast.query("classdecl"):
             name = self.on_token(n.child(2))
@@ -443,7 +469,13 @@ class Interpreter:
                 return postexp.op("index",self.on_exp(postfix.child(1)))
             elif postfix.type == 'aselect':
                 if isinstance(postexp, lang.Object):
-                    return postexp.op("member",self.on_token(postfix.child(1)))
+                    #这里检测但前所在函数是否是postexp 的类。
+                    #如果是,可以访问私有变量
+                    #否则，不能访问私有变量
+                    if self.current_ns.cls == postexp.type:
+                        return postexp.op("member",self.on_token(postfix.child(1)))
+                    else:
+                        return postexp.op("member_no_private",self.on_token(postfix.child(1)))
                 elif isinstance(postexp, lang.Class):
                     return postexp.op_member_cls(self.on_token(postfix.child(1)))
                 else:
