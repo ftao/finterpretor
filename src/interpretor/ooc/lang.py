@@ -295,9 +295,7 @@ class Class(Type):
 
     @require_same_base_or_null
     def op_assign(self,lhs,rhs):
-        if rhs.real_type != self: #实际类型改变了
-            #print "%s type changes to %s" %(lhs,rhs.type)
-            lhs.real_type = rhs.real_type
+        lhs.real_type = rhs.real_type
         lhs.value = rhs.value
         #print lhs
         return lhs
@@ -324,7 +322,7 @@ class Class(Type):
         可以获得当前类的私有，公有和基类的公有成员
         '''
         #print "get %s from  %s" %(rhs,lhs)
-        if lhs.value is None:
+        if lhs.real_type == nullType:
             raise error.NullError(lhs)
         if not isinstance(rhs,str):
             raise error.TypeError("id",lhs)
@@ -347,7 +345,8 @@ class Class(Type):
         这种方法只可以获得类或其基类的public 成员
         '''
         #print "get %s from  %s" %(rhs,lhs)
-        if lhs.value is None:
+        #print lhs.real_type
+        if lhs.real_type == nullType:
             raise error.NullError(lhs)
         if not isinstance(rhs,str):
             raise error.TypeError("id",lhs)
@@ -363,6 +362,7 @@ class Class(Type):
             if rhs in rt.by_type['func']:
                 ret = (ret,lhs)
             return ret
+
     def __repr__(self):
         ret = "<OOC Type %s{" %self.name
         #ret += ",".join(["%s:%s" %(x,self.members[x].name) for x in self.members])
@@ -426,6 +426,8 @@ class Class(Type):
             return (self.members[name][0],None)
 
     def op_tcast(self,obj,type):
+        #print "op_tcast" ,obj
+        #print obj.real_type
         if obj.type == type:
             return obj
         elif type == void:
@@ -440,13 +442,17 @@ class Class(Type):
 
 class NullType(Type):
 
-    @require_same_base_or_null
-    def op_assign(self,lhs,rhs):
-        if rhs.type != self: #实际类型改变了
-            #print "type changes to",rhs.type
-            lhs.type = rhs.type
-        lhs.value = rhs.value
-        return lhs
+    def __init__(self):
+        self.name = "NullType"
+
+#    @require_same_base_or_null
+#    def op_assign(self,lhs,rhs):
+#        if rhs.real_type != self: #实际类型改变了
+#            #print "%s type changes to %s" %(lhs,rhs.type)
+#            lhs.real_type = rhs.real_type
+#        lhs.value = rhs.value
+#        #print lhs
+#        return lhs
 
     def asBool(self,obj):
         return False

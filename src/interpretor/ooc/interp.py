@@ -323,11 +323,11 @@ class MoreParser:
 
     def on_condef(self,node,cls):
         #print node
-        name = self.on_token(n.child(0))
-        value = self.on_token(n.child(-1))
+        name = self.on_token(node.child(0))
+        value = self.on_token(node.child(-1))
         if len(node) > 3:
             value = -value
-        cls.add_member(name,lang.ConstObject(lang.intType,value),'const') # type use lang.intType
+        cls.add_var(name,lang.ConstObject(lang.intType,value),'const') # type use lang.intType
 
     def on_token(self,node):
         self.current_token = node
