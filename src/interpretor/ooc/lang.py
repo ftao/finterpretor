@@ -588,6 +588,10 @@ class Object:
             #raise Erro (cant't convert to bool value)
             return bool(self.value)
 
+    def __not__(self):
+        return not self.__nonzero__()
+
+
     def op(self,op,arg = None):
         if hasattr(self.type,"op_"+op):
             func = getattr(self.type,"op_"+op)
