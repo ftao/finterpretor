@@ -316,6 +316,8 @@ class Interpreter:
     def on_orexp(self,node):
         if len(node) > 1:
             lhs = self.on_orexp(node.child(0))
+            if lhs:
+                return lhs
             self.on_token(node.child(1))
             rhs = self.on_andexp(node.child(2))
             return lhs.op("or",rhs)
@@ -325,6 +327,8 @@ class Interpreter:
     def on_andexp(self,node):
         if len(node) > 1:
             lhs = self.on_andexp(node.child(0))
+            if not lhs:
+                return lhs
             self.on_token(node.child(1))
             rhs = self.on_relexp(node.child(2))
             return lhs.op("and",rhs)
@@ -407,7 +411,7 @@ class Interpreter:
         base = self.on_token(node.child(0))
         base_type = self.current_ns.get(base)
         if len(node) > 1:
-            dim = len(node) - 1
+            dim = (len(node) - 1)/2
             return lang.Array(base_type, dim)
         else:
             return base_type
