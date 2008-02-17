@@ -83,12 +83,19 @@ class Type:
 
 
     def op_tcast(self,obj,type):
-
+        #print "op_tcast" ,obj
+        #print obj.real_type
         if obj.type == type:
-            ret = obj
+            return obj
+        elif type == void:
+            return Object(void)
         else:
-            raise error.TCastError(obj,type)
-        return ret
+            ret = Object(type)
+            try:
+                ret.op("assign",obj)
+            except error.TypeError:
+                raise error.TCastError(obj,type)
+            return ret
 
     def alloc(self,size = None):
         if size:
@@ -252,12 +259,105 @@ class Array(Type):
     def alloc_one(self):
         return Object(self)
 
+    def op_member_no_private(self,lhs,rhs):
+        '''
+        array 只支持一个member length
+        '''
+        if rhs != "length":
+            raise error.MemberError(lhs,rhs)
+        else:
+            return Object(intType,len(lhs.value))
+
+class RootClass(Type):
+    '''这个语言是一个类Java 的单根的语言。 这个类是所有类的基类'''
+    def __init__(self):
+        self.name = "Object"
+
+    @require_same_base_or_null
+    def op_assign(self,lhs,rhs):
+        lhs.real_type = rhs.real_type
+        lhs.value = rhs.value
+        return lhs
+
+    def insert_public(self,value):
+        pass
+
+    def get_cls_member(self, name, no_private = False):
+        '''对一个类唯一的成员。 包括static , const 变量 和所有方法
+        '''
+        raise error.MemberError(self,name)
+
+#    def op_tcast(self,obj,type):
+#        #print "op_tcast" ,obj
+#        #print obj.real_type
+#        if obj.type == type:
+#            return obj
+#        elif type == void:
+#            return Object(void)
+#        else:
+#            ret = Object(type)
+#            try:
+#                ret.op("assign",obj)
+#            except error.TypeError:
+#                raise error.TCastError(obj,type)
+#            return ret
+
+    def op_member(self,lhs,rhs):
+        '''
+        ins.var 这种类型的引用.
+        可以获得当前类的私有，公有和基类的公有成员
+        '''
+        #print "get %s from  %s" %(rhs,lhs)
+        if lhs.real_type == nullType:
+            raise error.NullError(lhs)
+        if not isinstance(rhs,str):
+            raise error.TypeError("id",lhs)
+
+        if rhs in lhs.value:
+            #实例变量 自己的或基类的
+            return lhs.value[rhs]
+        else:
+            #类变量/函数
+            #由于可能有子类来调用， 这里用real_type
+            rt = lhs.real_type
+            ret = rt.get_cls_member(rhs)
+            if rhs in rt.by_type['func']:
+                ret = (ret,lhs)
+            return ret
+
+    def op_member_no_private(self,lhs,rhs):
+        '''
+        ins.var 这种类型的引用
+        这种方法只可以获得类或其基类的public 成员
+        '''
+        #print "get %s from  %s" %(rhs,lhs)
+        #print lhs.real_type
+        if lhs.real_type == nullType:
+            raise error.NullError(lhs)
+        if not isinstance(rhs,str):
+            raise error.TypeError("id",lhs)
+
+        if rhs in lhs.value:
+            #实例变量 自己的或基类的
+            return lhs.value[rhs]
+        else:
+            #类变量/函数
+            #由于可能有子类来调用， 这里用real_type
+            rt = lhs.real_type
+            ret = rt.get_cls_member(rhs,True)
+            if rhs in rt.by_type['func']:
+                ret = (ret,lhs)
+            return ret
+
 
 class Class(Type):
 
     def __init__(self,name,global_ns,base = None,decorate = None):
         self.name = name
-        self.base = base
+        if base is None:
+            self.base = rootClass
+        else:
+            self.base = base
         self.global_ns = global_ns
         self.decorate = decorate
         self.members = {}
@@ -351,6 +451,8 @@ class Class(Type):
         if not isinstance(rhs,str):
             raise error.TypeError("id",lhs)
 
+        if rhs in self.by_decorate['private']:
+            raise error.MemberError(lhs,rhs)
         if rhs in lhs.value:
             #实例变量 自己的或基类的
             return lhs.value[rhs]
@@ -358,7 +460,7 @@ class Class(Type):
             #类变量/函数
             #由于可能有子类来调用， 这里用real_type
             rt = lhs.real_type
-            ret = rt.get_cls_member(rhs)
+            ret = rt.get_cls_member(rhs,True)
             if rhs in rt.by_type['func']:
                 ret = (ret,lhs)
             return ret
@@ -425,20 +527,20 @@ class Class(Type):
         if name in self.by_type['func'] and name in self.by_decorate["static"]:
             return (self.members[name][0],None)
 
-    def op_tcast(self,obj,type):
-        #print "op_tcast" ,obj
-        #print obj.real_type
-        if obj.type == type:
-            return obj
-        elif type == void:
-            return Object(void)
-        else:
-            ret = Object(type)
-            try:
-                ret.op("assign",obj)
-            except error.TypeError:
-                raise error.TCastError(obj,type)
-            return ret
+#    def op_tcast(self,obj,type):
+#        #print "op_tcast" ,obj
+#        #print obj.real_type
+#        if obj.type == type:
+#            return obj
+#        elif type == void:
+#            return Object(void)
+#        else:
+#            ret = Object(type)
+#            try:
+#                ret.op("assign",obj)
+#            except error.TypeError:
+#                raise error.TCastError(obj,type)
+#            return ret
 
 class NullType(Type):
 
@@ -519,6 +621,7 @@ class ConstObject(Object):
 
 intType = Integer()
 void = Void()
+rootClass = RootClass()
 nullType = NullType()
 null = ConstObject(nullType,None)
 

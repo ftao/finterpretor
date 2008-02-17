@@ -212,7 +212,8 @@ def get_built_in_namespace():
         'print': ((PrintFunc(),None),"builtin"),
         'println': ((PrintlnFunc(),None),"builtin"),
         'read': ((ReadFunc(inputFlags),None),"builtin"),
-        'eof': ((EofFunc(inputFlags),None),"builtin")
+        'eof': ((EofFunc(inputFlags),None),"builtin"),
+        'Object': (lang.rootClass,"builtin")
     }
     return ns
 
@@ -390,8 +391,11 @@ class Interpreter:
             return self.on_orexp(node.child(0))
 
     def on_orexp(self,node):
+        #¶ÌÂ·¼ÆËã
         if len(node) > 1:
             lhs = self.on_orexp(node.child(0))
+            if lhs:
+                return lhs
             self.on_token(node.child(1))
             rhs = self.on_andexp(node.child(2))
             return lhs.op("or",rhs)
@@ -401,6 +405,8 @@ class Interpreter:
     def on_andexp(self,node):
         if len(node) > 1:
             lhs = self.on_andexp(node.child(0))
+            if not lhs:
+                return lhs
             self.on_token(node.child(1))
             rhs = self.on_relexp(node.child(2))
             return lhs.op("and",rhs)
@@ -498,7 +504,7 @@ class Interpreter:
         base = self.on_token(node.child(0))
         base_type = self.current_ns.get(base)
         if len(node) > 1:
-            dim = len(node) - 1
+            dim = (len(node) - 1)/2
             return lang.Array(base_type, dim)
         else:
             return base_type
@@ -527,10 +533,13 @@ class Interpreter:
         return ret
 
     def on_alloc(self,node):
+        #print node.child(1)
+        #print self.on_type(node.child(1))
         if len(node) == 2:
             ret =  self.on_type(node.child(1)).alloc()
         else:
             ret = self.on_type(node.child(1)).alloc(self.on_exp(node.child(3)))
+        #print "on alloc ",ret
         return ret
 
     def on_apara(self,node):
