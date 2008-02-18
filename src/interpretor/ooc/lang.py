@@ -43,24 +43,34 @@ def require_same_or_null(func):
 def require_same_base_or_null(func):
     '''
     是否相容？ 看的是原来的类型。自身看的是原来的类型
+    假设有   Object -> CA -> CB -> CC
+
     '''
     def wrapped(self,lhs,rhs):
-        base = rhs.real_type
+        base = rhs.org_type
         if base == nullType:
             return func(self,lhs,rhs)
         while(base):
-            if base == self:
+            if base == lhs.org_type:
                 break
             else:
-                try:
-                    base = base.base
-                except AtrributeError,e:
-                    base = None
+                base = base.base
         else:#break out so mathces
-            raise error.TypeError(self,rhs.real_type)
+            raise error.TypeError(lhs.org_type,rhs.org_type)
         return func(self,lhs,rhs)
     return wrapped
 
+def is_type_castable(obj,type):
+    '''检测是否可以将obj 转换成 type 类型'''
+    base = obj.type
+    while(base):
+        if base == type:
+            break
+        else:
+            base = base.base
+    else:
+        return False
+    return True
 
 class Type:
     def __init__(self):
@@ -83,19 +93,24 @@ class Type:
 
 
     def op_tcast(self,obj,type):
-        #print "op_tcast" ,obj
-        #print obj.real_type
+        '''类型强制转换。
+        1.相同类型总是可以转换
+        2.子类向基类转换
+        3.任何类型向void 转换
+        转换后的值有如下特征：
+        obj.org_type  = type
+        obj.type 不变
+        '''
         if obj.type == type:
             return obj
         elif type == void:
             return Object(void)
         else:
-            ret = Object(type)
-            try:
-                ret.op("assign",obj)
-            except error.TypeError:
+            if is_type_castable(obj,type):
+                obj.org_type = type
+                return obj
+            else:
                 raise error.TCastError(obj,type)
-            return ret
 
     def alloc(self,size = None):
         if size:
@@ -272,12 +287,22 @@ class RootClass(Type):
     '''这个语言是一个类Java 的单根的语言。 这个类是所有类的基类'''
     def __init__(self):
         self.name = "Object"
+        self.base = None
 
     @require_same_base_or_null
     def op_assign(self,lhs,rhs):
-        lhs.real_type = rhs.real_type
+        lhs.type = rhs.type
         lhs.value = rhs.value
         return lhs
+
+    @require_same_base_or_null
+    def op_eq(self,lhs,rhs):
+        return Object(intType, int(lhs.value is rhs.value))
+
+    @require_same_base_or_null
+    def op_ne(self,lhs,rhs):
+        return Object(intType, int(not (lhs.value is rhs.value)))
+
 
     def insert_public(self,value):
         pass
@@ -287,20 +312,6 @@ class RootClass(Type):
         '''
         raise error.MemberError(self,name)
 
-#    def op_tcast(self,obj,type):
-#        #print "op_tcast" ,obj
-#        #print obj.real_type
-#        if obj.type == type:
-#            return obj
-#        elif type == void:
-#            return Object(void)
-#        else:
-#            ret = Object(type)
-#            try:
-#                ret.op("assign",obj)
-#            except error.TypeError:
-#                raise error.TCastError(obj,type)
-#            return ret
 
     def op_member(self,lhs,rhs):
         '''
@@ -308,49 +319,23 @@ class RootClass(Type):
         可以获得当前类的私有，公有和基类的公有成员
         '''
         #print "get %s from  %s" %(rhs,lhs)
-        if lhs.real_type == nullType:
-            raise error.NullError(lhs)
         if not isinstance(rhs,str):
             raise error.TypeError("id",lhs)
-
-        if rhs in lhs.value:
-            #实例变量 自己的或基类的
-            return lhs.value[rhs]
-        else:
-            #类变量/函数
-            #由于可能有子类来调用， 这里用real_type
-            rt = lhs.real_type
-            ret = rt.get_cls_member(rhs)
-            if rhs in rt.by_type['func']:
-                ret = (ret,lhs)
-            return ret
+        raise error.MemberError(lhs,rsh)
 
     def op_member_no_private(self,lhs,rhs):
         '''
         ins.var 这种类型的引用
         这种方法只可以获得类或其基类的public 成员
         '''
-        #print "get %s from  %s" %(rhs,lhs)
-        #print lhs.real_type
-        if lhs.real_type == nullType:
-            raise error.NullError(lhs)
         if not isinstance(rhs,str):
             raise error.TypeError("id",lhs)
+        raise error.MemberError(lhs,rsh)
 
-        if rhs in lhs.value:
-            #实例变量 自己的或基类的
-            return lhs.value[rhs]
-        else:
-            #类变量/函数
-            #由于可能有子类来调用， 这里用real_type
-            rt = lhs.real_type
-            ret = rt.get_cls_member(rhs,True)
-            if rhs in rt.by_type['func']:
-                ret = (ret,lhs)
-            return ret
+    def op_member_cls(self,name):
+        raise error.MemberError(self, name)
 
-
-class Class(Type):
+class Class(RootClass):
 
     def __init__(self,name,global_ns,base = None,decorate = None):
         self.name = name
@@ -390,24 +375,8 @@ class Class(Type):
         self.by_type['func'].append(name)
         self.by_decorate[decorate].append(name)
 
-    def op_print(self,lhs):
-        print "op_print..............",lhs
-
-    @require_same_base_or_null
-    def op_assign(self,lhs,rhs):
-        lhs.real_type = rhs.real_type
-        lhs.value = rhs.value
-        #print lhs
-        return lhs
 
 
-    @require_same_base_or_null
-    def op_eq(self,lhs,rhs):
-        return Object(intType, int(lhs.value is rhs.value))
-
-    @require_same_base_or_null
-    def op_ne(self,lhs,rhs):
-        return Object(intType, int(not (lhs.value is rhs.value)))
 
     def op_get(self,lhs,rhs):
         #print "get %s from %s" %(rhs,lhs)
@@ -422,8 +391,6 @@ class Class(Type):
         可以获得当前类的私有，公有和基类的公有成员
         '''
         #print "get %s from  %s" %(rhs,lhs)
-        if lhs.real_type == nullType:
-            raise error.NullError(lhs)
         if not isinstance(rhs,str):
             raise error.TypeError("id",lhs)
 
@@ -432,10 +399,8 @@ class Class(Type):
             return lhs.value[rhs]
         else:
             #类变量/函数
-            #由于可能有子类来调用， 这里用real_type
-            rt = lhs.real_type
-            ret = rt.get_cls_member(rhs)
-            if rhs in rt.by_type['func']:
+            ret = self.get_cls_member(rhs)
+            if rhs in self.by_type['func']:
                 ret = (ret,lhs)
             return ret
 
@@ -444,42 +409,21 @@ class Class(Type):
         ins.var 这种类型的引用
         这种方法只可以获得类或其基类的public 成员
         '''
-        #print "get %s from  %s" %(rhs,lhs)
-        #print lhs.real_type
-        if lhs.real_type == nullType:
-            raise error.NullError(lhs)
         if not isinstance(rhs,str):
             raise error.TypeError("id",lhs)
-
         if rhs in self.by_decorate['private']:
-            raise error.MemberError(lhs,rhs)
+            raise error.MemberError(lhs, rhs)
+
         if rhs in lhs.value:
             #实例变量 自己的或基类的
             return lhs.value[rhs]
         else:
             #类变量/函数
-            #由于可能有子类来调用， 这里用real_type
-            rt = lhs.real_type
-            ret = rt.get_cls_member(rhs,True)
-            if rhs in rt.by_type['func']:
+            ret = self.get_cls_member(rhs, True)
+            if rhs in self.by_type['func']:
                 ret = (ret,lhs)
             return ret
 
-    def __repr__(self):
-        ret = "<OOC Type %s{" %self.name
-        #ret += ",".join(["%s:%s" %(x,self.members[x].name) for x in self.members])
-        ret += "}>"
-        return ret
-
-    def alloc_one(self):
-        ret = Object(self)
-        ret.value = {}
-        if self.base:
-            self.base.insert_public(ret.value)
-        for name in self.by_type['var']:
-            if self.members[name][1] not in ['const','static']:
-                ret.value[name] = Object(self.members[name][0])
-        return ret
 
     def insert_public(self,value):
         if self.base:
@@ -496,19 +440,15 @@ class Class(Type):
             #TODO 应该用一个更好的提示
             raise error.MemberError(self,name)
 
-        if name in self.cls_var:
-            ret = self.cls_var[name]
-            return ret
-        elif name in self.by_type["func"]:
+        if name in self.cls_var: #类变量，static 和 const 变量
+            return self.cls_var[name]
+        elif name in self.by_type["func"]: #方法
             return self.members[name][0]
-        elif self.base:
-            return self.base.get_cls_member(name,True) #基类的私有成员总是不能访问的
         else:
-            raise error.MemberError(self,name)
+            return self.base.get_cls_member(name,True) #基类的私有成员总是不能访问的
 
     def op_get_cls(self,name):
-        '''
-        在static 方法中可以访问的名字空间
+        '''在static 方法中可以访问的名字空间
         '''
         try:
             return self.op_member_cls(name)
@@ -520,50 +460,66 @@ class Class(Type):
          当 ClassA.var  这样的调用出现时执行的操作
         TODO: 是否考虑继承？
         '''
-        if name not in self.members or self.members[name][1] not in ("static","const"):
-            raise error.MemberError(self,name)
-        if name in self.cls_var:
+        if name in self.cls_var: #static 和const 变量
             return self.cls_var[name]
-        if name in self.by_type['func'] and name in self.by_decorate["static"]:
+        elif name in self.by_type['func'] and name in self.by_decorate["static"]: #static 函数
             return (self.members[name][0],None)
+        else: #调用基类
+            return self.base.op_member_cls(name)
 
-#    def op_tcast(self,obj,type):
-#        #print "op_tcast" ,obj
-#        #print obj.real_type
-#        if obj.type == type:
-#            return obj
-#        elif type == void:
-#            return Object(void)
-#        else:
-#            ret = Object(type)
-#            try:
-#                ret.op("assign",obj)
-#            except error.TypeError:
-#                raise error.TCastError(obj,type)
-#            return ret
+
+    def alloc_one(self):
+        ret = Object(self)
+        ret.value = {}
+        self.base.insert_public(ret.value)
+        for name in self.by_type['var']:
+            if self.members[name][1] not in ['const','static']:
+                ret.value[name] = Object(self.members[name][0])
+        return ret
+
+    def __repr__(self):
+        ret = "<OOC Type %s{" %self.name
+        #ret += ",".join(["%s:%s" %(x,self.members[x].name) for x in self.members])
+        ret += "}>"
+        return ret
+
 
 class NullType(Type):
 
     def __init__(self):
         self.name = "NullType"
-
-#    @require_same_base_or_null
-#    def op_assign(self,lhs,rhs):
-#        if rhs.real_type != self: #实际类型改变了
-#            #print "%s type changes to %s" %(lhs,rhs.type)
-#            lhs.real_type = rhs.real_type
-#        lhs.value = rhs.value
-#        #print lhs
-#        return lhs
+        self.base = None
 
     def asBool(self,obj):
         return False
 
+    @require_same_base_or_null
+    def op_assign(self,lhs,rhs):
+        lhs.type = rhs.type
+        lhs.value = rhs.value
+        return lhs
+
     def op_eq(self,lhs,rhs):
-        return Object(intType, int(lhs.type == rhs.type and lhs.value is rhs.value))
+        if isinstance(rhs.type,(RootClass,NullType)):
+            return Object(intType, int(lhs.value is rhs.value))
+        else:
+            raise error.TypeError(lhs,rhs)
 
     def op_ne(self,lhs,rhs):
-        return Object(intType, int(lhs.type != rhs.type or lhs.value is not rhs.value))
+        if isinstance(rhs.type,(RootClass,NullType)):
+            return Object(intType, int(lhs.value is not  rhs.value))
+        else:
+            raise error.TypeError(lhs,rhs)
+
+    def op_tcast(self,obj,type):
+        '''类型强制转换
+        NullType 可以转换成任何类型RootClass 或 Class 类型
+        '''
+        if isinstance(type,(RootClass,NullType)):
+            obj.ort_type = type
+            return obj
+        else:
+            raise error.TCastError(obj,type)
 
     def __repr__(self):
         return "<ooc Type Null>"
@@ -574,7 +530,7 @@ class Object:
 
     def __init__(self,type,value = None):
         self.type = type
-        self.real_type = type
+        self.org_type = type
         self.value = value
         #TODO ugly here
         if value is None and type is intType:
