@@ -1,5 +1,5 @@
 #labels Featured,Phase-Design
-#L1 (aka SmallC) 语言的定义
+L1 (aka SmallC) 语言的定义
 
 = 语法 =
 {{{
