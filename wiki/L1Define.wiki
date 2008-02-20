@@ -2,7 +2,7 @@
 #L1 (aka SmallC) 语言的定义
 
 = 语法 =
-
+{{{
 (1) <prog> ::= {<classdecl>}[<condecl>][<vdecl>] <fdef>{<fdef>}
 (2) <classdecl> ::= 'class' id '{' <decllist> '}'
 (3) <decllist> ::= <decl>{ ';' <decl>}
@@ -40,3 +40,4 @@
 (35) <entity> ::= id | num |<cast> | <alloc> | '?'
 (36)<cast> ::= '('<stlist>')'
 (37)<alloc> ::= 'new' <type> [ '[' <exp> ']' ]
+}}}
