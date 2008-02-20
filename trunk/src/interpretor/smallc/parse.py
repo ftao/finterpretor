@@ -1,6 +1,7 @@
 #coding=gbk
-from ply import yacc
+import sys
 
+from ply import yacc
 from interpretor.smallc.lex import *
 from interpretor.smallc.ast import Node,Leaf
 
@@ -399,17 +400,13 @@ def p_alloc(p):
 
 
 def p_error(p):
-    print p , "at line " , p.lineno
+    print >>sys.stderr,"parser error at line %d token '%s'" %(p.lineno, p.value)
+    sys.exit()
 
 parser = yacc.yacc()
 
 def parse(data):
-    parser.error = 0
-    parser.functions = {}
-    #p = parser.parse(data)
-    p = parser.parse(data,debug=1)
-    if parser.error: return None
-    p.functions = parser.functions
+    p = parser.parse(data)
     return p
 
 if __name__ == '__main__':

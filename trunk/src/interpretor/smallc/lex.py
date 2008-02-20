@@ -86,8 +86,8 @@ t_ignore  = ' \r\t\v'
 
 def t_error(t):
     print "Illegal character '%s' on line %d " % (t.value[0],t.lexer.lineno)
-    t.lexer.skip(1)
-    lex.has_error = True
+    #t.lexer.skip(1)
+    #raise LexError()
 
 
 
@@ -102,16 +102,7 @@ def find_column(input,token):
     column = (token.lexpos - i)+1
     return column
 
-test = '''
- func void main(){ var int i, j end
-   i = 1;
-   j = i;
-   j ++;
-   print(i);
-   print(j)
-   }
-'''
-test2 = '''
+test5 = '''
  class Link { Node prob; Link next }
  class Node { int level; int[] board }
  func void main(){ var int i, j; Link a; Node b end
@@ -122,11 +113,11 @@ test2 = '''
      print (b.board[0]);
      print (b.board[1]);
      b.level = 1;
-     print(b.level);
+     print(b.level)
     }
 '''
 
-test3 = '''
+test4 = '''
  func int gcd(int a, int b){ var int r end
    chk (a>1 && b>1);
    while (b!=0)(r=a%b; a=b; b=r);
@@ -159,7 +150,7 @@ test3= '''
 
 '''
 
-test = '''
+test2 = '''
 class Link { Node prob; Link next }
 class Node { int level; int[] board }
 const n=8;
@@ -226,8 +217,44 @@ func void main(){
     head=new Link;
     head.prob=new Node;
     head.prob.board=new int[1];
-
+    head.next = null;
     depthfirst()
+}
+'''
+
+test = '''
+
+func int bin_search(int[] ar, int start, int en, int target){
+    var int m,ret end
+    if (start > en)
+        ret = -1
+    else (
+        m = (start + en) / 2;
+        if (ar[m] == target)
+            ret = m
+        else(
+            if (ar[m] < target)
+                ret = bin_search(ar, m+1 , en, target)
+            else
+                ret = bin_search(ar, start, m-1, target)
+        )
+    );
+    ret
+}
+func void main(){
+    var int [] ar end
+    ar = new int[10];
+    ar[0] = 0;
+    ar[1] = 1;
+    ar[2] = 2;
+    ar[3] = 3;
+    ar[4] = 4;
+    ar[5] = 5;
+    ar[6] = 6;
+    ar[7] = 7;
+    ar[8] = 8;
+    ar[9] = 9;
+    print (bin_search(ar,0,9,4))
 }
 '''
 lex.lex()

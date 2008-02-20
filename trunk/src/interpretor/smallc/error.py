@@ -19,7 +19,7 @@ class TypeError(LangError):
         self.rhs = rhs
 
     def __str__(self):
-        return "Except %s , got %s" %(self.lhs,self.rhs)
+        return "Except object with type %s , got %s" %(self.lhs,self.rhs)
 
 
 class NameError(LangError):
@@ -27,21 +27,21 @@ class NameError(LangError):
         self.name = name
 
     def __str__(self):
-        return "Undefined name %s" %(self.name)
+        return "Undefined name '%s'" %(self.name)
 
 class MultipleError(LangError):
     def __init__(self,name):
         self.name = name
 
     def __str__(self):
-        return "name %s already defined" %(self.name)
+        return "Name '%s' already defined" %(self.name)
 
 class UnsupportedOPError(LangError):
     def __init__(self,op):
         self.op = op
 
     def __str__(self):
-        return "unsupported operation '%s'" %(self.op)
+        return "Unsupported operation '%s'" %(self.op)
 
 class IndexError(LangError):
     def __init__(self,ind,range):
@@ -49,12 +49,12 @@ class IndexError(LangError):
         self.range = range
 
     def __str__(self):
-        return "index %s out of range %s" %(self.index ,repr(self.range))
+        return "Index %s out of range %s" %(self.index ,repr(self.range))
 
 
 class ChkFailError(LangError):
     def __str__(self):
-        return "chk failed"
+        return "Chk failed"
 
 class NullError(LangError):
     def __init__(self,obj):
@@ -70,3 +70,10 @@ class MemberError(LangError):
 
     def __str__(self):
         return "%s don't have '%s' member ." %(self.obj,self.name)
+
+class EmptyReferenceError(LangError):
+    def __init__(self,obj):
+        self.obj = obj
+
+    def __str__(self):
+        return "%s is empty (hanging reference)." %(self.obj)

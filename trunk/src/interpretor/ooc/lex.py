@@ -90,6 +90,19 @@ def t_newline(t):
 
 t_ignore  = ' \r\t\v'
 
+t_ignore_COMMENT = r'//.*'
+
+
+# Comments
+def t_comment1(t):
+    r'//.*'
+    pass
+
+def t_comment2(t):
+    r'/\*(.|\n)*?\*/'
+    t.lineno += t.value.count('\n')
+
+
 def t_error(t):
     print "Illegal character '%s' on line %d " % (t.value[0],t.lexer.lineno)
     t.lexer.skip(1)
@@ -170,7 +183,14 @@ test = '''
 '''
 
 test = '''
- class abstract Node { public func abstract int target()
+/* class abstract */
+/*
+mulit line
+comment
+
+
+*/
+ class abstract Node { public func abstract int target()    // comment end line
    func abstract int subnodenum() func abstract Node down(int)
    func abstract void output(int)  }
  class LabelBack { private var Link head; int num, bound; Set nodeset end
@@ -227,6 +247,7 @@ test = '''
    move[5][0]=-1; move[5][1]=-2; move[6][0]=1; move[6][1]=-2; move[7][0]=2; move[7][1]=-1;
    new LabelBack.constructor(new Knight.constructor1(n, 8, move), 1, nset).depthfirst() } }
 '''
+
 lex.lex()
 
 if __name__ == '__main__':
