@@ -1,0 +1,47 @@
+#labels Featured,Phase-Design
+L2 (aka OOC) 语言的定义
+
+= 语法 =
+{{{
+(1) <prog> ::= <classdecl>{<classdecl>}
+(2) <classdecl> ::= 'class' [ 'abstract' ] id [ ':' id ] '{' [<condecl>][ 'static' <memebr>]
+[ 'private' <member>] [ 'public' <member>] [ 'redef' {<cfdef>}] '}'
+(3) <condecl> ::= 'const' <condef>{ ',' <condef>} ';'
+(4) <condef> ::= id '=' [ '-' ] num
+(5) <member> ::= [<vdecl>]{<fdef>}
+(6) <vdecl> ::= 'var' <decllist> 'end'
+(7) <decllist> ::= <decl>{ ';' <decl>}
+(8) <decl> ::= <type> <idlist>
+(9) <type> ::= id {'[]'}
+(10) <idlist> ::= id {',' id }
+(11) <fdef> ::= <afdef> | <cfdef>
+(12) <afdef> ::= 'func' 'abstract' <type> id '(' [<type> {','<type>}] ')'
+(13) <cfdef> ::= 'func' <type> <head> '{' [<vdecl>]<stlist> '}'
+(14) <head> ::=id '('[<paralist>]')'
+(15) <stlist>::= <st>{';'<st>}
+(16) <paralist> ::= <paradecl>{','<paradecl>}
+(17) <st>::= <exp> | <cond> | <loop>
+(18) <paradecl> ::= <type> id
+(19) <cond> ::= 'if' '(' <exp> ')' <st>[ 'else' <st>]
+(20) <loop> ::= 'while' '(' <exp> ')' [<st>]
+(21) <exp> ::= <orexp>[ '=' <orexp>]
+(22) <orexp> ::= <andexp>{ '||' <andexp>}
+(23) <andexp> ::= <relexp>{ '&&' <relexp>}
+(24) <relexp> ::= <term>[<relop> <term>]
+(25) <relop> ::= '==' | '!=' | '<' | '>' | '<=' | '>='
+(26) <term> ::= <factor>{<addop> <factor>}
+(27) <addop> ::= '+' | '-'
+(28) <factor> ::= <uniexp>{<multop> <uniexp>}
+(29) <multop> ::= '*' | '/' | '%'
+(30) <uniexp> ::= {<uniop>}<postexp>
+(31) <uniop> ::= '-' | '!' | '++' | '--' | 'chk'
+(32) <postexp> ::= <entity>{<postfix>}
+(33) <postfix> ::= '++' | '--' | <apara> | <index> | <aselect> | <tcast>
+(34) <apara> ::= '(' [<exp>{ ',' <exp>}] ')'
+(35) <index> ::= '[' <exp> ']'
+(36) <aselect> ::= '.' id
+(37) <tcast> ::= ':' <type>
+(38) <entity> ::= id | num | <cast> | <alloc>
+(39) <cast> ::= '('<stlist>')'
+(40) <alloc> ::= 'new' <type> [ '[' <exp> ']' ]
+}}}
