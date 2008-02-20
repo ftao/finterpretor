@@ -1,0 +1,42 @@
+#labels Featured,Phase-Design
+#L1 (aka SmallC) 语言的定义
+
+= 语法 =
+
+(1) <prog> ::= {<classdecl>}[<condecl>][<vdecl>] <fdef>{<fdef>}
+(2) <classdecl> ::= 'class' id '{' <decllist> '}'
+(3) <decllist> ::= <decl>{ ';' <decl>}
+(4) <decl> ::= <type> <idlist>
+(5) <type> ::= id {'[]'}
+(6) <idlist> ::= id {',' id }
+(7) <condecl> ::= 'const' <condef>{ ',' <condef>} ';'
+(8) <condef> ::= id '=' [ '-' ] num
+(9) <vdecl> ::= 'var' <decllist> 'end'
+(10) <fdef> ::= 'func' <type> <head> '{' [<vdecl>]<stlist> '}'
+(11) <head> ::=id '('[<paralist>]')'
+(12) <paralist> ::= <paradecl>{','<paradecl>}
+(13) <paradecl> ::= <type> id
+(14) <stlist>::= <st>{';'<st>}
+(15) <st>::= <exp> | <cond> | <loop>
+(16) <cond> ::= 'if' '(' <exp> ')' <st>[ 'else' <st>]
+(17) <loop> ::= 'while' '(' <exp> ')' [<st>]
+(18) <exp> ::= <orexp>[ '=' <orexp>]
+(19) <orexp> ::= <andexp>{ '||' <andexp>}
+(20) <andexp> ::= <relexp>{ '&&' <relexp>}
+(21) <relexp> ::= <term>[<relop> <term>]
+(22) <relop> ::= '==' | '!=' | '<' | '>' | '<=' | '>='
+(23) <term> ::= <factor>{<addop> <factor>}
+(24) <addop> ::= '+' | '-'
+(25) <factor> ::= <uniexp>{<multop> <uniexp>}
+(26) <multop> ::= '*' | '/' | '%'
+(27) <uniexp> ::= {<uniop>}<postexp>
+(28) <uniop> ::= '-' | '!' | '++' | '--' | 'chk'
+(29) <postexp> ::= <entity>{<postfix>}
+(30) <postfix> ::= '++' | '--' | <apara> | <sub> | <aselect> | <tcast>
+(31) <apara> ::= '(' [<exp>{ ',' <exp>}] ')'
+(32) <sub> ::= '[' <exp> ']'
+(33) <aselect> ::= '.' id
+(34) <tcast> ::= ':' <type>
+(35) <entity> ::= id | num |<cast> | <alloc> | '?'
+(36)<cast> ::= '('<stlist>')'
+(37)<alloc> ::= 'new' <type> [ '[' <exp> ']' ]
