@@ -1,18 +1,10 @@
 #coding=gbk
-from ply import yacc
+import sys
 
+from ply import yacc
 from interpretor.ooc.lex import *
 from interpretor.ooc.ast import Node,Leaf
 
-#def sall_to_nodee(func):
-#    def wrapped(p):
-#        for i in range(len(p)):
-#            if p[i] and not isinstance(p[i], Node):
-#                p[i] = Leaf(child, p.lineno(i), p.lexpos(i))
-#        return func(p)
-#    wrapped.__doc__ = func.__doc__
-#
-#    return wrapped
 
 def all_to_node(p):
     for i in range(len(p)):
@@ -483,17 +475,13 @@ def p_alloc(p):
 
 
 def p_error(p):
-    print p , "at line " , p.lineno
+    print >>sys.stderr,"parser error at line %d token '%s'" %(p.lineno, p.value)
+    sys.exit()
 
 parser = yacc.yacc()
 
 def parse(data):
-    parser.error = 0
-    parser.functions = {}
-    #p = parser.parse(data)
     p = parser.parse(data,debug=1)
-    if parser.error: return None
-    p.functions = parser.functions
     return p
 
 if __name__ == '__main__':

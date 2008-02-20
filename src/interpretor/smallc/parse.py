@@ -4,6 +4,7 @@ import sys
 from ply import yacc
 from interpretor.smallc.lex import *
 from interpretor.smallc.ast import Node,Leaf
+import interpretor.smallc.error as error
 
 #def sall_to_nodee(func):
 #    def wrapped(p):
@@ -400,8 +401,8 @@ def p_alloc(p):
 
 
 def p_error(p):
-    print >>sys.stderr,"parser error at line %d token '%s'" %(p.lineno, p.value)
-    sys.exit()
+    #print >>sys.stderr,"parser error at line %d token '%s'" %(p.lineno, p.value)
+    raise error.ParseError(p)
 
 parser = yacc.yacc()
 

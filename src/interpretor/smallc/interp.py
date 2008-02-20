@@ -128,7 +128,6 @@ class Interpreter:
             else:
                 print >>sys.stderr,"error at line %d near token '%s': %s" %(self.current_token.lineno,self.current_token.value,str(e))
 
-
     def on_statement(self,node):
         node = node.child(0)
         if node.type == "cond":
@@ -308,12 +307,15 @@ class Interpreter:
 
 
 def run(data):
-    ast = parse(data)
-    parser = MoreParser(ast)
-    parser.parse()
-    #print parser.global_ns.ns
-    inter = Interpreter(ast,parser.global_ns)
-    inter.run()
+    try:
+        ast = parse(data)
+        parser = MoreParser(ast)
+        parser.parse()
+        #print parser.global_ns.ns
+        inter = Interpreter(ast,parser.global_ns)
+        inter.run()
+    except error.ParseError,e:
+        print >>sys.stderr,e
     #print inter.global_ns.ns
 
 if __name__ == '__main__':
