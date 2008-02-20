@@ -5,178 +5,23 @@ SmallC 语言解释器
 SmallC 不允许函数嵌套。
 '''
 import operator
-import copy
 import sys
 import interpretor.smallc.lang as lang
+import interpretor.smallc.error as error
+from interpretor.smallc.function import Function,built_in_ns,copy_ns
 from interpretor.smallc.parse import parse
 from interpretor.smallc.lex import test
 from interpretor.smallc.ast import Node,Leaf
-import interpretor.smallc.error as error
-
-def copy_ns(ns_dict):
-    ret = copy.copy(ns_dict)
-    for x in ret:
-        ret[x] = copy.copy(ns_dict[x])
-    return ret
 
 
-class Namespace:
-    def __init__(self,upper = None):
-        self.upper = upper
-        self.ns = {}
-        self.name = "global"
 
-    def get(self, name):
-        if name in self.ns:
-            return self.ns[name]
-        elif self.upper:
-            return self.upper.get(name)
-        else:
-            #print self.ns
-            raise error.NameError(name)
-
-    def __getitem__(self, key):
-        return self.get(key)
-
-    def set(self, name, value):
-        #print self.name,id(self.ns)
-        if name in self.ns:
-            raise error.MultipleError(name)
-        else:
-            self.ns[name] = value
-
-    def __setitem__(self, key, value):
-        self.set(key, value)
-
-    def __repr__(self):
-        return "Namespace %s" %(self.name)
-
-class Function(Namespace):
-    def __init__(self,name,upper,ret_type = lang.void):
-        self.name = name
-        self.upper = upper
-        self.ns = {}
-        self.ret_type = ret_type
-        self.params = []
-        self.statements = []
-
-    def add_param(self,name,type):
-        self.params.append(name)
-        self.set(name,lang.Object(type))
-
-    def freeze(self):
-        self.ns_org = copy_ns(self.ns)
-
-    def set_param(self, name, value):
-        if name not in self.ns:
-            raise NameError(name)
-        else:
-            self.ns[name].op("assign",value)
-
-    def set(self, name, value):
-        if name in self.ns:
-            raise MultipleError(name)
-        else:
-            self.ns[name] = value
-
-    def call(self,args,inter):
-        ns_now = self.ns
-        self.ns = copy_ns(self.ns_org)
-
-        old_current = inter.current_ns
-        inter.current_ns = self
-
-        for i in range(len(self.params)):
-            self.set_param(self.params[i], args[i])
-        for st in self.statements:
-            ret = inter.on_statement(st)
-        self.ns = ns_now
-        inter.current_ns = old_current
-        return ret.op("tcast", self.ret_type)
-
-    def __repr__(self):
-        return "Function %s " %self.name
-
-class PrintFunc(Function):
-    def __init__(self):
-        self.name = "print"
-
-    def call(self,args,inter):
-        for x in args:
-            x.op("print")
-        return lang.Object(lang.void)
-
-    def __repr__(self):
-        return "function %s" %(self.name)
-
-class PrintlnFunc(Function):
-    def __init__(self):
-        self.name = "println"
-
-    def call(self,args,inter):
-        for x in args:
-            x.op("print")
-        print
-        return lang.Object(lang.void)
-    def __repr__(self):
-        return "function %s" %(self.name)
-
-
-inputFlags = {
-    "InputBuff" : "",
-    "isEOF" : 0
-}
-class ReadFunc(Function):
-    def __init__(self,input):
-        self.name = "read"
-        self.input = input
-    def call(self,args,inter):
-        if self.input["InputBuff"]:
-            inp = self.input["InputBuff"]
-            try:
-                self.input["InputBuff"] = ""
-                self.input["InputBuff"] = raw_input()
-            except EOFError,e:
-                self.input["isEOF"] = 1
-        else:
-            inp = raw_input()
-        return lang.Object(lang.intType, int(inp))
-    def __repr__(self):
-        return "function %s" %(self.name)
-
-class EofFunc(Function):
-    def __init__(self,input):
-        self.name = "eof"
-        self.input = input
-    def call(self,args,inter):
-        if not self.input["InputBuff"] and not self.input["isEOF"]:
-            try:
-                self.input["InputBuff"] = raw_input()
-            except EOFError,e:
-                self.input["isEOF"] = 1
-        return lang.Object(lang.intType, self.input["isEOF"])
-    def __repr__(self):
-        return "function %s" %(self.name)
-
-def get_built_in_namespace():
-    ns = Namespace()
-    ns.ns = {
-        'int':lang.intType,
-        'void':lang.void,
-        'null':lang.null,
-        'print':PrintFunc(),
-        'println':PrintlnFunc(),
-        'read':ReadFunc(inputFlags),
-        'eof':EofFunc(inputFlags)
-    }
-    return ns
 
 
 class MoreParser:
-    '''在AST 基础上进一步处理，根据声明语句建立名字空间和函数对象'''
+    '''在AST 基础上进一步处理，根据声明语句建立名字空间和函数'''
     def __init__(self,ast):
         self.ast = ast
-        self.global_ns = get_built_in_namespace()
+        self.global_ns = built_in_ns
         self.current_ns = self.global_ns
 
     def parse(self):
@@ -208,22 +53,25 @@ class MoreParser:
             self.on_fdef(n,self.global_ns)
 
     def on_decl(self,node,ns):
+        '(在函数中的)变量声明'
         type = self.on_type(node.child(0))
         for id in node.child(1):
             ns.set(id.value,lang.Object(type))
 
     def on_decl_inside_class(self,node,struct):
+        '在类中的变量声明'
         type = self.on_type(node.child(0))
         for id in node.child(1):
             struct.add_member(type,id.value)
 
-    #函数形参定义
     def on_paradecl(self,node,ns):
+        '函数形参定义'
         type = self.on_type(node.child(0))
         name = self.on_token(node.child(1))
         ns.add_param(name,type)
 
     def on_type(self,node):
+        '类型'
         base = self.on_token(node.child(0))
         base_type = self.current_ns.get(base)
         if not base_type:
@@ -236,7 +84,7 @@ class MoreParser:
                 return base_type
 
     def on_condef(self,node,ns):
-        #print node
+        '常量定义'
         name = self.on_token(node.child(0))
         value = self.on_token(node.child(-1))
         if len(node) > 3:
@@ -244,6 +92,7 @@ class MoreParser:
         ns.set(name,lang.ConstObject(lang.intType,value)) # type use lang.intType
 
     def on_fdef(self,node,ns):
+        '函数定义'
         name  = self.on_token(node.child(2).child(0))
         fns = Function(name,self.current_ns)
         fns.ret_type = self.on_type(node.child(1))
@@ -254,10 +103,11 @@ class MoreParser:
         for decl in node.query("funbody>vdecl>decllist>decl"):#vdecl > decllist > decls
             self.on_decl(decl,fns)
         fns.statements = node.query("funbody>stlist>st")
-        fns.freeze()
+        fns.freeze()  #冻结函数,备份原始的名字空间
 
     def on_token(self,node):
-        self.current_token = node
+        '终结符'
+        self.current_token = node #记录当前终结符。调试用
         return node.value
 
 class Interpreter:
@@ -266,13 +116,17 @@ class Interpreter:
         self.ast = ast
         self.global_ns = global_ns
         self.current_ns = None
-
+        self.current_token = None
     def run(self):
         self.current_ns = self.global_ns
+
         try:
             self.current_ns.get("main").call([],self)
         except error.LangError,e:
-            print "error at line %d near token '%s': %s" %(self.current_token.lineno,self.current_token.value,str(e))
+            if self.current_token is None:
+                print >>sys.stderr,e
+            else:
+                print >>sys.stderr,"error at line %d near token '%s': %s" %(self.current_token.lineno,self.current_token.value,str(e))
 
 
     def on_statement(self,node):
@@ -453,8 +307,8 @@ class Interpreter:
         return node.value
 
 
-def run():
-    ast = parse(test)
+def run(data):
+    ast = parse(data)
     parser = MoreParser(ast)
     parser.parse()
     #print parser.global_ns.ns
@@ -463,4 +317,4 @@ def run():
     #print inter.global_ns.ns
 
 if __name__ == '__main__':
-    run()
+    run(test)

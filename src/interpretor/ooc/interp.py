@@ -550,8 +550,8 @@ class Interpreter:
         return node.value
 
 
-def run():
-    ast = parse(test)
+def run(data):
+    ast = parse(data)
     parser = MoreParser(ast)
     parser.parse()
     #print parser.global_ns.ns
@@ -560,4 +560,4 @@ def run():
     #print inter.global_ns.ns
 
 if __name__ == '__main__':
-    run()
+    run(test)

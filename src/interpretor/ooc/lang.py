@@ -147,8 +147,7 @@ class Integer(Type):
         return bool(obj.value)
 
     def op_print(self,obj):
-        print >>sys.stderr,obj.value,
-
+        print obj.value,
 
     @require_same
     def op_or(self,lhs,rhs):
@@ -249,16 +248,16 @@ class Array(Type):
     def op_print(self,obj):
         print obj.value,
 
-    @require_same_or_null
+    @require_same
     def op_assign(self,lhs,rhs):
         lhs.value = rhs.value
         return lhs
 
-    @require_same_or_null
+    @require_same
     def op_eq(self,lhs,rhs):
         return Object(intType, int(lhs.value is rhs.value))
 
-    @require_same_or_null
+    @require_same
     def op_ne(self,lhs,rhs):
         return Object(intType, int(not (lhs.value is rhs.value)))
 
