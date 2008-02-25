@@ -85,6 +85,8 @@ class Type:
         else:
             return self.alloc_one()
 
+    def repr(self,obj):
+        return repr(obj.value)
 
     def __eq__(self,rhs):
         return self.name == rhs.name
@@ -242,7 +244,7 @@ class Array(Type):
 
         ind = rhs.value
         if ind < 0 or ind >= len(lhs.value):
-            raise error.IndexError(lhs.value,(0,len(lhs.value)))
+            raise error.IndexError(rhs.value,(0,len(lhs.value)))
         return lhs.value[ind]
 
 #    def op_member(self,lhs,rhs):
@@ -357,7 +359,8 @@ class Object:
 
 
     def __repr__(self):
-        return "SmallC Object <" + repr(self.type) + " : " + repr(self.value) +  ">"
+        return self.type.repr(self)
+        #return "SmallC Object <" + repr(self.type) + " : " + repr(self.value) +  ">"
 
     __str__ = __repr__
 

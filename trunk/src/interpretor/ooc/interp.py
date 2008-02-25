@@ -8,7 +8,7 @@ import copy
 import sys
 import interpretor.ooc.lang as lang
 from interpretor.ooc.parse import parse
-from interpretor.ooc.function import Function,built_in_ns,copy_ns
+from interpretor.ooc.function import Function,AbstractFunction,built_in_ns,copy_ns
 from interpretor.ooc.lex import test
 from interpretor.ooc.ast import Node,Leaf
 import interpretor.ooc.error as error
@@ -18,7 +18,7 @@ class MoreParser:
     '''在AST 基础上进一步处理，根据声明语句解析类声明'''
     def __init__(self,ast):
         self.ast = ast
-        self.global_ns = get_built_in_namespace()
+        self.global_ns = built_in_ns
         self.current_ns = self.global_ns
 
     def parse(self):
@@ -74,14 +74,11 @@ class MoreParser:
 
     def on_afdef(self,node,cls,decorate):
         "抽象函数声明"
-        #TODO Not Finished
         name  = self.on_token(node.child(3))
-        fns = Function(name,cls,self.on_type(node.child(2)),decorate)
-        fns.argType = []
+        fns = AbstractFunction(name,cls,self.on_type(node.child(2)),decorate)
         cls.add_func(name,fns,decorate)
         for type in node.query("type_list>type"):
-            fns.argType.append(self.on_type(type))
-        fns.freeze()
+            fns.params.append(self.on_type(type))
 
 
     def on_cfdef(self,node,cls,decorate):
@@ -136,6 +133,7 @@ class Interpreter:
         self.ast = ast
         self.global_ns = global_ns
         self.current_ns = None
+        self.call_stack = []
 
     def run(self):
         self.current_ns = self.global_ns
@@ -143,10 +141,23 @@ class Interpreter:
             main_cls = self.current_ns.get("Main")
             main = main_cls.op_member_cls("main")
             main[0].call(main[1],[],self)
-        except Exception,e:
-        #except error.LangError,e:
-            print "error at line %d near token '%s': %s" %(self.current_token.lineno,self.current_token.value,str(e))
-            raise
+        #except Exception,e:
+        except error.LangError,e:
+            if self.current_token is None:
+                print >>sys.stderr,e
+            else:
+                print >>sys.stderr,"error at line %d near token '%s': %s" %(
+                        self.current_token.lineno,
+                        self.current_token.value,
+                        str(e)
+                    )
+                print >>sys.stderr, "calling stack "
+                for x in self.call_stack:
+                    if x[1]:
+                        print >>sys.stderr, "call %s at line %s" %(x[0], x[1])
+                    else:
+                        print >>sys.stderr, "call %s" % (x[0])
+
 
     def on_statement(self,node):
         node = node.child(0)
@@ -263,10 +274,14 @@ class Interpreter:
             if postfix.type == 'apara':
                 func = postexp[0]
                 obj = postexp[1]
+                ret = []
                 if len(postfix) == 2:
-                    return func.call(obj,[],self)
+                    ret =  func.call(obj,[],self)
                 else:
-                    return func.call(obj,self.on_apara(postfix),self)
+                    ret =  func.call(obj,self.on_apara(postfix),self)
+                # read the ')', to set the current_token right
+                self.on_token(postfix.child(-1))
+                return ret
             elif postfix.type =='index':
                 return postexp.op("index",self.on_exp(postfix.child(1)))
             elif postfix.type == 'aselect':
