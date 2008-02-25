@@ -117,6 +117,7 @@ class Interpreter:
         self.global_ns = global_ns
         self.current_ns = None
         self.current_token = None
+        self.call_stack = []
     def run(self):
         self.current_ns = self.global_ns
 
@@ -126,8 +127,13 @@ class Interpreter:
             if self.current_token is None:
                 print >>sys.stderr,e
             else:
-                print >>sys.stderr,"error at line %d near token '%s': %s" %(self.current_token.lineno,self.current_token.value,str(e))
-
+                print >>sys.stderr, "error at line %d near token '%s': %s" %(self.current_token.lineno,self.current_token.value,str(e))
+                print >>sys.stderr, "calling stack "
+                for x in self.call_stack:
+                    if x[1]:
+                        print >>sys.stderr, "call %s at line %s" %(x[0], x[1])
+                    else:
+                        print >>sys.stderr, "call %s" % (x[0])
     def on_statement(self,node):
         node = node.child(0)
         if node.type == "cond":
@@ -239,10 +245,14 @@ class Interpreter:
             postexp = self.on_postexp(node.child(0))
             postfix = node.child(1).child(0)
             if postfix.type == 'apara':
+                line_no = self.current_token.lineno
+                ret = None
                 if len(postfix) == 2:
-                    return postexp.call([],self)
+                    ret = postexp.call([],self,line_no)
                 else:
-                    return postexp.call(self.on_apara(postfix),self)
+                    ret = postexp.call(self.on_apara(postfix),self,line_no)
+                self.on_token(postfix.child(-1))# read the ')', to set the current_token right
+                return ret
             elif postfix.type =='sub':
                 return postexp.op("index",self.on_exp(postfix.child(1)))
             elif postfix.type == 'aselect':

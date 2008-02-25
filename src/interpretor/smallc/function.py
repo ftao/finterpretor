@@ -66,14 +66,19 @@ class Function(Namespace):
         else:
             self.ns[name].op("assign",value)
 
-    def call(self,args,inter):
+    def call(self, args, inter, line_no = None):
         '''用参数args调用函数,解释器对象为inter'''
+
+        #将当前函数压入调用栈
+        inter.call_stack.append((self, line_no))
+
         #保存现场
         ns_now = self.ns
         self.ns = copy_ns(self.ns_org)
 
         old_current = inter.current_ns
         inter.current_ns = self
+
 
         ret = lang.Object(lang.void)
 
@@ -86,6 +91,8 @@ class Function(Namespace):
         self.ns = ns_now
         inter.current_ns = old_current
 
+        #调用栈弹出当前函数
+        inter.call_stack.pop()
         return ret.op("tcast", self.ret_type)
 
     def __repr__(self):

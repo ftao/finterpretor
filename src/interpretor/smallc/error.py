@@ -57,7 +57,7 @@ class IndexError(LangError):
         self.range = range
 
     def __str__(self):
-        return "Index %s out of range %s" %(self.index ,repr(self.range))
+        return "Index %s out of range [%d,%d)" %(self.index ,self.range[0], self.range[1])
 
 
 class ChkFailError(LangError):

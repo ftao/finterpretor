@@ -70,3 +70,11 @@ class MemberError(LangError):
 
     def __str__(self):
         return "%s don't have '%s' member ." %(self.obj,self.member)
+
+class UnimplementedMethodError(LangError):
+    def __init__(self, method, cls):
+        self.method = method
+        self.cls = cls
+
+    def __str__(self):
+        return "method '%s' of class '%s' is unimplemented (abstract)." %(self.method, self.cls)

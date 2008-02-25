@@ -246,7 +246,10 @@ class Array(Type):
         self.name = self.base.name + "[]"
 
     def op_print(self,obj):
-        print obj.value,
+        print '[',
+        for x in self.value:
+            x.op("print")
+        print ']',
 
     @require_same
     def op_assign(self,lhs,rhs):
@@ -335,7 +338,11 @@ class RootClass(Type):
         raise error.MemberError(self, name)
 
 class Class(RootClass):
-
+    '''OOC 语言的类。
+    所有redef 成员认为是public
+    所有public,const 认为是public
+    只有private 才是private
+    '''
     def __init__(self,name,global_ns,base = None,decorate = None):
         self.name = name
         if base is None:
@@ -375,6 +382,9 @@ class Class(RootClass):
         self.by_decorate[decorate].append(name)
 
 
+
+    def op_print(self, obj):
+        print "<%s Instanse at %s>" %(obj.type.name, id(obj.value))
 
 
     def op_get(self,lhs,rhs):
@@ -428,7 +438,7 @@ class Class(RootClass):
         if self.base:
             self.base.insert_public(value)
         for name in self.by_type['var']:
-            if self.members[name][1] == "public":
+            if self.members[name][1] in ("public", "redef"):
                 value[name] = Object(self.members[name][0])
         return value
 
@@ -478,7 +488,6 @@ class Class(RootClass):
 
     def __repr__(self):
         ret = "<OOC Type %s{" %self.name
-        #ret += ",".join(["%s:%s" %(x,self.members[x].name) for x in self.members])
         ret += "}>"
         return ret
 

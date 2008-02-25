@@ -12,7 +12,7 @@ class Shell:
     def __init__(self,name,engineer):
         self.code = ""
         self.engineer = engineer
-        self.name = "L"
+        self.name = name
         self.recent_command = []
         self.version = "0.1"
     def start(self):
