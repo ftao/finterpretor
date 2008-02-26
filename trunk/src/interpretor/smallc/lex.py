@@ -254,7 +254,7 @@ func void main(){
     ar[7] = 7;
     ar[8] = 8;
     ar[9] = 9;
-    print (bin_search(ar,0,10,10))
+    print (bin_search(ar,0,9,3))
 }
 '''
 lex.lex()

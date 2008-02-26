@@ -157,6 +157,9 @@ class Interpreter:
                         print >>sys.stderr, "call %s at line %s" %(x[0], x[1])
                     else:
                         print >>sys.stderr, "call %s" % (x[0])
+        except StandardError,e:
+            print >>sys.stderr, "Interpretor inner error "
+            raise e
 
 
     def on_statement(self,node):
@@ -274,11 +277,11 @@ class Interpreter:
             if postfix.type == 'apara':
                 func = postexp[0]
                 obj = postexp[1]
-                ret = []
+                line_no = self.current_token.lineno
                 if len(postfix) == 2:
-                    ret =  func.call(obj,[],self)
+                    ret =  func.call(obj,[],self,line_no)
                 else:
-                    ret =  func.call(obj,self.on_apara(postfix),self)
+                    ret =  func.call(obj,self.on_apara(postfix),self,line_no)
                 # read the ')', to set the current_token right
                 self.on_token(postfix.child(-1))
                 return ret
