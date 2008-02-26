@@ -1,4 +1,6 @@
+#summary L1语言定义
 #labels Featured,Phase-Design
+
 L1 (aka SmallC) 语言的定义
 
 = 语法 =
