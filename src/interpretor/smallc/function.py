@@ -103,7 +103,7 @@ class PrintFunc(Function):
     def __init__(self):
         self.name = "print"
 
-    def call(self,args,inter):
+    def call(self,args,inter,line_no):
         for x in args:
             x.op("print")
         return lang.Object(lang.void)
@@ -129,7 +129,7 @@ class ReadFunc(Function):
     def __init__(self,input):
         self.name = "read"
         self.input = input
-    def call(self,args,inter):
+    def call(self,args,inter,line_no):
         if self.input["InputBuff"]:
             inp = self.input["InputBuff"]
             try:
@@ -148,7 +148,7 @@ class EofFunc(Function):
         self.name = "eof"
         self.input = input
 
-    def call(self,args,inter):
+    def call(self,args,inter,line_no):
         if not self.input["InputBuff"] and not self.input["isEOF"]:
             try:
                 self.input["InputBuff"] = raw_input()
