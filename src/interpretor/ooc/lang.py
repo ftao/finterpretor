@@ -42,8 +42,7 @@ def require_same_or_null(func):
 
 def require_same_base_or_null(func):
     '''
-    是否相容？ 看的是原来的类型。自身看的是原来的类型
-    假设有   Object -> CA -> CB -> CC
+    是否相容？
 
     '''
     def wrapped(self,lhs,rhs):
