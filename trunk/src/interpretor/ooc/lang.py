@@ -75,6 +75,9 @@ class Type:
     def __init__(self):
         self.name = "type"
 
+    def to_str(self,obj):
+        return  str(obj.value)
+
     @require_same
     def op_assign(self,lhs,rhs):
         lhs.value = rhs.value
@@ -144,9 +147,6 @@ class Integer(Type):
 
     def asBool(self,obj):
         return bool(obj.value)
-
-    def op_print(self,obj):
-        print obj.value,
 
     @require_same
     def op_or(self,lhs,rhs):
@@ -244,11 +244,8 @@ class Array(Type):
             self.base = base
         self.name = self.base.name + "[]"
 
-    def op_print(self,obj):
-        print '[',
-        for x in self.value:
-            x.op("print")
-        print ']',
+    def to_str(self,obj):
+        return '[' + ",".join([x.to_str() for x in self.value]) + ']'
 
     @require_same
     def op_assign(self,lhs,rhs):
@@ -379,11 +376,6 @@ class Class(RootClass):
         self.members[name] = (value,decorate)
         self.by_type['func'].append(name)
         self.by_decorate[decorate].append(name)
-
-
-
-    def op_print(self, obj):
-        print "<%s Instanse at %s>" %(obj.type.name, id(obj.value))
 
 
     def op_get(self,lhs,rhs):
@@ -565,6 +557,8 @@ class Object:
         else:
             raise error.UnsupportedOPError(op)
 
+    def to_str(self):
+        return self.type.to_str(self)
 
     def __repr__(self):
         return "OOC Object <" + repr(self.type) + " : " + repr(self.value) +  ">"

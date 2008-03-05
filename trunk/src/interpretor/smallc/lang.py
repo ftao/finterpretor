@@ -50,6 +50,9 @@ class Type:
     def __init__(self):
         self.name = "type"
 
+    def to_str(self,obj):
+        return  str(obj.value)
+
     @require_same
     def op_assign(self,lhs,rhs):
         lhs.value = rhs.value
@@ -113,10 +116,6 @@ class Integer(Type):
 
     def asBool(self,obj):
         return bool(obj.value)
-
-    def op_print(self,obj):
-        print obj.value,
-
 
     @require_same
     def op_or(self,lhs,rhs):
@@ -217,8 +216,8 @@ class Array(Type):
             self.base = base
         self.name = self.base.name + "[]"
 
-    def op_print(self,obj):
-        print obj.value,
+    def to_str(self,obj):
+        return '[' + ",".join([x.to_str() for x in self.value]) + ']'
 
     @require_same_or_null
     def op_assign(self,lhs,rhs):
@@ -267,8 +266,6 @@ class Struct(Type):
         self.name = name
         self.members = {}
 
-    def op_print(self,lhs):
-        print lhs
 
     def add_member(self,type,member_name):
         self.members[member_name] = type
@@ -277,7 +274,6 @@ class Struct(Type):
     def op_assign(self,lhs,rhs):
         lhs.value = rhs.value
         return lhs
-
 
     @require_same_or_null
     @require_not_empty
@@ -357,6 +353,8 @@ class Object:
         else:
             raise error.UnsupportedOPError(op)
 
+    def to_str(self):
+        return self.type.to_str(self)
 
     def __repr__(self):
         return self.type.repr(self)
