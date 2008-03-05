@@ -105,7 +105,7 @@ class PrintFunc(Function):
 
     def call(self,args,inter,line_no):
         for x in args:
-            x.op("print")
+            print x.to_str(),
         return lang.Object(lang.void)
 
 class PrintlnFunc(Function):
@@ -115,7 +115,7 @@ class PrintlnFunc(Function):
 
     def call(self,args,inter):
         for x in args:
-            x.op("print")
+            print x.to_str(),
         print
         return lang.Object(lang.void)
 
