@@ -1,0 +1,19 @@
+  var int[] a; int n end
+  func int pow(int m){
+   var int ans, i end ans=1; i=0;
+    while (i++<n ) ans=ans*m; ans }
+  func int r2n(){
+    var int ans, i end ans=0; i=n-1;
+    while (i>=0) ans=ans*10+a[i--]; ans }
+  func int next(){
+    var int ans, i end i=0; ans=1;
+   while (i<n && a[i]==9) a[i++]=1;
+   if (i<n) ++a[i] else ans=0; ans }
+ func void narci() {
+   var int i, j, k end i=0;
+   while (i<n) a[i++]=1;
+   while (next())( k=r2n(); i=0; j=0;
+     while (j<n) i=i+pow(a[j++]);
+     if (k==i) println(i)) }
+ func void main() { a=new int[10]; n=3;
+   while (n<=5)( narci(); ++n ) }

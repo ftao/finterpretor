@@ -1,0 +1,8 @@
+ func int gcd(int a, int b){ var int r end
+   chk (a>1 && b>1);
+   while (b!=0)(r=a%b; a=b; b=r);
+   a }
+ func void main(){ var int i, j end
+   while (!eof())( i=read();
+     if (!eof())( j=read();
+       println(i, j, gcd(i, j)))) }
