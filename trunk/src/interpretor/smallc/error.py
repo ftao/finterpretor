@@ -85,3 +85,10 @@ class EmptyReferenceError(LangError):
 
     def __str__(self):
         return "%s is empty (hanging reference)." %(self.obj)
+
+
+class EOFError(LangError):
+    def __init__(self):
+        pass
+    def __str__(self):
+        return "EOF Error."

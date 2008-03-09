@@ -8,7 +8,7 @@ import operator
 import sys
 import interpretor.smallc.lang as lang
 import interpretor.smallc.error as error
-from interpretor.smallc.function import Function,built_in_ns,copy_ns
+from interpretor.smallc.function import Function,get_built_in_ns,copy_ns,set_io
 from interpretor.smallc.parse import parse
 from interpretor.smallc.lex import test
 from interpretor.smallc.ast import Node,Leaf
@@ -21,7 +21,7 @@ class MoreParser:
     '''在AST 基础上进一步处理，根据声明语句建立名字空间和函数'''
     def __init__(self,ast):
         self.ast = ast
-        self.global_ns = built_in_ns
+        self.global_ns = get_built_in_ns()
         self.current_ns = self.global_ns
 
     def parse(self):
@@ -118,6 +118,7 @@ class Interpreter:
         self.current_ns = None
         self.current_token = None
         self.call_stack = []
+
     def run(self):
         self.current_ns = self.global_ns
 
@@ -320,7 +321,8 @@ class Interpreter:
         return node.value
 
 
-def run(data):
+def run(data, input_file = sys.stdin, output_file = sys.stdout):
+    set_io(input_file, output_file)
     try:
         ast = parse(data)
         parser = MoreParser(ast)

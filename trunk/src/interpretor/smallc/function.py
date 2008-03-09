@@ -1,5 +1,6 @@
 #coding=gbk
 import copy
+import sys
 import interpretor.smallc.lang as lang
 import interpretor.smallc.error as error
 
@@ -9,6 +10,19 @@ def copy_ns(ns_dict):
         ret[x] = copy.copy(ns_dict[x])
     return ret
 
+io = {
+    'input' : sys.stdin,
+    'output' : sys.stdout,
+    'input_buff' : "",
+    'is_eof' : 0
+}
+
+
+def set_io(input_f,output_f):
+    io['input'] = input_f
+    io['output'] = output_f
+    io['input_buff'] = ""
+    io['is_eof'] = 0
 
 class Namespace:
     '名字空间'
@@ -42,7 +56,7 @@ class Namespace:
 
 class Function(Namespace):
     '''函数'''
-    def __init__(self,name,upper,ret_type = lang.void):
+    def __init__(self, name, upper, ret_type = lang.void):
         self.name = name
         self.upper = upper
         self.ns = {}
@@ -50,7 +64,7 @@ class Function(Namespace):
         self.params = []
         self.statements = []
 
-    def add_param(self,name,type):
+    def add_param(self, name, type):
         '增加形参'
         self.params.append(name)
         self.set(name,lang.Object(type))
@@ -64,7 +78,7 @@ class Function(Namespace):
         if name not in self.ns:
             raise error.NameError(name)
         else:
-            self.ns[name].op("assign",value)
+            self.ns[name].op("assign", value)
 
     def call(self, args, inter, line_no = None):
         '''用参数args调用函数,解释器对象为inter'''
@@ -103,9 +117,9 @@ class PrintFunc(Function):
     def __init__(self):
         self.name = "print"
 
-    def call(self,args,inter,line_no):
+    def call(self, args, inter, line_no = None):
         for x in args:
-            print x.to_str(),
+            print >>io['output'], x.to_str(),
         return lang.Object(lang.void)
 
 class PrintlnFunc(Function):
@@ -113,57 +127,62 @@ class PrintlnFunc(Function):
     def __init__(self):
         self.name = "println"
 
-    def call(self,args,inter):
+    def call(self,args,inter, line_no = None):
         for x in args:
-            print x.to_str(),
-        print
+            print >>io['output'], x.to_str(),
+        print >>io['output']
         return lang.Object(lang.void)
 
 
-inputFlags = {
-    "InputBuff" : "",
-    "isEOF" : 0
-}
 class ReadFunc(Function):
     '''read 函数 读入数据'''
-    def __init__(self,input):
+    def __init__(self):
         self.name = "read"
-        self.input = input
-    def call(self,args,inter,line_no):
-        if self.input["InputBuff"]:
-            inp = self.input["InputBuff"]
-            try:
-                self.input["InputBuff"] = ""
-                self.input["InputBuff"] = raw_input()
-            except EOFError,e:
-                self.input["isEOF"] = 1
+    def call(self, args, inter, line_no = None):
+        if io["input_buff"]:
+            inp = io["input_buff"]
+            io["input_buff"] = ""
+            line = io['input'].readline()
+            if line == "":
+                io['is_eof'] = 1
+            else:
+                io["input_buff"] = line.strip()
         else:
-            inp = raw_input()
-        return lang.Object(lang.intType, int(inp))
+            line = io['input'].readline()
+            if line == "":
+                raise error.EOFError()
+            else:
+                inp = line.strip()
+        try:
+            inp = int(inp)
+        except ValueError,e:
+            raise error.LangError()
+        return lang.Object(lang.intType, inp)
 
 
 class EofFunc(Function):
     '''eof 函数,检测输入是否结束'''
-    def __init__(self,input):
+    def __init__(self):
         self.name = "eof"
-        self.input = input
 
-    def call(self,args,inter,line_no):
-        if not self.input["InputBuff"] and not self.input["isEOF"]:
-            try:
-                self.input["InputBuff"] = raw_input()
-            except EOFError,e:
-                self.input["isEOF"] = 1
-        return lang.Object(lang.intType, self.input["isEOF"])
+    def call(self, args, inter, line_no = None):
+        if not io["input_buff"] and not io['is_eof']:
+            line = io['input'].readline()
+            if line == "":
+                io['is_eof'] = 1
+            else:
+                io["input_buff"] = line.strip()
+        return lang.Object(lang.intType, io["is_eof"])
 
-
-built_in_ns = Namespace()
-built_in_ns.ns = {
-    'int':lang.intType,
-    'void':lang.void,
-    'null':lang.null,
-    'print':PrintFunc(),
-    'println':PrintlnFunc(),
-    'read':ReadFunc(inputFlags),
-    'eof':EofFunc(inputFlags)
-}
+def get_built_in_ns():
+    built_in_ns = Namespace()
+    built_in_ns.ns = {
+        'int':lang.intType,
+        'void':lang.void,
+        'null':lang.null,
+        'print':PrintFunc(),
+        'println':PrintlnFunc(),
+        'read':ReadFunc(),
+        'eof':EofFunc()
+    }
+    return built_in_ns
