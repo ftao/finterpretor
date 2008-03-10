@@ -3,7 +3,7 @@ import sys
 
 from ply import yacc
 from interpretor.smallc.lex import *
-from interpretor.smallc.ast import Node,Leaf
+from interpretor.ast import Node,Leaf
 import interpretor.smallc.error as error
 
 #def sall_to_nodee(func):

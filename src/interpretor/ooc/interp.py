@@ -10,7 +10,7 @@ import interpretor.ooc.lang as lang
 from interpretor.ooc.parse import parse
 from interpretor.ooc.function import Function,AbstractFunction,built_in_ns,copy_ns
 from interpretor.ooc.lex import test
-from interpretor.ooc.ast import Node,Leaf
+from interpretor.ast import Node,Leaf
 import interpretor.ooc.error as error
 
 
