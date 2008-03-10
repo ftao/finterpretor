@@ -11,7 +11,7 @@ import interpretor.smallc.error as error
 from interpretor.smallc.function import Function,get_built_in_ns,copy_ns,set_io
 from interpretor.smallc.parse import parse
 from interpretor.smallc.lex import test
-from interpretor.smallc.ast import Node,Leaf
+from interpretor.ast import Node,Leaf
 
 
 

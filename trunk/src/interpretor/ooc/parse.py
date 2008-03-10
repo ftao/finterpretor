@@ -3,7 +3,7 @@ import sys
 
 from ply import yacc
 from interpretor.ooc.lex import *
-from interpretor.ooc.ast import Node,Leaf
+from interpretor.ast import Node,Leaf
 
 
 def all_to_node(p):
