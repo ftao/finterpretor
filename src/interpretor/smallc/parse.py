@@ -1,4 +1,4 @@
-#coding=gbk
+#coding=utf8
 import sys
 
 from ply import yacc
@@ -26,13 +26,13 @@ def p_empty(p):
     "empty : "
     pass
 
-#³ÌĞò
+#ç¨‹åº
 def p_prog(p):
     '''prog : class_decls const_decls var_decls fdefs
     '''
     p[0] = Node("prog",p[1:])
 
-#ÀàÉùÃ÷s
+#ç±»å£°æ˜s
 def p_class_decls(p):
     '''class_decls : class_decls classdecl
                    | classdecl
@@ -69,7 +69,7 @@ def p_decl(p):
     "decl : type idlist"
     p[0] = Node("decl",p[1:])
 
-#ÀàĞÍ
+#ç±»å‹
 
 def p_type(p):
     '''type : type '[' ']'
@@ -94,7 +94,7 @@ def p_idlist(p):
         p[0] = Node("idlist",p[1:])
 
 
-#¿ÉÄÜµÄ³£Á¿ÉùÃ÷
+#å¯èƒ½çš„å¸¸é‡å£°æ˜
 
 def p_const_decls(p):
     '''const_decls : condecl ';'
@@ -114,7 +114,7 @@ def p_condecl(p):
     else:
         p[0] = Node("condecl",p[1:])
 
-#³£Á¿¶¨Òå
+#å¸¸é‡å®šä¹‰
 
 def p_condef(p):
     '''condef : id '=' num
@@ -124,7 +124,7 @@ def p_condef(p):
     p[0] = Node("condef",p[1:])
 
 
-#±äÁ¿ÉùÃ÷
+#å˜é‡å£°æ˜
 def p_var_decls(p):
     '''var_decls : vdecl
                  | empty
@@ -138,7 +138,7 @@ def p_vdecl(p):
     p[0] = Node("vdecl",p[1:])
 
 
-#º¯Êı¶¨Òås
+#å‡½æ•°å®šä¹‰s
 def p_fdefs(p):
     ''' fdefs : fdef fdefs
               | fdef

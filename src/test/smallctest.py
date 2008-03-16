@@ -1,4 +1,4 @@
-#coding=gbk
+#coding=utf8
 '''Unit Test For interpretor.smallc package'''
 import unittest
 import sys

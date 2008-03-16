@@ -1,4 +1,4 @@
-#coding=gbk
+#coding=utf8
 import sys
 
 from ply import yacc
@@ -16,7 +16,7 @@ def p_empty(p):
     "empty : "
     pass
 
-#³ÌĞò
+#ç¨‹åº
 def p_prog(p):
     '''prog : prog classdecl
             | classdecl
@@ -54,7 +54,7 @@ def p_pos_superclass(p):
     else:
         p[0] = p[1]
 
-#¿ÉÄÜµÄ³£Á¿ÉùÃ÷
+#å¯èƒ½çš„å¸¸é‡å£°æ˜
 def p_pos_condecl(p):
     '''pos_condecl : condecl ';'
                    | empty
@@ -76,7 +76,7 @@ def p_condecl(p):
     else:
         p[0] = Node("condecl",p[1:])
 
-#³£Á¿¶¨Òå
+#å¸¸é‡å®šä¹‰
 
 def p_condef(p):
     '''condef : id '=' num
@@ -165,7 +165,7 @@ def p_decl(p):
     "decl : type idlist"
     p[0] = Node("decl",p[1:])
 
-#ÀàĞÍ
+#ç±»å‹
 
 def p_type(p):
     '''type : type '[' ']'
@@ -190,7 +190,7 @@ def p_idlist(p):
         p[0] = Node("idlist",p[1:])
 
 
-#º¯Êı¶¨Òås
+#å‡½æ•°å®šä¹‰s
 def p_fdefs(p):
     ''' fdefs : fdef fdefs
               | fdef

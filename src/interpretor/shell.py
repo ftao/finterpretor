@@ -1,7 +1,7 @@
-#coding=gbk
+#coding=utf8
 '''
-½âÊÍÆ÷Shell
-¿ÉÒÔ¼ÓÔØÁ½¸ö²»Í¬µÄÒıÇæ,À´½âÊÍ²»Í¬µÄÓïÑÔ
+è§£é‡Šå™¨Shell
+å¯ä»¥åŠ è½½ä¸¤ä¸ªä¸åŒçš„å¼•æ“,æ¥è§£é‡Šä¸åŒçš„è¯­è¨€
 '''
 import sys
 
@@ -107,5 +107,17 @@ class Shell:
         self.engineer.run(self.code)
 
 if __name__ == '__main__':
-    import  interpretor.smallc.interp as engieer
-    Shell("L1",engieer).start()
+    if len(sys.argv) <= 1 or sys.argv[1] not in ["L1", "L2"]:
+        print "Plase choose a engieer"
+        print "L1 , L2 , L3 "
+        print "eg: %s L1" %(sys.argv[0])
+    else:
+        if sys.argv[1] == "L1":
+            import  interpretor.smallc.interp as engieer
+        elif sys.argv[1] == "L2":
+            import  interpretor.ooc.interp as engieer
+        shell = Shell(sys.argv[1],engieer)
+        if len(sys.argv) > 2:
+            shell.load(sys.argv[2])
+        else:
+            shell.start()

@@ -1,4 +1,4 @@
-#coding=gbk
+#coding=uft8
 '''
 ooc 语言解释器
 工作在抽象语法树上。
@@ -8,7 +8,7 @@ import copy
 import sys
 import interpretor.ooc.lang as lang
 from interpretor.ooc.parse import parse
-from interpretor.ooc.function import Function,AbstractFunction,built_in_ns,copy_ns
+from interpretor.ooc.function import Function,AbstractFunction,get_built_in_ns,copy_ns,set_io
 from interpretor.ooc.lex import test
 from interpretor.ast import Node,Leaf
 import interpretor.ooc.error as error
@@ -364,7 +364,8 @@ class Interpreter:
         return node.value
 
 
-def run(data):
+def run(data, input_file, output_file):
+    set_io(input_file, output_file)
     ast = parse(data)
     parser = MoreParser(ast)
     parser.parse()

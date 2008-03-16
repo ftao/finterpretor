@@ -1,8 +1,8 @@
-#coding=gbk
+#coding=utf8
 '''
-SmallC ÓïÑÔ½âÊÍÆ÷
-¹¤×÷ÔÚ³éÏóÓï·¨Ê÷ÉÏ¡£
-SmallC ²»ÔÊĞíº¯ÊıÇ¶Ì×¡£
+SmallC è¯­è¨€è§£é‡Šå™¨
+å·¥ä½œåœ¨æŠ½è±¡è¯­æ³•æ ‘ä¸Šã€‚
+SmallC ä¸å…è®¸å‡½æ•°åµŒå¥—ã€‚
 '''
 import operator
 import sys
@@ -14,11 +14,8 @@ from interpretor.smallc.lex import test
 from interpretor.ast import Node,Leaf
 
 
-
-
-
 class MoreParser:
-    '''ÔÚAST »ù´¡ÉÏ½øÒ»²½´¦Àí£¬¸ù¾İÉùÃ÷Óï¾ä½¨Á¢Ãû×Ö¿Õ¼äºÍº¯Êı'''
+    '''åœ¨AST åŸºç¡€ä¸Šè¿›ä¸€æ­¥å¤„ç†ï¼Œæ ¹æ®å£°æ˜è¯­å¥å»ºç«‹åå­—ç©ºé—´å’Œå‡½æ•°'''
     def __init__(self,ast):
         self.ast = ast
         self.global_ns = get_built_in_ns()
@@ -27,7 +24,7 @@ class MoreParser:
     def parse(self):
         '''walk the ast , build the golbal namespace'''
 
-        #Àà¶¨Òå
+        #ç±»å®šä¹‰
         for n in self.ast.query("class_decls>classdecl"):
             name = self.on_token(n.child(1))
             struct = lang.Struct(name)
@@ -40,38 +37,38 @@ class MoreParser:
             for x in n.child(3):
                 self.on_decl_inside_class(x,struct)
 
-        #³£Á¿
+        #å¸¸é‡
         for n in self.ast.query("condecl>condef"):
             self.on_condef(n,self.global_ns)
 
-        #±äÁ¿
+        #å˜é‡
         for decl in self.ast.query("vdecl>decllist>decl"):
             self.on_decl(decl,self.global_ns)
 
-        #º¯Êı
+        #å‡½æ•°
         for n in self.ast.query("fdefs>fdef"):
             self.on_fdef(n,self.global_ns)
 
     def on_decl(self,node,ns):
-        '(ÔÚº¯ÊıÖĞµÄ)±äÁ¿ÉùÃ÷'
+        '(åœ¨å‡½æ•°ä¸­çš„)å˜é‡å£°æ˜'
         type = self.on_type(node.child(0))
         for id in node.child(1):
             ns.set(id.value,lang.Object(type))
 
     def on_decl_inside_class(self,node,struct):
-        'ÔÚÀàÖĞµÄ±äÁ¿ÉùÃ÷'
+        'åœ¨ç±»ä¸­çš„å˜é‡å£°æ˜'
         type = self.on_type(node.child(0))
         for id in node.child(1):
             struct.add_member(type,id.value)
 
     def on_paradecl(self,node,ns):
-        'º¯ÊıĞÎ²Î¶¨Òå'
+        'å‡½æ•°å½¢å‚å®šä¹‰'
         type = self.on_type(node.child(0))
         name = self.on_token(node.child(1))
         ns.add_param(name,type)
 
     def on_type(self,node):
-        'ÀàĞÍ'
+        'ç±»å‹'
         base = self.on_token(node.child(0))
         base_type = self.current_ns.get(base)
         if not base_type:
@@ -84,7 +81,7 @@ class MoreParser:
                 return base_type
 
     def on_condef(self,node,ns):
-        '³£Á¿¶¨Òå'
+        'å¸¸é‡å®šä¹‰'
         name = self.on_token(node.child(0))
         value = self.on_token(node.child(-1))
         if len(node) > 3:
@@ -92,7 +89,7 @@ class MoreParser:
         ns.set(name,lang.ConstObject(lang.intType,value)) # type use lang.intType
 
     def on_fdef(self,node,ns):
-        'º¯Êı¶¨Òå'
+        'å‡½æ•°å®šä¹‰'
         name  = self.on_token(node.child(2).child(0))
         fns = Function(name,self.current_ns)
         fns.ret_type = self.on_type(node.child(1))
@@ -103,11 +100,11 @@ class MoreParser:
         for decl in node.query("funbody>vdecl>decllist>decl"):#vdecl > decllist > decls
             self.on_decl(decl,fns)
         fns.statements = node.query("funbody>stlist>st")
-        fns.freeze()  #¶³½áº¯Êı,±¸·İÔ­Ê¼µÄÃû×Ö¿Õ¼ä
+        fns.freeze()  #å†»ç»“å‡½æ•°,å¤‡ä»½åŸå§‹çš„åå­—ç©ºé—´
 
     def on_token(self,node):
-        'ÖÕ½á·û'
-        self.current_token = node #¼ÇÂ¼µ±Ç°ÖÕ½á·û¡£µ÷ÊÔÓÃ
+        'ç»ˆç»“ç¬¦'
+        self.current_token = node #è®°å½•å½“å‰ç»ˆç»“ç¬¦ã€‚è°ƒè¯•ç”¨
         return node.value
 
 class Interpreter:
@@ -301,7 +298,7 @@ class Interpreter:
                 return lang.Object(lang.intType, entity)
 
     def on_cast(self,node):
-        '''cast µÄÓïÒå£¿ ×îºóÒ»¸östatement µÄÖµ'''
+        '''cast çš„è¯­ä¹‰ï¼Ÿ æœ€åä¸€ä¸ªstatement çš„å€¼'''
         for x in node.query("stlist>st"):
             ret = self.on_statement(x)
         return ret
