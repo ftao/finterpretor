@@ -1,4 +1,4 @@
-#coding=gbk
+#coding=utf8
 
 class ParseError(Exception):
 
@@ -9,7 +9,13 @@ class ParseError(Exception):
         return "Parser error at line %d token '%s'"  %(self.token.lineno, self.token.value)
 
 class LangError(Exception):
-    pass
+
+    def __init__(self,msg):
+        self.msg = msg
+
+    def __str__(self):
+        return "Language Error : %s" %self.msg
+
 
 class TCastError(LangError):
 

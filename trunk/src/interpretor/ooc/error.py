@@ -1,4 +1,4 @@
-#coding=gbk
+#coding=utf8
 
 class LangError(Exception):
     pass

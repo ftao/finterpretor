@@ -1,4 +1,4 @@
-#coding=gbk
+#coding=utf8
 '''Unit Test For interpretor.ooc package'''
 import unittest
 

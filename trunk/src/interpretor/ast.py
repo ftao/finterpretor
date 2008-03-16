@@ -1,4 +1,4 @@
-#coding=gbk
+#coding=utf8
 class Node:
     def __init__(self,type,children=[],prod = None):
         self.type = type
@@ -21,13 +21,13 @@ class Node:
         return self.children[ind]
 
     def query(self,q="*"):
-        '''²éÑ¯µÄÓï·¨ÈçÏÂ [type|*] {>[type|*])
-        eg.  fdef  ÀàÐÍÎªfdef µÄ×Ó½áµã
-             fdef>vdecl ÀàÐÍÎªfdefµÄ×Ó½áµãÏÂÃæµÄÀàÐÍÎªvdeclµÄ×Ó½áµã
-             *>exp µÚ¶þ²ãµÄexp½áµã
-             **>exp ËùÓÐÀàÐÍÎªexp µÄ½áµã¡££¨²»¹Ü²ã´Î)
-             ¡Á¡Á>?ËùÓÐÒ¶½áµã
-             ? ±íÊ¾Ò¶½áµã
+        '''æŸ¥è¯¢çš„è¯­æ³•å¦‚ä¸‹ [type|*] {>[type|*])
+        eg.  fdef  ç±»åž‹ä¸ºfdef çš„å­ç»“ç‚¹
+             fdef>vdecl ç±»åž‹ä¸ºfdefçš„å­ç»“ç‚¹ä¸‹é¢çš„ç±»åž‹ä¸ºvdeclçš„å­ç»“ç‚¹
+             *>exp ç¬¬äºŒå±‚çš„expç»“ç‚¹
+             **>exp æ‰€æœ‰ç±»åž‹ä¸ºexp çš„ç»“ç‚¹ã€‚ï¼ˆä¸ç®¡å±‚æ¬¡)
+             Ã—Ã—>?æ‰€æœ‰å¶ç»“ç‚¹
+             ? è¡¨ç¤ºå¶ç»“ç‚¹
         '''
         ret = []
         qs = q.split(">")

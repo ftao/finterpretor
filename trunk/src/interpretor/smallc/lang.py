@@ -1,25 +1,25 @@
-#coding=gbk
+#coding=utf8
 '''
-Small C ÓïÑÔÖ»ÓĞÈıÖÖÀàĞÍ¡£
-1. ÕûĞÎ
+Small C è¯­è¨€åªæœ‰ä¸‰ç§ç±»å‹ã€‚
+1. æ•´å½¢
 2. Void
-3. Êı×é
-4. ½á¹¹Ìå £¨Êı×é£©
-×¢ÒâÕâ¸öÀïÃæ±äÁ¿ÃûÊÇÀàËÆjava µÄÒıÓÃ»úÖÆ¡£
-ÔõÑù´¦ÀíÌØÊâµÄnull Öµ£¿ £¨ÓÃObject(nullType,"Null Value") À´±íÊ¾¡£
-´Ó³ÌĞòÖĞ¿ÉÒÔ¿´µ½ null ËÆºõ¿ÉÒÔ¸³Öµ¸øÈÎºÎÀàĞÍµÄ¶ÔÏó¡£(³ıÁËÕûÊı¶ÔÏó)
+3. æ•°ç»„
+4. ç»“æ„ä½“ ï¼ˆæ•°ç»„ï¼‰
+æ³¨æ„è¿™ä¸ªé‡Œé¢å˜é‡åæ˜¯ç±»ä¼¼java çš„å¼•ç”¨æœºåˆ¶ã€‚
+æ€æ ·å¤„ç†ç‰¹æ®Šçš„null å€¼ï¼Ÿ ï¼ˆç”¨Object(nullType,"Null Value") æ¥è¡¨ç¤ºã€‚
+ä»ç¨‹åºä¸­å¯ä»¥çœ‹åˆ° null ä¼¼ä¹å¯ä»¥èµ‹å€¼ç»™ä»»ä½•ç±»å‹çš„å¯¹è±¡ã€‚(é™¤äº†æ•´æ•°å¯¹è±¡)
 
 
-´Ó¸øµÄÊ¾Àı´úÂëÀ´¿´£¬ËÆºõ  ÕûĞÎÄ¬ÈÏÖµÎª0 ,ÆäËûÄ¬ÈÏÖµÎªnull
-Ò»¸ö½á¹¹Ìå£¬member Ò²°´Õâ¸ö¹æÔò³õÊ¼»¯¡£
-ÎÒÏÖÔÚµÄÊµÏÖÃ»ÓĞÕâÃ´°ì¡£¡£ ´ıÌÖÂÛ
+ä»ç»™çš„ç¤ºä¾‹ä»£ç æ¥çœ‹ï¼Œä¼¼ä¹  æ•´å½¢é»˜è®¤å€¼ä¸º0 ,å…¶ä»–é»˜è®¤å€¼ä¸ºnull
+ä¸€ä¸ªç»“æ„ä½“ï¼Œmember ä¹ŸæŒ‰è¿™ä¸ªè§„åˆ™åˆå§‹åŒ–ã€‚
+æˆ‘ç°åœ¨çš„å®ç°æ²¡æœ‰è¿™ä¹ˆåŠã€‚ã€‚ å¾…è®¨è®º
 '''
 import operator
 import sys
 import interpretor.smallc.error as error
 
 
-#ĞŞÊÎ·ûº¯Êı
+#ä¿®é¥°ç¬¦å‡½æ•°
 def require_same(func):
     def wrapped(self,lhs,rhs):
         if (rhs.type != self):
@@ -44,8 +44,8 @@ def require_not_empty(func):
 
 
 class Type:
-    '''SmallC ÓïÑÔÀàĞÍ»ùÀà
-    Ö§³ÖµÄµÄ²Ù×÷ÓĞ assign , eq , ne, tcast
+    '''SmallC è¯­è¨€ç±»å‹åŸºç±»
+    æ”¯æŒçš„çš„æ“ä½œæœ‰ assign , eq , ne, tcast
     '''
     def __init__(self):
         self.name = "type"
@@ -70,7 +70,7 @@ class Type:
 
 
     def op_tcast(self,obj,type):
-        'Ç¿ÖÆÀàĞÍ×ª»»'
+        'å¼ºåˆ¶ç±»å‹è½¬æ¢'
         if obj.type == type:
             return obj
         elif type == void:
@@ -80,7 +80,7 @@ class Type:
 
 
     def alloc(self,size = None):
-        'Í³Ò»µÄ¿Õ¼ä·ÖÅä²ßÂÔ£¬¾ßÌåµÄ·ÖÅäÊµÏÖÓÉ×ÓÀàÍê³É alloc_one ·½·¨'
+        'ç»Ÿä¸€çš„ç©ºé—´åˆ†é…ç­–ç•¥ï¼Œå…·ä½“çš„åˆ†é…å®ç°ç”±å­ç±»å®Œæˆ alloc_one æ–¹æ³•'
         if size:
             ret = Object(Array(self))
             ret.value = [self.alloc() for i in range(size.value)]
@@ -109,7 +109,7 @@ class Void(Type):
 
 
 class Integer(Type):
-    '''Small C ÕûÊıÀàĞÍ'''
+    '''Small C æ•´æ•°ç±»å‹'''
 
     def __init__(self):
         self.name = "int"
@@ -168,7 +168,7 @@ class Integer(Type):
     def op_mod(self,lhs,rhs):
         return Object(intType, lhs.value % rhs.value)
 
-    #ÒÔÏÂÎªµ¥Ä¿²Ù×÷
+    #ä»¥ä¸‹ä¸ºå•ç›®æ“ä½œ
 
     def op_minus_(self,rhs):
         return Object(intType, - rhs.value)
@@ -200,14 +200,14 @@ class Integer(Type):
         return ret
 
     def alloc_one(self):
-        'int µÄ¿Õ¼ä·ÖÅä·½·¨¡£ ÉèÖÃ³õÖµÎª0.'
+        'int çš„ç©ºé—´åˆ†é…æ–¹æ³•ã€‚ è®¾ç½®åˆå€¼ä¸º0.'
         #TODO is default value 0 OK ?
         return Object(self,0)
 
 
 class Array(Type):
     '''Array
-    ×ÜÊÇÒ»Î¬µÄ£¬¶àÎ¬¿ÉÒÔÓÉÊı×éµÄÊı×é×é³É
+    æ€»æ˜¯ä¸€ç»´çš„ï¼Œå¤šç»´å¯ä»¥ç”±æ•°ç»„çš„æ•°ç»„ç»„æˆ
     '''
     def __init__(self,base,dim = 1):
         if dim > 1:
@@ -248,7 +248,7 @@ class Array(Type):
 
 #    def op_member(self,lhs,rhs):
 #        '''
-#        array Ö»Ö§³ÖÒ»¸ömember length
+#        array åªæ”¯æŒä¸€ä¸ªmember length
 #        '''
 #        if rhs != "length":
 #            raise error.MemberError(lhs,rhs)

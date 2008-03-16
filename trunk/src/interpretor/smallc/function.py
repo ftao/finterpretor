@@ -1,4 +1,4 @@
-#coding=gbk
+#coding=utf8
 import copy
 import sys
 import interpretor.smallc.lang as lang
@@ -25,7 +25,7 @@ def set_io(input_f,output_f):
     io['is_eof'] = 0
 
 class Namespace:
-    'Ãû×Ö¿Õ¼ä'
+    'åå­—ç©ºé—´'
     def __init__(self,upper = None):
         self.upper = upper
         self.ns = {}
@@ -55,7 +55,7 @@ class Namespace:
         return "Namespace %s" %(self.name)
 
 class Function(Namespace):
-    '''º¯Êı'''
+    '''å‡½æ•°'''
     def __init__(self, name, upper, ret_type = lang.void):
         self.name = name
         self.upper = upper
@@ -65,28 +65,28 @@ class Function(Namespace):
         self.statements = []
 
     def add_param(self, name, type):
-        'Ôö¼ÓĞÎ²Î'
+        'å¢åŠ å½¢å‚'
         self.params.append(name)
         self.set(name,lang.Object(type))
 
     def freeze(self):
-        '¶³½á, ±¸·İÎ´µ÷ÓÃÇ°µÄÃû×Ö¿Õ¼ä'
+        'å†»ç»“, å¤‡ä»½æœªè°ƒç”¨å‰çš„åå­—ç©ºé—´'
         self.ns_org = copy_ns(self.ns)
 
     def set_param(self, name, value):
-        'ÉèÖÃÊµ²Î'
+        'è®¾ç½®å®å‚'
         if name not in self.ns:
             raise error.NameError(name)
         else:
             self.ns[name].op("assign", value)
 
     def call(self, args, inter, line_no = None):
-        '''ÓÃ²ÎÊıargsµ÷ÓÃº¯Êı,½âÊÍÆ÷¶ÔÏóÎªinter'''
+        '''ç”¨å‚æ•°argsè°ƒç”¨å‡½æ•°,è§£é‡Šå™¨å¯¹è±¡ä¸ºinter'''
 
-        #½«µ±Ç°º¯ÊıÑ¹Èëµ÷ÓÃÕ»
+        #å°†å½“å‰å‡½æ•°å‹å…¥è°ƒç”¨æ ˆ
         inter.call_stack.append((self, line_no))
 
-        #±£´æÏÖ³¡
+        #ä¿å­˜ç°åœº
         ns_now = self.ns
         self.ns = copy_ns(self.ns_org)
 
@@ -101,11 +101,11 @@ class Function(Namespace):
         for st in self.statements:
             ret = inter.on_statement(st)
 
-        #»Ö¸´ÏÖ³¡
+        #æ¢å¤ç°åœº
         self.ns = ns_now
         inter.current_ns = old_current
 
-        #µ÷ÓÃÕ»µ¯³öµ±Ç°º¯Êı
+        #è°ƒç”¨æ ˆå¼¹å‡ºå½“å‰å‡½æ•°
         inter.call_stack.pop()
         return ret.op("tcast", self.ret_type)
 
@@ -113,7 +113,7 @@ class Function(Namespace):
         return "Function %s " %self.name
 
 class PrintFunc(Function):
-    'print º¯Êı Êä³ö'
+    'print å‡½æ•° è¾“å‡º'
     def __init__(self):
         self.name = "print"
 
@@ -123,7 +123,7 @@ class PrintFunc(Function):
         return lang.Object(lang.void)
 
 class PrintlnFunc(Function):
-    'println º¯Êı Êä³ö²¢»»ĞĞ'
+    'println å‡½æ•° è¾“å‡ºå¹¶æ¢è¡Œ'
     def __init__(self):
         self.name = "println"
 
@@ -135,38 +135,43 @@ class PrintlnFunc(Function):
 
 
 class ReadFunc(Function):
-    '''read º¯Êı ¶ÁÈëÊı¾İ'''
+    '''read å‡½æ•° è¯»å…¥æ•°æ®'''
     def __init__(self):
         self.name = "read"
     def call(self, args, inter, line_no = None):
         if io["input_buff"]:
             inp = io["input_buff"]
             io["input_buff"] = ""
-            line = io['input'].readline()
-            if line == "":
-                io['is_eof'] = 1
-            else:
-                io["input_buff"] = line.strip()
+            while io["input_buff"] == "":
+                line = io['input'].readline()
+                if line == "":
+                    io['is_eof'] = 1
+                    break;
+                else:
+                    io["input_buff"] = line.strip()
         else:
-            line = io['input'].readline()
-            if line == "":
-                raise error.EOFError()
-            else:
-                inp = line.strip()
+            while True:
+                line = io['input'].readline()
+                if line == "":
+                    raise error.EOFError()
+                else:
+                    inp = line.strip()
+                    if inp != "":
+                        break;
         try:
             inp = int(inp)
         except ValueError,e:
-            raise error.LangError()
+            raise error.LangError("Invalid Input")
         return lang.Object(lang.intType, inp)
 
 
 class EofFunc(Function):
-    '''eof º¯Êı,¼ì²âÊäÈëÊÇ·ñ½áÊø'''
+    '''eof å‡½æ•°,æ£€æµ‹è¾“å…¥æ˜¯å¦ç»“æŸ'''
     def __init__(self):
         self.name = "eof"
 
     def call(self, args, inter, line_no = None):
-        if not io["input_buff"] and not io['is_eof']:
+        while not io["input_buff"] and not io['is_eof']:
             line = io['input'].readline()
             if line == "":
                 io['is_eof'] = 1

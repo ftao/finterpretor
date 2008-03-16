@@ -1,14 +1,14 @@
-#coding=gbk
+#coding=utf8
 '''
-Small C ÓïÑÔÖ»ÓĞÈıÖÖÀàĞÍ¡£
-1. ÕûĞÎ
+Small C è¯­è¨€åªæœ‰ä¸‰ç§ç±»å‹ã€‚
+1. æ•´å½¢
 2. Void
-3. Êı×é
-4. ½á¹¹Ìå £¨Êı×é£©
-×¢ÒâÕâ¸öÀïÃæ±äÁ¿ÃûÊÇÀàËÆjava µÄÒıÓÃ»úÖÆ¡£
-null ±íÊ¾¿ÕÒıÓÃ¡£
-ÔõÑù´¦ÀíÌØÊâµÄnull Öµ£¿ £¨ÓÃObject(nullType,None) À´±íÊ¾¡£
-´Ó³ÌĞòÖĞ¿ÉÒÔ¿´µ½ null ËÆºõ¿ÉÒÔ¸³Öµ¸øÈÎºÎÀàĞÍµÄ¶ÔÏó¡£
+3. æ•°ç»„
+4. ç»“æ„ä½“ ï¼ˆæ•°ç»„ï¼‰
+æ³¨æ„è¿™ä¸ªé‡Œé¢å˜é‡åæ˜¯ç±»ä¼¼java çš„å¼•ç”¨æœºåˆ¶ã€‚
+null è¡¨ç¤ºç©ºå¼•ç”¨ã€‚
+æ€æ ·å¤„ç†ç‰¹æ®Šçš„null å€¼ï¼Ÿ ï¼ˆç”¨Object(nullType,None) æ¥è¡¨ç¤ºã€‚
+ä»ç¨‹åºä¸­å¯ä»¥çœ‹åˆ° null ä¼¼ä¹å¯ä»¥èµ‹å€¼ç»™ä»»ä½•ç±»å‹çš„å¯¹è±¡ã€‚
 
 
 '''
@@ -24,7 +24,7 @@ import interpretor
 #        return cls.instance
 
 
-#ĞŞÊÎ·ûº¯Êı
+#ä¿®é¥°ç¬¦å‡½æ•°
 def require_same(func):
     def wrapped(self,lhs,rhs):
         if (rhs.type != self):
@@ -42,7 +42,7 @@ def require_same_or_null(func):
 
 def require_same_base_or_null(func):
     '''
-    ÊÇ·ñÏàÈİ£¿
+    æ˜¯å¦ç›¸å®¹ï¼Ÿ
 
     '''
     def wrapped(self,lhs,rhs):
@@ -60,7 +60,7 @@ def require_same_base_or_null(func):
     return wrapped
 
 def is_type_castable(obj,type):
-    '''¼ì²âÊÇ·ñ¿ÉÒÔ½«obj ×ª»»³É type ÀàĞÍ'''
+    '''æ£€æµ‹æ˜¯å¦å¯ä»¥å°†obj è½¬æ¢æˆ type ç±»å‹'''
     base = obj.type
     while(base):
         if base == type:
@@ -95,13 +95,13 @@ class Type:
 
 
     def op_tcast(self,obj,type):
-        '''ÀàĞÍÇ¿ÖÆ×ª»»¡£
-        1.ÏàÍ¬ÀàĞÍ×ÜÊÇ¿ÉÒÔ×ª»»
-        2.×ÓÀàÏò»ùÀà×ª»»
-        3.ÈÎºÎÀàĞÍÏòvoid ×ª»»
-        ×ª»»ºóµÄÖµÓĞÈçÏÂÌØÕ÷£º
+        '''ç±»å‹å¼ºåˆ¶è½¬æ¢ã€‚
+        1.ç›¸åŒç±»å‹æ€»æ˜¯å¯ä»¥è½¬æ¢
+        2.å­ç±»å‘åŸºç±»è½¬æ¢
+        3.ä»»ä½•ç±»å‹å‘void è½¬æ¢
+        è½¬æ¢åçš„å€¼æœ‰å¦‚ä¸‹ç‰¹å¾ï¼š
         obj.org_type  = type
-        obj.type ²»±ä
+        obj.type ä¸å˜
         '''
         if obj.type == type:
             return obj
@@ -140,7 +140,7 @@ class Void(Type):
 
 
 class Integer(Type):
-    '''Small C ÕûÊıÀàĞÍ'''
+    '''Small C æ•´æ•°ç±»å‹'''
 
     def __init__(self):
         self.name = "int"
@@ -274,7 +274,7 @@ class Array(Type):
 
     def op_member_no_private(self,lhs,rhs):
         '''
-        array Ö»Ö§³ÖÒ»¸ömember length
+        array åªæ”¯æŒä¸€ä¸ªmember length
         '''
         if rhs != "length":
             raise error.MemberError(lhs,rhs)
@@ -282,7 +282,7 @@ class Array(Type):
             return Object(intType,len(lhs.value))
 
 class RootClass(Type):
-    '''Õâ¸öÓïÑÔÊÇÒ»¸öÀàJava µÄµ¥¸ùµÄÓïÑÔ¡£ Õâ¸öÀàÊÇËùÓĞÀàµÄ»ùÀà'''
+    '''è¿™ä¸ªè¯­è¨€æ˜¯ä¸€ä¸ªç±»Java çš„å•æ ¹çš„è¯­è¨€ã€‚ è¿™ä¸ªç±»æ˜¯æ‰€æœ‰ç±»çš„åŸºç±»'''
     def __init__(self):
         self.name = "Object"
         self.base = None
@@ -306,15 +306,15 @@ class RootClass(Type):
         pass
 
     def get_cls_member(self, name, no_private = False):
-        '''¶ÔÒ»¸öÀàÎ¨Ò»µÄ³ÉÔ±¡£ °üÀ¨static , const ±äÁ¿ ºÍËùÓĞ·½·¨
+        '''å¯¹ä¸€ä¸ªç±»å”¯ä¸€çš„æˆå‘˜ã€‚ åŒ…æ‹¬static , const å˜é‡ å’Œæ‰€æœ‰æ–¹æ³•
         '''
         raise error.MemberError(self,name)
 
 
     def op_member(self,lhs,rhs):
         '''
-        ins.var ÕâÖÖÀàĞÍµÄÒıÓÃ.
-        ¿ÉÒÔ»ñµÃµ±Ç°ÀàµÄË½ÓĞ£¬¹«ÓĞºÍ»ùÀàµÄ¹«ÓĞ³ÉÔ±
+        ins.var è¿™ç§ç±»å‹çš„å¼•ç”¨.
+        å¯ä»¥è·å¾—å½“å‰ç±»çš„ç§æœ‰ï¼Œå…¬æœ‰å’ŒåŸºç±»çš„å…¬æœ‰æˆå‘˜
         '''
         #print "get %s from  %s" %(rhs,lhs)
         if not isinstance(rhs,str):
@@ -323,8 +323,8 @@ class RootClass(Type):
 
     def op_member_no_private(self,lhs,rhs):
         '''
-        ins.var ÕâÖÖÀàĞÍµÄÒıÓÃ
-        ÕâÖÖ·½·¨Ö»¿ÉÒÔ»ñµÃÀà»òÆä»ùÀàµÄpublic ³ÉÔ±
+        ins.var è¿™ç§ç±»å‹çš„å¼•ç”¨
+        è¿™ç§æ–¹æ³•åªå¯ä»¥è·å¾—ç±»æˆ–å…¶åŸºç±»çš„public æˆå‘˜
         '''
         if not isinstance(rhs,str):
             raise error.TypeError("id",lhs)
@@ -334,10 +334,10 @@ class RootClass(Type):
         raise error.MemberError(self, name)
 
 class Class(RootClass):
-    '''OOC ÓïÑÔµÄÀà¡£
-    ËùÓĞredef ³ÉÔ±ÈÏÎªÊÇpublic
-    ËùÓĞpublic,const ÈÏÎªÊÇpublic
-    Ö»ÓĞprivate ²ÅÊÇprivate
+    '''OOC è¯­è¨€çš„ç±»ã€‚
+    æ‰€æœ‰redef æˆå‘˜è®¤ä¸ºæ˜¯public
+    æ‰€æœ‰public,const è®¤ä¸ºæ˜¯public
+    åªæœ‰private æ‰æ˜¯private
     '''
     def __init__(self,name,global_ns,base = None,decorate = None):
         self.name = name
@@ -387,18 +387,18 @@ class Class(RootClass):
 
     def op_member(self,lhs,rhs):
         '''
-        ins.var ÕâÖÖÀàĞÍµÄÒıÓÃ.
-        ¿ÉÒÔ»ñµÃµ±Ç°ÀàµÄË½ÓĞ£¬¹«ÓĞºÍ»ùÀàµÄ¹«ÓĞ³ÉÔ±
+        ins.var è¿™ç§ç±»å‹çš„å¼•ç”¨.
+        å¯ä»¥è·å¾—å½“å‰ç±»çš„ç§æœ‰ï¼Œå…¬æœ‰å’ŒåŸºç±»çš„å…¬æœ‰æˆå‘˜
         '''
         #print "get %s from  %s" %(rhs,lhs)
         if not isinstance(rhs,str):
             raise error.TypeError("id",lhs)
 
         if rhs in lhs.value:
-            #ÊµÀı±äÁ¿ ×Ô¼ºµÄ»ò»ùÀàµÄ
+            #å®ä¾‹å˜é‡ è‡ªå·±çš„æˆ–åŸºç±»çš„
             return lhs.value[rhs]
         else:
-            #Àà±äÁ¿/º¯Êı
+            #ç±»å˜é‡/å‡½æ•°
             ret = self.get_cls_member(rhs)
             if rhs in self.by_type['func']:
                 ret = (ret,lhs)
@@ -406,8 +406,8 @@ class Class(RootClass):
 
     def op_member_no_private(self,lhs,rhs):
         '''
-        ins.var ÕâÖÖÀàĞÍµÄÒıÓÃ
-        ÕâÖÖ·½·¨Ö»¿ÉÒÔ»ñµÃÀà»òÆä»ùÀàµÄpublic ³ÉÔ±
+        ins.var è¿™ç§ç±»å‹çš„å¼•ç”¨
+        è¿™ç§æ–¹æ³•åªå¯ä»¥è·å¾—ç±»æˆ–å…¶åŸºç±»çš„public æˆå‘˜
         '''
         if not isinstance(rhs,str):
             raise error.TypeError("id",lhs)
@@ -415,10 +415,10 @@ class Class(RootClass):
             raise error.MemberError(lhs, rhs)
 
         if rhs in lhs.value:
-            #ÊµÀı±äÁ¿ ×Ô¼ºµÄ»ò»ùÀàµÄ
+            #å®ä¾‹å˜é‡ è‡ªå·±çš„æˆ–åŸºç±»çš„
             return lhs.value[rhs]
         else:
-            #Àà±äÁ¿/º¯Êı
+            #ç±»å˜é‡/å‡½æ•°
             ret = self.get_cls_member(rhs, True)
             if rhs in self.by_type['func']:
                 ret = (ret,lhs)
@@ -434,21 +434,21 @@ class Class(RootClass):
         return value
 
     def get_cls_member(self, name, no_private = False):
-        '''¶ÔÒ»¸öÀàÎ¨Ò»µÄ³ÉÔ±¡£ °üÀ¨static , const ±äÁ¿ ºÍËùÓĞ·½·¨
+        '''å¯¹ä¸€ä¸ªç±»å”¯ä¸€çš„æˆå‘˜ã€‚ åŒ…æ‹¬static , const å˜é‡ å’Œæ‰€æœ‰æ–¹æ³•
         '''
         if no_private and name in self.by_decorate['private']:
-            #TODO Ó¦¸ÃÓÃÒ»¸ö¸üºÃµÄÌáÊ¾
+            #TODO åº”è¯¥ç”¨ä¸€ä¸ªæ›´å¥½çš„æç¤º
             raise error.MemberError(self,name)
 
-        if name in self.cls_var: #Àà±äÁ¿£¬static ºÍ const ±äÁ¿
+        if name in self.cls_var: #ç±»å˜é‡ï¼Œstatic å’Œ const å˜é‡
             return self.cls_var[name]
-        elif name in self.by_type["func"]: #·½·¨
+        elif name in self.by_type["func"]: #æ–¹æ³•
             return self.members[name][0]
         else:
-            return self.base.get_cls_member(name,True) #»ùÀàµÄË½ÓĞ³ÉÔ±×ÜÊÇ²»ÄÜ·ÃÎÊµÄ
+            return self.base.get_cls_member(name,True) #åŸºç±»çš„ç§æœ‰æˆå‘˜æ€»æ˜¯ä¸èƒ½è®¿é—®çš„
 
     def op_get_cls(self,name):
-        '''ÔÚstatic ·½·¨ÖĞ¿ÉÒÔ·ÃÎÊµÄÃû×Ö¿Õ¼ä
+        '''åœ¨static æ–¹æ³•ä¸­å¯ä»¥è®¿é—®çš„åå­—ç©ºé—´
         '''
         try:
             return self.op_member_cls(name)
@@ -457,14 +457,14 @@ class Class(RootClass):
 
     def op_member_cls(self,name):
         '''
-         µ± ClassA.var  ÕâÑùµÄµ÷ÓÃ³öÏÖÊ±Ö´ĞĞµÄ²Ù×÷
-        TODO: ÊÇ·ñ¿¼ÂÇ¼Ì³Ğ£¿
+         å½“ ClassA.var  è¿™æ ·çš„è°ƒç”¨å‡ºç°æ—¶æ‰§è¡Œçš„æ“ä½œ
+        TODO: æ˜¯å¦è€ƒè™‘ç»§æ‰¿ï¼Ÿ
         '''
-        if name in self.cls_var: #static ºÍconst ±äÁ¿
+        if name in self.cls_var: #static å’Œconst å˜é‡
             return self.cls_var[name]
-        elif name in self.by_type['func'] and name in self.by_decorate["static"]: #static º¯Êı
+        elif name in self.by_type['func'] and name in self.by_decorate["static"]: #static å‡½æ•°
             return (self.members[name][0],None)
-        else: #µ÷ÓÃ»ùÀà
+        else: #è°ƒç”¨åŸºç±»
             return self.base.op_member_cls(name)
 
 
@@ -511,8 +511,8 @@ class NullType(Type):
             raise error.TypeError(lhs,rhs)
 
     def op_tcast(self,obj,type):
-        '''ÀàĞÍÇ¿ÖÆ×ª»»
-        NullType ¿ÉÒÔ×ª»»³ÉÈÎºÎÀàĞÍRootClass »ò Class ÀàĞÍ
+        '''ç±»å‹å¼ºåˆ¶è½¬æ¢
+        NullType å¯ä»¥è½¬æ¢æˆä»»ä½•ç±»å‹RootClass æˆ– Class ç±»å‹
         '''
         if isinstance(type,(RootClass,NullType)):
             obj.ort_type = type
