@@ -1,4 +1,4 @@
-#coding=gbk
+#coding=utf8
 from ply import yacc
 
 from interpretor.kernelc.lex import *
@@ -15,7 +15,7 @@ def p_prog(p):
 def p_fdef(p):
     "fdef : kw_func id '{' stlist '}'"
     p[0] = Node("fdef", p[1:])
-    p.parser.functions[p[2]] = p[4] #º¯ÊıÃû¶ÔÓ¦µÄº¯ÊıÌå
+    p.parser.functions[p[2]] = p[4] #å‡½æ•°åå¯¹åº”çš„å‡½æ•°ä½“
 
 def p_stlist(p):
     '''stlist : st ';' stlist

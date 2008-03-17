@@ -1,4 +1,7 @@
-#coding=gbk
+#coding=utf8
+
+from interpretor.ast import Node,Leaf
+
 #build in functions
 def bif_print(z):
     print z,
@@ -24,12 +27,6 @@ class Interpreter:
             'eof'     : bif_eof
         }
 
-
-    def eval_function(self,node):
-        pass
-
-    def clear(self):
-        pass
 
     def run(self):
         pass
