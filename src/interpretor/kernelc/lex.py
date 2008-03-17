@@ -1,4 +1,4 @@
-#coding=gbk
+#coding=utf8
 #Copyright 2007 Tao Fei (filia.tao@gmail.com)
 #Released under GPL V3 (or later)
 #see  http://www.gnu.org/copyleft/gpl.html  for more details
