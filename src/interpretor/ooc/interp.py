@@ -1,7 +1,7 @@
-#coding=uft8
+#coding=utf8
 '''
-ooc ÓïÑÔ½âÊÍÆ÷
-¹¤×÷ÔÚ³éÏóÓï·¨Ê÷ÉÏ¡£
+ooc è¯­è¨€è§£é‡Šå™¨
+å·¥ä½œåœ¨æŠ½è±¡è¯­æ³•æ ‘ä¸Šã€‚
 '''
 import operator
 import copy
@@ -15,7 +15,7 @@ import interpretor.ooc.error as error
 
 
 class MoreParser:
-    '''ÔÚAST »ù´¡ÉÏ½øÒ»²½´¦Àí£¬¸ù¾İÉùÃ÷Óï¾ä½âÎöÀàÉùÃ÷'''
+    '''åœ¨AST åŸºç¡€ä¸Šè¿›ä¸€æ­¥å¤„ç†ï¼Œæ ¹æ®å£°æ˜è¯­å¥è§£æç±»å£°æ˜'''
     def __init__(self,ast):
         self.ast = ast
         self.global_ns = built_in_ns
@@ -24,7 +24,7 @@ class MoreParser:
     def parse(self):
         '''walk the ast , build the golbal namespace and classses '''
 
-        #Àà¶¨Òå  ×¢ÒâÕâÀï·ÖÁËÁ½²½À´½âÎöÀàÉùÃ÷¡£ÓÃÀ´½â¾öÇ¶Ì×ÎÊÌâ¡£ Ò»¸öÀàµÄ³ÉÔ±ÊÇÁíÒ»¸öÉĞÎ´¶¨ÒåµÄÀà
+        #ç±»å®šä¹‰  æ³¨æ„è¿™é‡Œåˆ†äº†ä¸¤æ­¥æ¥è§£æç±»å£°æ˜ã€‚ç”¨æ¥è§£å†³åµŒå¥—é—®é¢˜ã€‚ ä¸€ä¸ªç±»çš„æˆå‘˜æ˜¯å¦ä¸€ä¸ªå°šæœªå®šä¹‰çš„ç±»
         for n in self.ast.query("classdecl"):
             name = self.on_token(n.child(2))
             base_cls = None
@@ -40,7 +40,7 @@ class MoreParser:
         for n in self.ast.query("classdecl"):
             name = self.on_token(n.child(2))
             cls = self.global_ns.get(name)
-            #³£Á¿
+            #å¸¸é‡
             for con in n.query("pos_condecl>condecl>condef"):
                 self.on_condef(con, cls)
 
@@ -73,7 +73,7 @@ class MoreParser:
 
 
     def on_afdef(self,node,cls,decorate):
-        "³éÏóº¯ÊıÉùÃ÷"
+        "æŠ½è±¡å‡½æ•°å£°æ˜"
         name  = self.on_token(node.child(3))
         fns = AbstractFunction(name,cls,self.on_type(node.child(2)),decorate)
         cls.add_func(name,fns,decorate)
@@ -97,7 +97,7 @@ class MoreParser:
         type = self.on_type(node.child(0))
         for id in node.child(1):
             ns.set(self.on_token(id),lang.Object(type))
-    #º¯ÊıĞÎ²Î¶¨Òå
+    #å‡½æ•°å½¢å‚å®šä¹‰
     def on_paradecl(self,node,ns):
         type = self.on_type(node.child(0))
         name = self.on_token(node.child(1))
@@ -201,7 +201,7 @@ class Interpreter:
             return self.on_orexp(node.child(0))
 
     def on_orexp(self,node):
-        #¶ÌÂ·¼ÆËã
+        #çŸ­è·¯è®¡ç®—
         if len(node) > 1:
             lhs = self.on_orexp(node.child(0))
             if lhs:
@@ -289,9 +289,9 @@ class Interpreter:
                 return postexp.op("index",self.on_exp(postfix.child(1)))
             elif postfix.type == 'aselect':
                 if isinstance(postexp, lang.Object):
-                    #ÕâÀï¼ì²âµ«Ç°ËùÔÚº¯ÊıÊÇ·ñÊÇpostexp µÄÀà¡£
-                    #Èç¹ûÊÇ,¿ÉÒÔ·ÃÎÊË½ÓĞ±äÁ¿
-                    #·ñÔò£¬²»ÄÜ·ÃÎÊË½ÓĞ±äÁ¿
+                    #è¿™é‡Œæ£€æµ‹ä½†å‰æ‰€åœ¨å‡½æ•°æ˜¯å¦æ˜¯postexp çš„ç±»ã€‚
+                    #å¦‚æœæ˜¯,å¯ä»¥è®¿é—®ç§æœ‰å˜é‡
+                    #å¦åˆ™ï¼Œä¸èƒ½è®¿é—®ç§æœ‰å˜é‡
                     if self.current_ns.cls == postexp.type:
                         return postexp.op("member",self.on_token(postfix.child(1)))
                     else:
@@ -341,7 +341,7 @@ class Interpreter:
                 return lang.Object(lang.intType, entity)
 
     def on_cast(self,node):
-        '''cast µÄÓïÒå£¿ ×îºóÒ»¸östatement µÄÖµ'''
+        '''cast çš„è¯­ä¹‰ï¼Ÿ æœ€åä¸€ä¸ªstatement çš„å€¼'''
         for x in node.query("stlist>st"):
             ret = self.on_statement(x)
         return ret
