@@ -75,3 +75,9 @@ class Leaf(Node):
         return str(self.value)
 
     __str__ = __repr__
+    
+
+def all_to_node(p):
+    for i in range(len(p)):
+        if p[i] is not None and not isinstance(p[i], Node):
+            p[i] = Leaf(p[i], p.lineno(i), p.lexpos(i))

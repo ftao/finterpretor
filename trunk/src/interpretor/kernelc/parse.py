@@ -2,7 +2,7 @@
 from ply import yacc
 
 from interpretor.kernelc.lex import *
-from interpretor.kernelc.ast import Node
+from interpretor.ast import Node,all_to_node
 
 start = 'prog'
 
@@ -10,18 +10,26 @@ def p_prog(p):
     '''prog : prog fdef
             | fdef
     '''
-    p[0] = Node("prog", p[1:])
+    if len(p) > 2 :
+        p[0] = Node("prog", p[1].getChildren() + [p[2]])
+    else:
+        p[0] = Node("prog", [p[2]])
 
 def p_fdef(p):
     "fdef : kw_func id '{' stlist '}'"
+    all_to_node(p)
     p[0] = Node("fdef", p[1:])
-    p.parser.functions[p[2]] = p[4] #函数名对应的函数体
+    
 
 def p_stlist(p):
-    '''stlist : st ';' stlist
+    '''stlist : stlist ';' st
               | st
     '''
-    p[0] = Node("stlist", p[1:])
+    all_to_node(p)
+    if len(p) > 3 :
+        p[0] = Node("stlist", p[1].getChildren() + [p[3]])
+    else:
+        p[0] = Node("stlist", p[1:])
 
 def p_st(p):
     '''st : exp
@@ -36,12 +44,14 @@ def p_print_st(p):
     ''' print_st : io_print '(' exp ')'
                  | io_print '(' ')'
     '''
+    all_to_node(p)
     p[0] = Node("print_st",p[1:])
 
 def p_println_st(p):
     ''' println_st : io_println '(' exp ')'
                    | io_println '(' ')'
     '''
+    all_to_node(p)
     p[0] = Node("println_st",p[1:])
 
 
@@ -49,18 +59,21 @@ def p_cond(p):
     '''cond : kw_if '(' exp ')' st
             | kw_if '(' exp ')' st  kw_else st
     '''
+    all_to_node(p)
     p[0] = Node("cond",p[1:])
 
 def p_loop(p):
     '''loop : kw_while '(' exp ')'
             | kw_while '(' exp ')' st
     '''
+    all_to_node(p)
     p[0] = Node("loop",p[1:])
 
 def p_exp(p):
     '''exp : orexp
            | orexp '=' orexp
     '''
+    all_to_node(p)
     p[0] = Node("exp",p[1:])
 
 
@@ -92,6 +105,7 @@ def p_addop(p):
     '''addop : '+'
              | '-'
     '''
+    all_to_node(p)
     p[0] = Node("addop",p[1:])
 
 def p_factor(p):
@@ -105,6 +119,7 @@ def p_mulop(p):
               | '/'
               | '%'
     '''
+    all_to_node(p)
     p[0] = Node("multop",p[1:])
 
 
@@ -123,6 +138,7 @@ def p_uniop(p):
              | '*'
              | '@'
     '''
+    all_to_node(p)
     p[0] = Node("uniop",p[1:])
 
 
@@ -136,6 +152,7 @@ def p_postfix(p):
     '''postfix : incop
                | decop
     '''
+    all_to_node(p)
     p[0] = Node("postfix",p[1:])
 
 def p_entity(p):
@@ -145,10 +162,12 @@ def p_entity(p):
               | '#'
               | cast
     '''
+    all_to_node(p)
     p[0] = Node("entity",p[1:])
 
 def p_cast(p):
     "cast : '(' stlist ')'"
+    all_to_node(p)
     p[0] = Node("cast",p[1:])
 
 def p_error(p):

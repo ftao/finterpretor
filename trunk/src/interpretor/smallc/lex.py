@@ -259,9 +259,9 @@ func void main(){
 lex.lex()
 
 if __name__ == '__main__':
-      lexer = lex.lex()
-      lexer.input(test)
-      while 1:
-          tok = lexer.token()
-          if not tok: break
-          print tok
+    lexer = lex.lex()
+    lexer.input(test)
+    while 1:
+        tok = lexer.token()
+        if not tok: break
+        print tok
