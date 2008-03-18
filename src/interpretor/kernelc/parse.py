@@ -19,7 +19,7 @@ def p_fdef(p):
     "fdef : kw_func id '{' stlist '}'"
     all_to_node(p)
     p[0] = Node("fdef", p[1:])
-    
+
 
 def p_stlist(p):
     '''stlist : stlist ';' st
@@ -35,24 +35,22 @@ def p_st(p):
     '''st : exp
           | cond
           | loop
-          | print_st
-          | println_st
     '''
     p[0] = Node("st",p[1:])
 
-def p_print_st(p):
-    ''' print_st : io_print '(' exp ')'
-                 | io_print '(' ')'
-    '''
-    all_to_node(p)
-    p[0] = Node("print_st",p[1:])
-
-def p_println_st(p):
-    ''' println_st : io_println '(' exp ')'
-                   | io_println '(' ')'
-    '''
-    all_to_node(p)
-    p[0] = Node("println_st",p[1:])
+#def p_print_st(p):
+#    ''' print_st : io_print '(' exp ')'
+#                 | io_print '(' ')'
+#    '''
+#    all_to_node(p)
+#    p[0] = Node("print_st",p[1:])
+#
+#def p_println_st(p):
+#    ''' println_st : io_println '(' exp ')'
+#                   | io_println '(' ')'
+#    '''
+#    all_to_node(p)
+#    p[0] = Node("println_st",p[1:])
 
 
 def p_cond(p):
@@ -137,6 +135,9 @@ def p_uniop(p):
              | chkop
              | '*'
              | '@'
+             | '#'
+             | io_print
+             | io_println
     '''
     all_to_node(p)
     p[0] = Node("uniop",p[1:])

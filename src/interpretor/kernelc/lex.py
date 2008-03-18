@@ -8,7 +8,8 @@ import ply.lex as lex
 tokens = ('id', 'num',
           'orop','andop','relop', 'chkop', 'incop', 'decop',
           'kw_func', 'kw_while', 'kw_if', 'kw_else',
-          'io_print', 'io_println')
+          'io_print', 'io_println'
+          )
 
 literals = ['(', ')', '{', '}', ';', '?', '#', '=', '+', '-', '*', '/', '%' ,'!', '@' ]
 
