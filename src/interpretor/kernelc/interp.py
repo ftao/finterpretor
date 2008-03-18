@@ -2,7 +2,11 @@
 '''
 KernelC 语言解释器
 工作在抽象语法树上。
-
+由于KernelC 语言极端简单。没有作用域等等概念。
+只有一个全局名字空间
+  * 所有函数
+  * 所有数字变量
+因此简单的使用字典就可以记录所有的信息了。
 '''
 import operator
 import sys
@@ -13,28 +17,27 @@ from interpretor.smallc.parse import parse
 from interpretor.smallc.lex import test
 from interpretor.ast import Node,Leaf
 
+global_ns = {}
 
 class MoreParser:
     '''在AST 基础上进一步处理，根据声明语句建立名字空间和函数'''
     def __init__(self,ast):
         self.ast = ast
-        self.global_ns = get_built_in_ns()
-        self.current_ns = self.global_ns
+        self.ns = global_ns
 
     def parse(self):
         '''walk the ast , build the golbal namespace'''
         #函数
         for n in self.ast.query("fdef"):
-            self.on_fdef(n,self.global_ns)
+            self.on_fdef(n,self.ns)
 
     def on_fdef(self,node,ns):
         '函数定义'
         name  = self.on_token(node.child(1))
-        fns = Function(name,self.current_ns)
-        ns.set(name,fns)
-
-        fns.statements = node.query("stlist>st")
-
+        self.ns[name] = {
+            'name' : name,
+            'statements' : node.query("stlist>st")
+        }
 
     def on_token(self,node):
         '终结符'
@@ -43,18 +46,17 @@ class MoreParser:
 
 class Interpreter:
 
-    def __init__(self,ast,global_ns):
+    def __init__(self,ast):
         self.ast = ast
-        self.global_ns = global_ns
-        self.current_ns = None
+        self.ns = global_ns
+
         self.current_token = None
         self.call_stack = []
 
     def run(self):
-        self.current_ns = self.global_ns
 
         try:
-            self.current_ns.get("main").call([],self)
+            self.call_func(self.ns["main"])
         except error.LangError,e:
             if self.current_token is None:
                 print >>sys.stderr,e
@@ -86,12 +88,12 @@ class Interpreter:
             return self.on_statement(node.child(4))
         elif len(node) > 6:
             return self.on_statement(node.child(6))
-        return lang.Object(lang.void)
+        return None
 
     def on_loop(self,node):
         #print node
         exp = node.child(2)
-        ret = lang.Object(lang.void)
+        ret = None
         while self.on_exp(exp):
             if len(node) > 4:
                 ret = self.on_statement(node.child(4))
@@ -142,8 +144,6 @@ class Interpreter:
             }
             relop = m[self.on_token(node.child(1))]
             rhs = self.on_term(node.child(2))
-
-            return lhs.op(relop,rhs)
         else:
             return self.on_term(node.child(0))
 
@@ -191,7 +191,8 @@ class Interpreter:
 
     def on_entity(self,node):
         if len(node) > 1:
-            return self.on_func_call(node)
+            func = self.ns[self.on_token(node.child(0))]
+            return self.call_func(func)
         else:
             entity = node.child(0)
             if entity.type == "cast":
@@ -200,13 +201,13 @@ class Interpreter:
                 entity = self.on_token(entity)
                 if isinstance(entity,str):
                     if entity == '?': #input
-                        return self.current_ns.get("read").call([],self)
-                    elif entity == '#':
-                        return self.current_ns.get("print").call([],self)
+                        return raw_input()
+                    elif entity == '@' or entity == 'println':
+                        pass #do print
                     else:
                         pass #TODO raise ERROR
                 elif isinstance(entity,int):
-                    return lang.Object(lang.intType, entity)
+                    return entity
 
     def on_cast(self,node):
         '''cast 的语义？ 最后一个statement 的值'''
@@ -214,11 +215,10 @@ class Interpreter:
             ret = self.on_statement(x)
         return ret
 
-    def on_func_call(self,node):
-        '函数调用?'
-        func = self.current_ns.get(self.on_token(node.child(0)))
+    def call_func(self,func):
+        '函数调用'
         ret = None
-        for st in func.statements:
+        for st in func['statements']:
             ret = self.on_statement(st)
         return ret
 
