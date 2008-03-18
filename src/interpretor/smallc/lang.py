@@ -14,8 +14,6 @@ Small C 语言只有三种类型。
 一个结构体，member 也按这个规则初始化。
 我现在的实现没有这么办。。 待讨论
 '''
-import operator
-import sys
 import interpretor.smallc.error as error
 
 

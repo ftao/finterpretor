@@ -3,13 +3,9 @@ import sys
 
 from ply import yacc
 from interpretor.ooc.lex import *
-from interpretor.ast import Node,Leaf
+from interpretor.ast import Node,all_to_node
 
 
-def all_to_node(p):
-    for i in range(len(p)):
-        if p[i] is not None and not isinstance(p[i], Node):
-            p[i] = Leaf(p[i], p.lineno(i), p.lexpos(i))
 
 start = 'prog'
 def p_empty(p):

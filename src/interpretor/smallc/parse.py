@@ -1,25 +1,9 @@
 #coding=utf8
-import sys
-
 from ply import yacc
 from interpretor.smallc.lex import *
-from interpretor.ast import Node,Leaf
+from interpretor.ast import Node,all_to_node
 import interpretor.smallc.error as error
 
-#def sall_to_nodee(func):
-#    def wrapped(p):
-#        for i in range(len(p)):
-#            if p[i] and not isinstance(p[i], Node):
-#                p[i] = Leaf(child, p.lineno(i), p.lexpos(i))
-#        return func(p)
-#    wrapped.__doc__ = func.__doc__
-#
-#    return wrapped
-
-def all_to_node(p):
-    for i in range(len(p)):
-        if p[i] is not None and not isinstance(p[i], Node):
-            p[i] = Leaf(p[i], p.lineno(i), p.lexpos(i))
 
 start = 'prog'
 def p_empty(p):
