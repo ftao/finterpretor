@@ -18,7 +18,7 @@ class MoreParser:
     '''在AST 基础上进一步处理，根据声明语句解析类声明'''
     def __init__(self,ast):
         self.ast = ast
-        self.global_ns = built_in_ns
+        self.global_ns = get_built_in_ns()
         self.current_ns = self.global_ns
 
     def parse(self):
