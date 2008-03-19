@@ -262,7 +262,7 @@ class Array(Type):
 
     def op_index(self,lhs,rhs):
         if rhs.type != intType or lhs.value is None:
-            raise Error.TypeError(lhs,rhs)
+            raise error.TypeError(lhs,rhs)
         ind = rhs.value
         if ind < 0 or ind >= len(lhs.value):
             raise error.IndexError(lhs.value,(0,len(lhs.value)))
@@ -319,7 +319,7 @@ class RootClass(Type):
         #print "get %s from  %s" %(rhs,lhs)
         if not isinstance(rhs,str):
             raise error.TypeError("id",lhs)
-        raise error.MemberError(lhs,rsh)
+        raise error.MemberError(lhs,rhs)
 
     def op_member_no_private(self,lhs,rhs):
         '''
@@ -328,7 +328,7 @@ class RootClass(Type):
         '''
         if not isinstance(rhs,str):
             raise error.TypeError("id",lhs)
-        raise error.MemberError(lhs,rsh)
+        raise error.MemberError(lhs,rhs)
 
     def op_member_cls(self,name):
         raise error.MemberError(self, name)
