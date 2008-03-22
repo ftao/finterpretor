@@ -7,23 +7,25 @@ KernelC 语言解释器
   * 所有函数
   * 所有数字变量
 因此简单的使用字典就可以记录所有的信息了。
+但是有一个问题：
+如何区分普通的数字变量 和 引用意义上的数字.
+执行 = 操作的语义如何处理.
 '''
 import operator
 import sys
-import interpretor.smallc.lang as lang
-import interpretor.smallc.error as error
-from interpretor.smallc.function import Function,get_built_in_ns,copy_ns,set_io
-from interpretor.smallc.parse import parse
-from interpretor.smallc.lex import test
+import interpretor.kernelc.lang as lang
+import interpretor.kernelc.error as error
+from interpretor.kernelc.function import Namespace,Function,get_built_in_ns
+from interpretor.kernelc.parse import parse
+from interpretor.kernelc.lex import test
 from interpretor.ast import Node,Leaf
 
-global_ns = {}
 
 class MoreParser:
-    '''在AST 基础上进一步处理，根据声明语句建立名字空间和函数'''
+    '''在AST 基础上进一步处理'''
     def __init__(self,ast):
         self.ast = ast
-        self.ns = global_ns
+        self.ns = get_built_in_ns()
 
     def parse(self):
         '''walk the ast , build the golbal namespace'''
@@ -34,10 +36,11 @@ class MoreParser:
     def on_fdef(self,node,ns):
         '函数定义'
         name  = self.on_token(node.child(1))
-        self.ns[name] = {
-            'name' : name,
-            'statements' : node.query("stlist>st")
-        }
+        self.ns[name] = Function(
+            name,
+            node.query("stlist>st")
+        )
+
 
     def on_token(self,node):
         '终结符'
@@ -46,9 +49,9 @@ class MoreParser:
 
 class Interpreter:
 
-    def __init__(self,ast):
+    def __init__(self, ast, ns):
         self.ast = ast
-        self.ns = global_ns
+        self.ns = ns
 
         self.current_token = None
         self.call_stack = []
@@ -56,7 +59,7 @@ class Interpreter:
     def run(self):
 
         try:
-            self.call_func(self.ns["main"])
+            self.ns["main"].call(self)
         except error.LangError,e:
             if self.current_token is None:
                 print >>sys.stderr,e
@@ -167,10 +170,15 @@ class Interpreter:
 
     def on_uniexp(self,node):
         if len(node) > 1:
-            uniop = {'++':'inc','--':'dec',
-                    '-':'minus_','!':'not','chk':'chk','*':'get','@':'print'}[self.on_token(node.child(0).child(0))]
+            op = self.on_token(node.child(0).child(0))
             uniexp = self.on_uniexp(node.child(1))
-            return uniexp.op(uniop)
+            if op == '*':
+                return self.ns[uniexp.value]
+            else:
+                uniop = {'++':'inc','--':'dec','-':'minus_',
+                        '!':'not','chk':'chk',
+                        '@':'print', 'print':'print', 'println': 'println'}[op]
+                return uniexp.op(uniop)
         else:
             return self.on_postexp(node.child(0))
 
@@ -190,9 +198,10 @@ class Interpreter:
 
 
     def on_entity(self,node):
-        if len(node) > 1:
+        ''' 实体'''
+        if len(node) > 1: # 函数调用
             func = self.ns[self.on_token(node.child(0))]
-            return self.call_func(func)
+            return func.call(self)
         else:
             entity = node.child(0)
             if entity.type == "cast":
@@ -201,25 +210,20 @@ class Interpreter:
                 entity = self.on_token(entity)
                 if isinstance(entity,str):
                     if entity == '?': #input
-                        return raw_input()
-                    elif entity == '@' or entity == 'println':
+                        return raw_input() #FIXME
+                    elif entity == '#' or entity == 'println':
                         pass #do print
                     else:
                         pass #TODO raise ERROR
-                elif isinstance(entity,int):
-                    return entity
+                elif isinstance(entity,int): #数字
+                    return lang.Object(lang.intType,entity)
+                else:
+                    pass #TODO raise error
 
     def on_cast(self,node):
         '''cast 的语义？ 最后一个statement 的值'''
         for x in node.query("stlist>st"):
             ret = self.on_statement(x)
-        return ret
-
-    def call_func(self,func):
-        '函数调用'
-        ret = None
-        for st in func['statements']:
-            ret = self.on_statement(st)
         return ret
 
     def on_token(self,node):
@@ -228,13 +232,13 @@ class Interpreter:
 
 
 def run(data, input_file = sys.stdin, output_file = sys.stdout):
-    set_io(input_file, output_file)
+    #set_io(input_file, output_file)
     try:
         ast = parse(data)
         parser = MoreParser(ast)
         parser.parse()
-        #print parser.global_ns.ns
-        inter = Interpreter(ast,parser.global_ns)
+        #print parser.ns
+        inter = Interpreter(ast, parser.ns)
         inter.run()
     except error.ParseError,e:
         print >>sys.stderr,e

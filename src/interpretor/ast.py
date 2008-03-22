@@ -1,6 +1,6 @@
 #coding=utf8
 class Node:
-    def __init__(self,type,children=[],prod = None):
+    def __init__(self, type, children=[], prod = None):
         self.type = type
         self.children = children #filter(lambda child:isinstance(child,Node),children)
 
@@ -75,7 +75,7 @@ class Leaf(Node):
         return str(self.value)
 
     __str__ = __repr__
-    
+
 
 def all_to_node(p):
     for i in range(len(p)):

@@ -3,6 +3,7 @@ from ply import yacc
 
 from interpretor.kernelc.lex import *
 from interpretor.ast import Node,all_to_node
+import interpretor.kernelc.error as error
 
 start = 'prog'
 
@@ -13,7 +14,7 @@ def p_prog(p):
     if len(p) > 2 :
         p[0] = Node("prog", p[1].getChildren() + [p[2]])
     else:
-        p[0] = Node("prog", [p[2]])
+        p[0] = Node("prog", p[1:])
 
 def p_fdef(p):
     "fdef : kw_func id '{' stlist '}'"
@@ -79,24 +80,28 @@ def p_orexp(p):
     '''orexp : andexp
              | andexp orop orexp
     '''
+    all_to_node(p)
     p[0] = Node("orexp",p[1:])
 
 def p_andexp(p):
     '''andexp : relexp
               | relexp andop andexp
     '''
+    all_to_node(p)
     p[0] = Node("andexp",p[1:])
 
 def p_relexp(p):
     '''relexp : term
               | term relop relexp
     '''
+    all_to_node(p)
     p[0] = Node("relexp",p[1:])
 
 def p_term(p):
     '''term : factor
             | factor addop term
     '''
+    all_to_node(p)
     p[0] = Node("term",p[1:])
 
 def p_addop(p):
@@ -110,6 +115,7 @@ def p_factor(p):
     '''factor : uniexp
               | uniexp multop factor
     '''
+    all_to_node(p)
     p[0] = Node("factor",p[1:])
 
 def p_mulop(p):
@@ -125,6 +131,7 @@ def p_uniexp(p):
     '''uniexp : uniop uniexp
               | postexp
     '''
+    all_to_node(p)
     p[0] = Node("uniexp",p[1:])
 
 def p_uniop(p):
@@ -147,6 +154,7 @@ def p_postexp(p):
     '''postexp : entity
                | postexp postfix
     '''
+    all_to_node(p)
     p[0] = Node("postexp",p[1:])
 
 def p_postfix(p):
@@ -172,18 +180,15 @@ def p_cast(p):
     p[0] = Node("cast",p[1:])
 
 def p_error(p):
-    print p , "at line " , p.lineno
+    #print p , "at line " , p.lineno
+    raise error.ParseError(p)
 
 parser = yacc.yacc()
 
 def parse(data):
-    parser.error = 0
-    parser.functions = {}
-    #p = parser.parse(data)
-    p = parser.parse(data,debug=1)
-    if parser.error: return None
-    p.functions = parser.functions
+    p = parser.parse(data)
     return p
 
 if __name__ == '__main__':
-    print parse(test).functions
+    n =  parse(test)
+    print len(n.query("fdef"))

@@ -5,10 +5,19 @@ KernelC 只有一个 int 类型。
 '''
 
 class Type:
-    pass
+
+    def op_print(self, obj):
+        print obj.value,
+
+    def op_println(self, obj):
+        print obj.value
+
+class Void(Type):
+    def __init__(self):
+        self.name = "void"
 
 class Integer(Type):
-    '''Small C 整数类型'''
+    '''Kernel C 整数类型'''
 
     def __init__(self):
         self.name = "int"
@@ -23,46 +32,47 @@ class Integer(Type):
     def op_and(self,lhs,rhs):
         return Object(intType, int(bool(lhs.value and rhs.value)))
 
-    @require_same
+
     def op_eq(self,lhs,rhs):
         return Object(intType, int(lhs.value == rhs.value))
 
-    @require_same
+
     def op_ne(self,lhs,rhs):
         return Object(intType, int(lhs.value != rhs.value))
 
-    @require_same
+
     def op_lt(self,lhs,rhs):
         return Object(intType, int(lhs.value < rhs.value))
 
-    @require_same
+
     def op_gt(self,lhs,rhs):
         return Object(intType, int(lhs.value > rhs.value))
 
-    @require_same
+
     def op_le(self,lhs,rhs):
         return Object(intType, int(lhs.value <= rhs.value))
 
-    @require_same
+
     def op_ge(self,lhs,rhs):
         return Object(intType, int(lhs.value >= rhs.value))
-    @require_same
+
+
     def op_add(self,lhs,rhs):
         return Object(intType, lhs.value + rhs.value)
 
-    @require_same
+
     def op_minus(self,lhs,rhs):
         return Object(intType, lhs.value - rhs.value)
 
-    @require_same
+
     def op_mul(self,lhs,rhs):
         return Object(intType, lhs.value * rhs.value)
 
-    @require_same
+
     def op_div(self,lhs,rhs):
         return Object(intType, lhs.value / rhs.value)
 
-    @require_same
+
     def op_mod(self,lhs,rhs):
         return Object(intType, lhs.value % rhs.value)
 
@@ -97,3 +107,45 @@ class Integer(Type):
         lhs.value -= 1
         return ret
 
+
+class Object:
+
+    def __init__(self,type,value = None):
+        self.type = type
+        self.value = value
+        #TODO ugly here
+        if value is None and type is intType:
+            self.value = 0
+
+
+    def __nonzero__(self):
+        if hasattr(self.type, "asBool"):
+            return self.type.asBool(self)
+        else:
+            #raise Erro (cant't convert to bool value)
+            return bool(self.value)
+
+    def __not__(self):
+        return not self.__nonzero__()
+
+    def op(self,op,arg = None):
+        if hasattr(self.type,"op_"+op):
+            func = getattr(self.type,"op_"+op)
+            if arg is not None:
+                return func(self,arg)
+            else:
+                return func(self)
+        else:
+            pass
+            #raise error.UnsupportedOPError(op)
+
+    def to_str(self):
+        return self.type.to_str(self)
+
+    def __repr__(self):
+        return self.type.repr(self)
+
+    __str__ = __repr__
+
+intType = Integer()
+void = Void()
