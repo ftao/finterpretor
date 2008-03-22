@@ -207,7 +207,7 @@ class Interpreter:
              '<=':'le',
              '>=':'ge'
             }
-            relop = m[self.on_token(node.child(1))]
+            relop = m[self.on_token(node.child(1).child(0))]
             rhs = self.on_term(node.child(2))
 
             return lhs.op(relop,rhs)

@@ -2,16 +2,18 @@
 '''Kernel C 函数
 '''
 import sys
-import interpretor.kernelc.lang
+import interpretor.kernelc.lang as lang
 
 class Namespace(dict):
     def __getitem__(self, key):
-        if key not in self:
-            if type(key) == int:
-                self[key] = lang.Object(lang.intType)
+        if not self.has_key(key):
+            if type(key) is int:
+                self[key] = lang.Object(lang.intType, 0, True) # is left value
             else:
                 return None #FIXME raise Error?
-        return self[key]
+        #print "get " , key , " from  dict .... " ,dict.__getitem__(self ,key)
+        return dict.__getitem__(self ,key)
+
 
 
 class Function:
@@ -25,6 +27,10 @@ class Function:
             ret = inter.on_statement(st)
         return ret
 
+    def __str__(self):
+        return "\n".join([str(st) for st in self.statements])
+
+    __repr__ = __str__
 
 io = {
     'input' : sys.stdin,
@@ -67,12 +73,18 @@ class ReadFunc(Function):
                     inp = line.strip()
                     if inp != "":
                         break;
+
         try:
             inp = int(inp)
         except ValueError,e:
             raise error.LangError("Invalid Input")
+
         return lang.Object(lang.intType, inp)
 
+    def __str__(self):
+        return "read"
+
+    __repr__ = __str__
 
 class EofFunc(Function):
     '''eof 函数,检测输入是否结束'''
@@ -86,9 +98,13 @@ class EofFunc(Function):
                 io['is_eof'] = 1
             else:
                 io["input_buff"] = line.strip()
+
         return lang.Object(lang.intType, io["is_eof"])
 
+    def __str__(self):
+        return "eof"
 
+    __repr__ = __str__
 
 def get_built_in_ns():
     built_in_ns = Namespace()

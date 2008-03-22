@@ -60,7 +60,7 @@ class Interpreter:
 
         try:
             self.ns["main"].call(self)
-        except error.LangError,e:
+        except (error.LangError ),e:
             if self.current_token is None:
                 print >>sys.stderr,e
             else:
@@ -71,9 +71,9 @@ class Interpreter:
                         print >>sys.stderr, "call %s at line %s" %(x[0], x[1])
                     else:
                         print >>sys.stderr, "call %s" % (x[0])
-        except StandardError,e:
-            print >>sys.stderr, "Interpretor inner error "
-            raise e
+        #except StandardError,e:
+        #    print >>sys.stderr, "Interpretor inner error "
+        #    raise e
 
     def on_statement(self,node):
         node = node.child(0)
@@ -105,10 +105,16 @@ class Interpreter:
     def on_exp(self,node):
         #print node
         if len(node) > 1:
+            #print "assing " , node
             lhs = self.on_orexp(node.child(0))
             self.on_token(node.child(1))
             rhs = self.on_orexp(node.child(2))
-            return lhs.op("assign",rhs)
+
+            try:
+                return lhs.op("assign",rhs)
+            except error.NotLeftValueError: #处理 2=3 这种赋值
+                #print "special assign for %s" %lhs.value
+                return self.ns[lhs.value].op("assign", rhs)
         else:
             return self.on_orexp(node.child(0))
 
@@ -145,8 +151,9 @@ class Interpreter:
              '<=':'le',
              '>=':'ge'
             }
-            relop = m[self.on_token(node.child(1))]
+            relop = m[self.on_token(node.child(1).child(0))]
             rhs = self.on_term(node.child(2))
+            return lhs.op(relop, rhs)
         else:
             return self.on_term(node.child(0))
 
@@ -172,7 +179,9 @@ class Interpreter:
         if len(node) > 1:
             op = self.on_token(node.child(0).child(0))
             uniexp = self.on_uniexp(node.child(1))
+
             if op == '*':
+
                 return self.ns[uniexp.value]
             else:
                 uniop = {'++':'inc','--':'dec','-':'minus_',
@@ -210,20 +219,24 @@ class Interpreter:
                 entity = self.on_token(entity)
                 if isinstance(entity,str):
                     if entity == '?': #input
-                        return raw_input() #FIXME
+                        return self.ns['read'].call()
                     elif entity == '#' or entity == 'println':
+                        print >>sys.stderr, "error entity"
                         pass #do print
                     else:
+                        print >>sys.stderr, "error entity"
                         pass #TODO raise ERROR
                 elif isinstance(entity,int): #数字
                     return lang.Object(lang.intType,entity)
                 else:
+                    print >>sys.stderr, "error entity"
                     pass #TODO raise error
 
     def on_cast(self,node):
         '''cast 的语义？ 最后一个statement 的值'''
         for x in node.query("stlist>st"):
             ret = self.on_statement(x)
+
         return ret
 
     def on_token(self,node):

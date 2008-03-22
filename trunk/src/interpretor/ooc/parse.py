@@ -337,7 +337,7 @@ def p_relop(p):
              | geop
     '''
     all_to_node(p)
-    p[0] = p[1]
+    p[0] = Node("relop",p[1:])
 
 
 def p_term(p):

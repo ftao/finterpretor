@@ -15,7 +15,7 @@ Kernel C 的具体语法：
 (13)<addop> ::= '+' | '-'
 (14)<factor> ::= <uniexp>{<multop> <uniexp>}
 (15)<multop> ::= '*' | '/' | '%'
-(16)<uniexp> ::= {<uniop>}<postexp
+(16)<uniexp> ::= {<uniop>}<postexp>
 (17)<uniop> ::= '-' | '!' | '++' | '--' | 'chk' | '*' | '@'
 (18)<postexp> ::= <entity>{<postfix>}
 (19) <postfix>::= '++' | '--'
