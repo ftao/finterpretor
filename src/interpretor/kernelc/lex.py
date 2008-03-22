@@ -6,7 +6,7 @@ import ply.lex as lex
 
 
 tokens = ('id', 'num',
-          'orop','andop','relop', 'chkop', 'incop', 'decop',
+          'orop','andop','eqop', 'neop', 'ltop', 'gtop', 'leop', 'geop', 'chkop', 'incop', 'decop',
           'kw_func', 'kw_while', 'kw_if', 'kw_else',
           'io_print', 'io_println'
           )
@@ -14,17 +14,30 @@ tokens = ('id', 'num',
 literals = ['(', ')', '{', '}', ';', '?', '#', '=', '+', '-', '*', '/', '%' ,'!', '@' ]
 
 
+
 t_orop = r'\|\|'
 
 t_andop = r'&&'
 
-t_relop = r'==|!=|<|>|<=|>='
 
 
+t_eqop = r'=='
 
-t_incop = '\+\+'
+t_neop = r'!='
 
-t_decop = '--'
+t_ltop = r'<'
+
+t_gtop = r'>'
+
+t_leop = r'<='
+
+t_geop = r'>='
+
+
+t_incop = r'\+\+'
+
+t_decop = r'--'
+
 
 def t_num(t):
     r'\d+'
@@ -91,6 +104,7 @@ func gcd {
 }
 
 func main {
+
     while (!eof())
     (
         1=read();

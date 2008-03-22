@@ -3,7 +3,7 @@
 KernelC 只有一个 int 类型。
 同时数字有可以作为变量名。 使用* 操作符。
 '''
-
+import interpretor.kernelc.error as error
 class Type:
 
     def op_print(self, obj):
@@ -24,6 +24,16 @@ class Integer(Type):
 
     def asBool(self,obj):
         return bool(obj.value)
+
+    def op_assign(self, lhs, rhs):
+        lhs.value = rhs.value
+        return lhs
+
+    def op_chk(self, obj):
+        if obj.value == 0:
+            raise error.ChkFailError()
+        else:
+            return obj
 
     def op_or(self,lhs,rhs):
         return Object(intType, int(bool(lhs.value or rhs.value)))
@@ -110,9 +120,11 @@ class Integer(Type):
 
 class Object:
 
-    def __init__(self,type,value = None):
+    def __init__(self, type, value = None, is_left_value = False):
         self.type = type
         self.value = value
+
+        self.is_left_value = is_left_value
         #TODO ugly here
         if value is None and type is intType:
             self.value = 0
@@ -130,20 +142,19 @@ class Object:
 
     def op(self,op,arg = None):
         if hasattr(self.type,"op_"+op):
+            if (not self.is_left_value) and op == "assign":
+                raise error.NotLeftValueError()
             func = getattr(self.type,"op_"+op)
             if arg is not None:
                 return func(self,arg)
             else:
                 return func(self)
         else:
-            pass
-            #raise error.UnsupportedOPError(op)
-
-    def to_str(self):
-        return self.type.to_str(self)
+            #pass
+            raise error.UnsupportedOPError(op)
 
     def __repr__(self):
-        return self.type.repr(self)
+        return str((self.type ,self.value))
 
     __str__ = __repr__
 

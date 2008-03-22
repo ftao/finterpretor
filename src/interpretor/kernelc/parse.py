@@ -76,33 +76,48 @@ def p_exp(p):
     p[0] = Node("exp",p[1:])
 
 
+
 def p_orexp(p):
     '''orexp : andexp
-             | andexp orop orexp
+             | orexp  orop andexp
     '''
     all_to_node(p)
     p[0] = Node("orexp",p[1:])
 
+
 def p_andexp(p):
     '''andexp : relexp
-              | relexp andop andexp
+              | andexp andop relexp
     '''
     all_to_node(p)
     p[0] = Node("andexp",p[1:])
 
+
 def p_relexp(p):
     '''relexp : term
-              | term relop relexp
+              | relexp relop term
     '''
     all_to_node(p)
     p[0] = Node("relexp",p[1:])
 
-def p_term(p):
-    '''term : factor
-            | factor addop term
+
+def p_relop(p):
+    '''relop : eqop
+             | neop
+             | ltop
+             | gtop
+             | leop
+             | geop
     '''
     all_to_node(p)
+    p[0] = Node("relop",p[1:])
+
+def p_term(p):
+    '''term : factor
+            | term addop factor
+    '''
     p[0] = Node("term",p[1:])
+
 
 def p_addop(p):
     '''addop : '+'
@@ -111,11 +126,11 @@ def p_addop(p):
     all_to_node(p)
     p[0] = Node("addop",p[1:])
 
+
 def p_factor(p):
     '''factor : uniexp
-              | uniexp multop factor
+              | factor multop uniexp
     '''
-    all_to_node(p)
     p[0] = Node("factor",p[1:])
 
 def p_mulop(p):
@@ -131,7 +146,6 @@ def p_uniexp(p):
     '''uniexp : uniop uniexp
               | postexp
     '''
-    all_to_node(p)
     p[0] = Node("uniexp",p[1:])
 
 def p_uniop(p):
@@ -154,8 +168,8 @@ def p_postexp(p):
     '''postexp : entity
                | postexp postfix
     '''
-    all_to_node(p)
     p[0] = Node("postexp",p[1:])
+
 
 def p_postfix(p):
     '''postfix : incop
