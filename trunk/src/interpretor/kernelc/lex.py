@@ -97,8 +97,7 @@ func main {
         if (!eof())(
             print(*1);
             print(2=read());
-            print(gcd());
-            println()
+            print(gcd())
         )
     )
 }
