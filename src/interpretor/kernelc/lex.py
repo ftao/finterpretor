@@ -8,7 +8,8 @@ import ply.lex as lex
 tokens = ('id', 'num',
           'orop','andop','eqop', 'neop', 'ltop', 'gtop', 'leop', 'geop', 'chkop', 'incop', 'decop',
           'kw_func', 'kw_while', 'kw_if', 'kw_else',
-          'io_print', 'io_println'
+          'io_print',
+          #'io_println'
           )
 
 literals = ['(', ')', '{', '}', ';', '?', '#', '=', '+', '-', '*', '/', '%' ,'!', '@' ]
@@ -56,7 +57,7 @@ reserved  = {
     "else":    "kw_else",
     "chk":     "chkop",
     "print":   "io_print",
-    "println": "io_println",
+    #"println": "io_println",
     #"read":    "io_read",
     #"eof":     "io_eof"
 }
@@ -112,6 +113,37 @@ func main {
             print(*1);
             print(2=read());
             print(gcd())
+        )
+    )
+}
+'''
+
+test = '''
+func gcd {
+    1=*1+*2;
+    *1=*2;
+    2=4;
+    chk (*(*1+1)>1 && *(*1+2)>1);
+    while (*(*1+2)!=0)(
+        *1+3=*(*1+1)%*(*1+2);
+        *1+1=*(*1+2);
+        *1+2=*(*1+3)
+    );
+    3=*(*1+1);
+    2=**1;
+    1=*1-*2;
+    *3
+}
+func main {
+    1=10;
+    2=2;
+    while (!eof())(
+        *1+1=read();
+        if (!eof())(
+            print(*1+*2+1=*(*1+1));
+            print(*1+*2+2=read());
+            print(gcd());
+            println()
         )
     )
 }

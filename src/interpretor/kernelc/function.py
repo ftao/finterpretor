@@ -11,7 +11,7 @@ class Namespace(dict):
                 self[key] = lang.Object(lang.intType, 0, True) # is left value
             else:
                 return None #FIXME raise Error?
-        #print "get " , key , " from  dict .... " ,dict.__getitem__(self ,key)
+
         return dict.__getitem__(self ,key)
 
 
@@ -46,7 +46,13 @@ def set_io(input_f,output_f):
     io['input_buff'] = ""
     io['is_eof'] = 0
 
+class PrintlnFunc(Function):
+    'println 函数 换行'
+    def __init__(self):
+        self.name = "println"
 
+    def call(self,inter, line_no = None):
+        print >>io['output']
 
 
 class ReadFunc(Function):
@@ -110,6 +116,7 @@ def get_built_in_ns():
     built_in_ns = Namespace()
     built_in_ns.update({
         'read':ReadFunc(),
-        'eof':EofFunc()
+        'eof':EofFunc(),
+        'println':PrintlnFunc(),
     })
     return built_in_ns

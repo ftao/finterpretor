@@ -158,7 +158,6 @@ def p_uniop(p):
              | '@'
              | '#'
              | io_print
-             | io_println
     '''
     all_to_node(p)
     p[0] = Node("uniop",p[1:])
