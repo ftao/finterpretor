@@ -1,0 +1,57 @@
+#summary L0语言定义
+#labels Featured,Phase-Design
+
+L0 (aka KernelC) 语言的定义
+
+= 语法 =
+{{{
+(1) <prog> ::= <fdef>{<fdef>}
+(2)<fdef> ::= 'func' id '{' <stlist> '}'
+(3)<stlist>::= <st>{';'<st>}
+(4)<st>::= <exp> | <cond> | <loop>
+(5)<cond> ::= 'if' '(' <exp> ')' <st>[ 'else' <st>]
+(6)<loop> ::= 'while' '(' <exp> ')' [<st>]
+(7)<exp> ::= <orexp>[ '=' <orexp>]
+(8)<orexp> ::= <andexp>{ '||' <andexp>}
+(9)<andexp> ::= <relexp>{ '&&' <relexp>}
+(10)<relexp> ::= <term>[<relop> <term>]
+(11)<relop> ::= '==' | '!=' | '<' | '>' | '<=' | '>='
+(12)<term> ::= <factor>{<addop> <factor>}
+(13)<addop> ::= '+' | '-'
+(14)<factor> ::= <uniexp>{<multop> <uniexp>}
+(15)<multop> ::= '*' | '/' | '%'
+(16)<uniexp> ::= {<uniop>}<postexp>
+(17)<uniop> ::= '-' | '!' | '++' | '--' | 'chk' | '*' | '@'
+(18)<postexp> ::= <entity>{<postfix>}
+(19) <postfix>::= '++' | '--'
+(20)<entity> ::= num | id '(' ')' | '?' | '#' | <cast>
+(21)<cast> ::= '('<stlist>')'
+}}}
+
+= 类型系统 =
+L0 语言只有一个类型, 我们称其为int (实际上名字是无关紧要的)
+  
+
+= 操作符/运算符 =
+  * 赋值 赋值运算符左侧的变量作为指针来使用 a=b ,表示将名字为a 的变量的值设置为b
+  * 逻辑 int支持逻辑运算 与或非. 非零为真,0 为假. 结果是 1 或 0
+  * 关系 关系运算
+  * 算术运算 支持基本的算术运算。同C 语言一致。(语义,优先级,结合性)
+  * 自增和自减 int 类型支持++ 和 -- ,同C 语言一样有前缀和后缀之分
+  * chk操作 内置的异常处理 值为0是抛出ChkError,并退出.
+
+以上所有的双目操作符都要求类型匹配:
+  * 相同类型
+  * 对于组合类型, 同nulltype 匹配
+
+= 流程控制 =
+L0 支持条件和循环结构
+具体语法见上面的语法定义
+
+= 函数 =
+L0 支持函数定义和调用, 但是
+  * 参数定义 没有参数
+  * 返回值   没有return 语句, 将函数中最后一个语句的值作为返回值.
+  * 调用     函数名 + () ,没有参数
+
+L0 语言的入口函数是 main
