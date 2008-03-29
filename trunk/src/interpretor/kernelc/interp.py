@@ -109,12 +109,14 @@ class Interpreter:
             lhs = self.on_orexp(node.child(0))
             self.on_token(node.child(1))
             rhs = self.on_orexp(node.child(2))
-
-            try:
-                return lhs.op("assign",rhs)
-            except error.NotLeftValueError: #处理 2=3 这种赋值
-                #print "special assign for %s" %lhs.value
-                return self.ns[lhs.value].op("assign", rhs)
+            #赋值形式为 n1 = n2
+            #表示 sle.fns[n1] = n2
+            return self.ns[lhs.value].op("assign", rhs)
+            #try:
+            #    return lhs.op("assign",rhs)
+            #except error.NotLeftValueError: #处理 2=3 这种赋值
+            #    #print "special assign for %s" %lhs.value
+            #    return self.ns[lhs.value].op("assign", rhs)
         else:
             return self.on_orexp(node.child(0))
 
