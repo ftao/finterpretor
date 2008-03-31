@@ -1,0 +1,23 @@
+const MIN = 2, MAX = 99;
+
+func BaseCondition(int x, int y){
+    y >= MIN && y <= MAX && y >= x
+}
+
+func S(int x, int y){
+	var int [][] ar ; int s,i end
+	int s = x + y;
+    ar = new int[][s/2 + 1 - MIN];
+    i=MIN;
+    while(i < s/2+1)(
+        ar[i] = new int[2];
+        ar[i][0] = i;
+        ar[i][1] = s - i;
+    );
+    ar
+}
+
+def P(x, y):
+    p = x * y
+    return [(x,p/x) for x in xrange(MIN, int(sqrt(p)+1))
+            if p%x==0 and BaseCondition(x, p/x)]
