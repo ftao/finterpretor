@@ -1,7 +1,77 @@
+/*
+以下内容来自：
+http://hyry.dip.jp/blogt.py?file=0200.blog
+我用OOC 语言实现 S先生与P先生谜题, 大体框架使用下面的文章中的内容
+****************************************************************
+这道题目来自美国斯坦福大学的麦卡锡教授----S先生与P先生谜题。
 
-classs SP_Problem {
-	static func BaseCondition(int x, int y)
+题目：S先生与P先生谜题
+
+设有两个自然数X、Y，2<=X<=Y<=99,S先生知道这两个数的和S，P先生知道这两个数的积P，他们二人进行了如下对话：
+
+    * S：我确信你不知道这两个数是什么，但我也不知道。
+    * P: 一听你说这句话，我就知道这两个数是什么了。
+    * S: 我也是，现在我也知道了。
+
+现在你能通过他们的会话推断出这两个数是什么吗？（当然，S和P先生都是非常聪明的）
+
+关于这道题目的解题思路可以参考： Prolog教程S先生与P先生
+
+*/
+class SP_Problem {
+
+	const MIN = 2, MAX = 99;
+	
+	//只需要判断y的范围, 程序确保x的取值范围
+	static func int BaseCondition(int x, int y)
 	{
-		y >= MIN and y <= MAX and y >= x
+		y >= MIN && y <= MAX && y >= x
 	}
+	
+	//S先生的S分析
+	static func int[][] S(int x, int y)
+	{
+		var int[][] ar; int s,i,len; end
+	    s = x + y;
+	    len = s/2 + 1 - MIN;
+	    ar = new int[][len];
+	    i = 0;
+	    while(i < len)
+	    (
+	    	ar[i] = new int[2];
+	    	ar[i][0] = i + MIN;
+	    	ar[i][1] = s - i - MIN;
+	    	i++;
+	    );
+	    ar
+	}
+
+	//P先生的P分析 
+	static func int[][] P(int x, int y)
+	{
+		var int[][] ar; int p,i,len; end
+	    p = x * y;
+	    i = MIN;
+	    l = 0;
+	    while( i <= p/i)
+	    {
+	    	if (p % i == 0 &&  BaseCondition(i, p/i))
+	    		l ++;
+	    }
+	    MIN, int(sqrt(p)+1
+	    
+	    len = s/2 + 1 - MIN;
+	    ar = new int[][len];
+	    i = 0;
+	    while(i < len)
+	    (
+	    	ar[i] = new int[2];
+	    	ar[i][0] = i + MIN;
+	    	ar[i][1] = s - i - MIN;
+	    	i++;
+	    );
+	    ar
+	}
+
+
 }
