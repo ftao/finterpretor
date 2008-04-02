@@ -102,11 +102,6 @@ class Integer(Type):
         rhs.value -= 1
         return rhs
 
-    def op_chk(self,rhs):
-        if rhs.value == 0:
-            raise error.ChkFailError()
-        return rhs
-
     def op_inc_(self,lhs):
         ret = Object(intType, lhs.value)
         lhs.value += 1
