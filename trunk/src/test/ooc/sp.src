@@ -1,0 +1,7 @@
+
+classs SP_Problem {
+	static func BaseCondition(int x, int y)
+	{
+		y >= MIN and y <= MAX and y >= x
+	}
+}
