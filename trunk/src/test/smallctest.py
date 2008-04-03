@@ -25,8 +25,14 @@ class GoodSourceTest(unittest.TestCase):
         for src_file in glob.glob('./smallc/*.src'):
             if os.path.isfile(src_file):
                 code = open(src_file).read()
-                input_file = open(src_file[:src_file.rfind('.')] + '.in')
-                expect_out = open(src_file[:src_file.rfind('.')] + '.out').read()
+                try:
+                    input_file = open(src_file[:src_file.rfind('.')] + '.in')
+                except IOError,e:
+                    input_file = sys.stdin
+                try:
+                    expect_out = open(src_file[:src_file.rfind('.')] + '.out').read()
+                except IOError,e:
+                    expect_out = ""
                 print "Current File : %s" %(src_file,)
                 out = run_and_get_output(code,input_file)
                 self.assertEqual(out,expect_out)

@@ -134,6 +134,7 @@ class Interpreter:
         self.global_ns = global_ns
         self.current_ns = None
         self.call_stack = []
+        self.current_token = None
 
     def run(self):
         self.current_ns = self.global_ns
@@ -157,9 +158,9 @@ class Interpreter:
                         print >>sys.stderr, "call %s at line %s" %(x[0], x[1])
                     else:
                         print >>sys.stderr, "call %s" % (x[0])
-        except StandardError,e:
-            print >>sys.stderr, "Interpretor inner error "
-            raise e
+        #except StandardError,e:
+        #    print >>sys.stderr, "Interpretor inner error "
+        #    raise e
 
 
     def on_statement(self,node):
@@ -364,7 +365,7 @@ class Interpreter:
         return node.value
 
 
-def run(data, input_file, output_file):
+def run(data, input_file = sys.stdin, output_file = sys.stdout):
     set_io(input_file, output_file)
     ast = parse(data)
     parser = MoreParser(ast)

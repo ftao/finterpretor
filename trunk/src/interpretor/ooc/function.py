@@ -1,5 +1,5 @@
 #coding=utf8
-import copy
+import copy,sys
 import interpretor.ooc.lang as lang
 import interpretor.ooc.error as error
 
@@ -221,7 +221,7 @@ class ReadFunc(Function):
 
 
 class EofFunc(Function):
-    def __init__(self,input):
+    def __init__(self):
         self.name = "eof"
         self.input = input
     def call(self,obj,args,inter,line_no):
@@ -242,8 +242,8 @@ def get_built_in_ns():
         'null': (lang.null,"builtin"),
         'print': ((PrintFunc(),None),"builtin"),
         'println': ((PrintlnFunc(),None),"builtin"),
-        'read': ((ReadFunc(inputFlags),None),"builtin"),
-        'eof': ((EofFunc(inputFlags),None),"builtin"),
+        'read': ((ReadFunc(),None),"builtin"),
+        'eof': ((EofFunc(),None),"builtin"),
         'Object': (lang.rootClass,"builtin")
     }
     return built_in_ns
