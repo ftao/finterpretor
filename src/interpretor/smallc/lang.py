@@ -244,14 +244,14 @@ class Array(Type):
             raise error.IndexError(rhs.value,(0,len(lhs.value)))
         return lhs.value[ind]
 
-#    def op_member(self,lhs,rhs):
-#        '''
-#        array 只支持一个member length
-#        '''
-#        if rhs != "length":
-#            raise error.MemberError(lhs,rhs)
-#        else:
-#            return Object(intType,len(lhs.value))
+    def op_member(self,lhs,rhs):
+        '''
+        array 只支持一个member length
+        '''
+        if rhs != "length":
+            raise error.MemberError(lhs,rhs)
+        else:
+            return Object(intType,len(lhs.value))
 
     def alloc_one(self):
         return Object(self)
