@@ -40,7 +40,7 @@ class Main {
 	    		len ++;
             i ++
 	    );
-	    ar = new int[][len];
+	    ar = new int[][len + 1];
 	    i = MIN;
         len = 0;
 	    while( i <= p/i)
@@ -49,16 +49,16 @@ class Main {
 	    	(
                 ar[len] = new int[2];
                 ar[len][0] = i;
-                ar[len][1] = p/i
+                ar[len][1] = p/i;
+                len ++
             );
-            len ++;
 	    	i++
 	    );
 	    ar
 	}
 
     //条件1 - S：我确信你不知道这两个数是什么，但我也不知道ﾷￖￎ￶
-    func int[][] Condition1(int x, int y)
+    func int Condition1(int x, int y)
     {
         var int[][] s_sep; int i,ret end
         s_sep = S(x, y);
@@ -81,7 +81,7 @@ class Main {
     }
 
     //条件2 - P: 一听你说这句话，我就知道这两个数是什么了。ﾷￖￎ￶
-    func int[][] Condition2(int x, int y)
+    func int Condition2(int x, int y)
     {
         var int[][] p_sep; int i,ret end
         p_sep = P(x,y);
@@ -104,7 +104,7 @@ class Main {
     }
 
     //条件3 - S: 我也是，现在我也知道了。ﾷￖￎ￶
-    func int[][] Condition3(int x, int y)
+    func int Condition3(int x, int y)
     {
         var int[][] s_sep; int i,ret end
         s_sep = S(x,y);
@@ -127,7 +127,7 @@ class Main {
     }
 
     //需要同时满足上面3个条件
-    func int[][] Condition(int x, int y)
+    func int Condition(int x, int y)
     {
         Condition1(x, y ) &&  Condition2(x, y) && Condition3(x, y)
     }
