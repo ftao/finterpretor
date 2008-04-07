@@ -40,7 +40,7 @@ class Main {
 	    		len ++;
             i ++
 	    );
-	    ar = new int[][len + 1];
+	    ar = new int[][len];
 	    i = MIN;
         len = 0;
 	    while( i <= p/i)
@@ -62,6 +62,7 @@ class Main {
     {
         var int[][] s_sep; int i,ret end
         s_sep = S(x, y);
+
         ret = 1;
         if (s_sep.length == 1)
         (
@@ -70,10 +71,11 @@ class Main {
         else
         (
             i = 0;
-            while ( i < s_sep.length)
+            while (ret && i < s_sep.length)
             (
                 if (P(s_sep[i][0], s_sep[i][1]).length <= 1)
                     ret = 0;
+
                 i++
             )
         );
@@ -87,16 +89,19 @@ class Main {
         p_sep = P(x,y);
         i = 0 ;
         ret = 1;
-        while (i < p_sep.length && ret)
+        while (ret && i < p_sep.length )
         (
-            if (x != p_sep[i][0] || y != p_sep[i][1])
+            if (x == p_sep[i][0] && y == p_sep[i][1])
             (
                  ret
             )
             else
             (
                 if (Condition1(p_sep[i][0], p_sep[i][1]))
+                (
+
                     ret = 0
+                 )
             );
             i++
         );
@@ -110,15 +115,15 @@ class Main {
         s_sep = S(x,y);
         i = 0 ;
         ret = 1;
-        while (i < p_sep.length && ret)
+        while (ret && i < s_sep.length)
         (
-            if (x != p_sep[i][0] || y != p_sep[i][1])
+            if (x == s_sep[i][0] && y == s_sep[i][1])
             (
                 ret
             )
             else
             (
-                if (Condition2(p_sep[i][0], p_sep[i][1]))
+                if (Condition2(s_sep[i][0], s_sep[i][1]))
                     ret = 0
             );
             i++
@@ -131,7 +136,7 @@ class Main {
     {
         Condition1(x, y ) &&  Condition2(x, y) && Condition3(x, y)
     }
-
+    
     func void main()
     {
         var int i,j,x,y end
@@ -143,6 +148,8 @@ class Main {
             j = i;
             while(j < MAX && x == 0 && y == 0)
             (
+	            print (i);
+	            println (j);
                 if(Condition(i,j))
                 (
                     x = i;
