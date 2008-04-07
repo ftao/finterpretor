@@ -247,7 +247,7 @@ class Array(Type):
         self.base = None
 
     def to_str(self, obj):
-        return '[' + ",".join([x.to_str() for x in self.value]) + ']'
+        return '[' + ",".join([x.to_str() for x in obj.value]) + ']'
 
     @require_same
     def op_assign(self, lhs, rhs):
