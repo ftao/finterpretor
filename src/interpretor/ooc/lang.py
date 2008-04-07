@@ -74,7 +74,8 @@ def is_type_castable(obj,type):
 class Type:
     def __init__(self):
         self.name = "type"
-
+        self.base = None
+    
     def to_str(self,obj):
         return  str(obj.value)
 
@@ -137,14 +138,14 @@ class Type:
 class Void(Type):
     def __init__(self):
         self.name = "void"
-
+        self.base = None
 
 class Integer(Type):
     '''Small C 整数类型'''
 
     def __init__(self):
         self.name = "int"
-
+        self.base = None
     def asBool(self,obj):
         return bool(obj.value)
 
@@ -237,30 +238,31 @@ class Array(Type):
     '''Array
     '''
 
-    def __init__(self,base,dim = 1):
+    def __init__(self, base, dim = 1):
         if dim > 1:
-            self.base = Array(base, dim-1)
+            self.base_type = Array(base, dim-1)
         else:
-            self.base = base
-        self.name = self.base.name + "[]"
+            self.base_type = base
+        self.name = self.base_type.name + "[]"
+        self.base = None
 
-    def to_str(self,obj):
+    def to_str(self, obj):
         return '[' + ",".join([x.to_str() for x in self.value]) + ']'
 
     @require_same
-    def op_assign(self,lhs,rhs):
+    def op_assign(self, lhs, rhs):
         lhs.value = rhs.value
         return lhs
 
     @require_same
-    def op_eq(self,lhs,rhs):
+    def op_eq(self, lhs, rhs):
         return Object(intType, int(lhs.value is rhs.value))
 
     @require_same
-    def op_ne(self,lhs,rhs):
+    def op_ne(self, lhs, rhs):
         return Object(intType, int(not (lhs.value is rhs.value)))
 
-    def op_index(self,lhs,rhs):
+    def op_index(self, lhs, rhs):
         if rhs.type != intType or lhs.value is None:
             raise error.TypeError(lhs,rhs)
         ind = rhs.value
@@ -272,14 +274,14 @@ class Array(Type):
     def alloc_one(self):
         return Object(self)
 
-    def op_member_no_private(self,lhs,rhs):
+    def op_member_no_private(self, lhs, rhs):
         '''
         array 只支持一个member length
         '''
         if rhs != "length":
-            raise error.MemberError(lhs,rhs)
+            raise error.MemberError(lhs, rhs)
         else:
-            return Object(intType,len(lhs.value))
+            return Object(intType, len(lhs.value))
 
 class RootClass(Type):
     '''这个语言是一个类Java 的单根的语言。 这个类是所有类的基类'''
@@ -288,13 +290,13 @@ class RootClass(Type):
         self.base = None
 
     @require_same_base_or_null
-    def op_assign(self,lhs,rhs):
+    def op_assign(self, lhs, rhs):
         lhs.type = rhs.type
         lhs.value = rhs.value
         return lhs
 
     @require_same_base_or_null
-    def op_eq(self,lhs,rhs):
+    def op_eq(self, lhs, rhs):
         return Object(intType, int(lhs.value is rhs.value))
 
     @require_same_base_or_null
