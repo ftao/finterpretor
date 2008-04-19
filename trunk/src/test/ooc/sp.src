@@ -136,7 +136,7 @@ class Main {
     {
         Condition1(x, y ) &&  Condition2(x, y) && Condition3(x, y)
     }
-    
+
     func void main()
     {
         var int i,j,x,y end
@@ -148,8 +148,8 @@ class Main {
             j = i;
             while(j < MAX && x == 0 && y == 0)
             (
-	            print (i);
-	            println (j);
+	            //print (i);
+	            //println (j);
                 if(Condition(i,j))
                 (
                     x = i;
@@ -160,7 +160,7 @@ class Main {
             i ++
         );
         print (x);
-        print (y)
+        print (y);
     }
 
 }
