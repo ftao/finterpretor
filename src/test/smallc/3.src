@@ -1,0 +1,69 @@
+class Link { Node prob; Link next }
+class Node { int level; int[] board }
+const n=8;
+var Link head; int num, bound end
+func void depthfirst(){
+    var
+        Link t;
+        Node p, sub;
+        int m, i
+    end
+    p=head.prob;
+    sub=null;
+    m=subnodenum(p);
+    i=0;
+    if (target(p))( outlist(head); ++num );
+    while (num<bound && i<m)
+        if ((sub=down(p, i++))!=null)(
+             t=new Link;
+             t.prob=sub;
+             t.next=head;
+             head=t;
+             depthfirst();
+             head=head.next
+        )
+}
+func int subnodenum(Node this){ if (this.level<n) n else 0 }
+func int target(Node this){ this.level==n }
+func Node down(Node this, int i){
+    var Node ans; int norm; int k end
+    ans=null; norm=this.level<n; k=this.level-1;
+    while (norm && k>=0)(
+        norm=i!=this.board[k] && i+this.level-k!=this.board[k]
+          && i-this.level+k!=this.board[k];
+        --k
+    );
+    if (norm)(
+        this.board[this.level]=i;
+        ans=new Node;
+        ans.level=this.level+1;
+        ans.board=new int[ans.level+1];
+        k=0;
+        while (k<ans.level)(
+            ans.board[k]=this.board[k]; ++k
+        )
+    );
+    ans
+}
+func void outlist(Link this){
+    if (this.next!=null)
+        outlist(this.next);
+    outnode(this.prob)
+}
+func void outnode(Node this){
+    var int i end
+    if (this.level==n)(
+        i=0;
+        while (i<n)
+            print(this.board[i++]);
+        println();
+    )
+}
+func void main(){
+    bound=1;
+    head=new Link;
+    head.prob=new Node;
+    head.prob.board=new int[1];
+    head.next = null;
+    depthfirst()
+}

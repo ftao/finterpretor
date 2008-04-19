@@ -158,9 +158,9 @@ class Interpreter:
                         print >>sys.stderr, "call %s at line %s" %(x[0], x[1])
                     else:
                         print >>sys.stderr, "call %s" % (x[0])
-        #except StandardError,e:
-        #    print >>sys.stderr, "Interpretor inner error "
-        #    raise e
+        except StandardError,e:
+            print >>sys.stderr, "Interpretor inner error "
+            raise e
 
 
     def on_statement(self,node):
@@ -363,7 +363,6 @@ class Interpreter:
     def on_token(self,node):
         self.current_token = node
         return node.value
-
 
 def run(data, input_file = sys.stdin, output_file = sys.stdout):
     set_io(input_file, output_file)

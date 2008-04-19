@@ -1,3 +1,8 @@
+/*
+ * @lang L2
+ * @name 二分搜索
+ * @author Tao Fei (Filia.Tao@gmail.com)
+ */
 func int bin_search(int[] ar, int start, int en, int target){
     var int m,ret end
     if (start > en)

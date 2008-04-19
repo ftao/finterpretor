@@ -172,16 +172,17 @@ def p_funbody(p):
     p[0] = Node("funbody", p[1:])
 
 
-
+#增加st ';' 允许在结尾加一个';'
 def p_stlist(p):
     '''stlist : st ';' stlist
               | st
+              | st ';'
     '''
     all_to_node(p)
-    if len(p) > 2:
+    if len(p) == 4:
         p[0] = Node("stlist",[p[1]] + p[3].getChildren())
     else:
-        p[0] = Node("stlist",p[1:])
+        p[0] = Node("stlist",[p[1]])
 
 def p_st(p):
     '''st : exp

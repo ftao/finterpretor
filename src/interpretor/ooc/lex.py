@@ -103,8 +103,7 @@ def t_comment2(t):
 
 def t_error(t):
     print "Illegal character '%s' on line %d " % (t.value[0],t.lexer.lineno)
-#    t.lexer.skip(1)
-#    lex.has_error = True
+
 
 
 
