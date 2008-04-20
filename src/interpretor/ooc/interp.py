@@ -158,9 +158,9 @@ class Interpreter:
                         print >>sys.stderr, "call %s at line %s" %(x[0], x[1])
                     else:
                         print >>sys.stderr, "call %s" % (x[0])
-        except StandardError,e:
-            print >>sys.stderr, "Interpretor inner error "
-            raise e
+        #except StandardError,e:
+        #    print >>sys.stderr, "Interpretor inner error "
+        #    raise e
 
 
     def on_statement(self,node):
