@@ -1,4 +1,6 @@
 #coding=utf8
+#$Id$
+
 #Copyright 2007 Tao Fei (filia.tao@gmail.com)
 #Released under GPL V3 (or later)
 #see  http://www.gnu.org/copyleft/gpl.html  for more details

@@ -1,6 +1,7 @@
 #coding=utf8
-import sys
+#$Id$
 
+import sys
 from ply import yacc
 from interpretor.ooc.lex import *
 from interpretor.ast import Node,all_to_node

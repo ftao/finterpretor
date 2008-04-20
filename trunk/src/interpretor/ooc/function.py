@@ -1,4 +1,6 @@
 #coding=utf8
+#$Id$
+
 import copy,sys
 import interpretor.ooc.lang as lang
 import interpretor.ooc.error as error

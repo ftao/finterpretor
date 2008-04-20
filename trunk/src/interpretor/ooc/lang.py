@@ -1,4 +1,6 @@
 #coding=utf8
+#$Id$
+
 '''
 Small C 语言只有三种类型。
 1. 整形
@@ -75,7 +77,7 @@ class Type:
     def __init__(self):
         self.name = "type"
         self.base = None
-    
+
     def to_str(self,obj):
         return  str(obj.value)
 

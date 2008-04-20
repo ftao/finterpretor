@@ -1,4 +1,6 @@
 #coding=utf8
+#$Id$
+
 class ParseError(Exception):
 
     def __init__(self,token):

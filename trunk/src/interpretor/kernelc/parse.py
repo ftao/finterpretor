@@ -1,6 +1,7 @@
 #coding=utf8
-from ply import yacc
+#$Id$
 
+from ply import yacc
 from interpretor.kernelc.lex import *
 from interpretor.ast import Node,all_to_node
 import interpretor.kernelc.error as error

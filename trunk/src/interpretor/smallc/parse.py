@@ -1,4 +1,6 @@
 #coding=utf8
+#$Id$
+
 from ply import yacc
 from interpretor.smallc.lex import *
 from interpretor.ast import Node,all_to_node
