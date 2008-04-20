@@ -1,4 +1,6 @@
 #coding=utf8
+#$Id$
+
 class Node:
     def __init__(self, type, children=[], prod = None):
         self.type = type

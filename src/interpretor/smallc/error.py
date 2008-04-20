@@ -1,4 +1,5 @@
 #coding=utf8
+#$Id$
 
 class ParseError(Exception):
 

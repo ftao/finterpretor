@@ -1,4 +1,6 @@
 #coding=utf8
+#$Id$
+
 import copy
 import sys
 import interpretor.smallc.lang as lang

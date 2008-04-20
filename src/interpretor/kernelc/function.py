@@ -1,4 +1,6 @@
 #coding=utf8
+#$Id$
+
 '''Kernel C 函数
 '''
 import sys

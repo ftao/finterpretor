@@ -1,4 +1,6 @@
 #coding=utf8
+#$Id$
+
 '''
 Small C 语言只有三种类型。
 1. 整形

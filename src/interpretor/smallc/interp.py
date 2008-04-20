@@ -1,4 +1,6 @@
 #coding=utf8
+#$Id$
+
 '''
 SmallC 语言解释器
 工作在抽象语法树上。
