@@ -1,0 +1,13 @@
+fInterpretor Change Log
+
+$Id$
+
+0.2
+2008-04-29
+  * Add L0(or kernelc) language support
+  * Several test programs are added
+
+
+0.1
+2008-02-28
+  * create fInterpretor version 0.1
