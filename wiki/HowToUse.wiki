@@ -5,10 +5,11 @@
 需要Python 解释器才能运行这个程序.
 请从 http://www.python.org/download/ 下载对应您操作系统的Python 解释器并安装
 
-= 下载 = 
+= 下载 =
   # 使用SVN 获得最新代码
    `svn checkout http://finterpretor.googlecode.com/svn/trunk/ finterpretor-read-only`
   # 从本站 Downloads 页,选择最新版本的压缩包下载.
 
 = 运行 =
-  * 目前最简单的方法是 运行 `src/interpretor/shell.py`  这个程序就可以. (在Windows 下双击即可)
+  * 目前最简单的方法是 运行 `src/interpretor/shell.py`  这个程序. 打开一个控制台窗口.
+  运行python shell.py L1 "your-paht-to-your-L1-src-file" (L2语言类似)
