@@ -1,4 +1,5 @@
 #coding=utf8
+#$Id#
 '''
 解释器Shell
 可以加载两个不同的引擎,来解释不同的语言
@@ -121,3 +122,4 @@ if __name__ == '__main__':
             shell.load(sys.argv[2])
         else:
             shell.start()
+
