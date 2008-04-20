@@ -1,4 +1,6 @@
 #coding=utf8
+#$Id$
+
 '''Unit Test For interpretor.smallc package'''
 import unittest
 
