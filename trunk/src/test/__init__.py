@@ -47,7 +47,8 @@ class BaseTestCase(unittest.TestCase):
 def build_test_suit(lang, filter_func = None):
     interp = __import__('interpretor.%s.interp' %(lang), fromlist = ['interpretor' ,lang])
     suite = unittest.TestSuite()
-    source_file_list = glob.glob('./%s/*.src' %(lang))
+    subfix = lang[0:2] + lang[-1] #kec smc ooc
+    source_file_list = glob.glob('./%s/*.%s' %(lang,subfix))
     for src_file in source_file_list:
         if filter_func is not None:
             if not filter_func(src_file):
