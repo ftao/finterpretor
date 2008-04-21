@@ -1,5 +1,8 @@
 #coding=utf8
 #$Id$
+'''
+错误类型和错误报告系统
+'''
 
 class ParseError(Exception):
 

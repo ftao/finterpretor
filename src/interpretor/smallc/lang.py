@@ -18,11 +18,41 @@ Small C 语言只有三种类型。
 '''
 import interpretor.smallc.error as error
 
+#类型约束
+#这个应该作为语言定义的一部分
+#一条约束规则应该包含如下的内容
+# * 操作符
+# * 约束规则
+type_requirements = {
+
+}
+
+def is_same(*operands):
+    if(len(operands) != 2):
+        return False #Something is wrong
+    else:
+        return operands[0] == operands[1]
+
+def in_type_set(*types):
+    def wrapped(*operands):
+        if(len(operands) < 1):
+            return False
+        else:
+            return operands[0] in types
+    return wrapped
+
 
 #修饰符函数
 def require_same(func):
+    #这里在全局字典 type_requirements 加入对应的条目，
+    #在静态类型检查时将要用到这个
+    op_name = func.__name__.split('_')[1]
+    if not type_requirements.has_key(op_name):
+        type_requirements[op_name] = []
+    type_requirements[op_name].append(is_same)
+
     def wrapped(self,lhs,rhs):
-        if (rhs.type != self):
+        if not is_same(self, rhs.type):
             raise error.TypeError(self,rhs)
         return func(self,lhs,rhs)
     return wrapped
