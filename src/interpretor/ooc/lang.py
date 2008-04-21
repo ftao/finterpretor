@@ -11,9 +11,8 @@ Small C 语言只有三种类型。
 null 表示空引用。
 怎样处理特殊的null 值？ （用Object(nullType,None) 来表示。
 从程序中可以看到 null 似乎可以赋值给任何类型的对象。
-
-
 '''
+
 import operator
 import sys
 import interpretor.ooc.error as error

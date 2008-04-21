@@ -1,5 +1,13 @@
 #coding=utf8
 #$Id$
+'''
+AST Moudle
+抽象语法树模块,提供
+  # 节结点
+  # 叶结点
+  # 子结点查询
+
+'''
 
 class Node:
     def __init__(self, type, children=[], prod = None):

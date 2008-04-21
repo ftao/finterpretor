@@ -110,16 +110,6 @@ class MoreParser:
         return node.value
 
 
-class StaticTypeCheck():
-    '''
-    静态类型检查
-    1.函数不需要执行,只需要返回类型
-    2.表达式也只需要返回类型.
-    怎样表达运算符对类型的匹配？
-    规则定义在哪里呢？
-    '''
-    pass
-
 class Interpreter:
 
     def __init__(self,ast,global_ns):
@@ -148,6 +138,15 @@ class Interpreter:
         #except StandardError,e:
         #    print >>sys.stderr, "Interpretor inner error "
         #    raise e
+
+    def on_node(self, node):
+        if isinstance(node, Node):
+            if hasattr(self, 'on_' + node.type):
+                return getattr(self, 'on_' + node.type)(node)
+            else:
+                pass #should we report error here ?
+        else:
+            return self.on_token(node)
 
     def on_statement(self,node):
         node = node.child(0)
@@ -331,8 +330,177 @@ class Interpreter:
         return node.value
 
 
+class StaticTypeChecker(Interpreter):
+    '''
+    静态类型检查
+    1.函数不需要执行,只需要返回类型
+    2.表达式也只需要返回类型.
+    怎样表达运算符对类型的匹配？
+    规则定义在哪里呢？
+    '''
+    def on_cond(self,node):
+        #print node
+        exp = node.child(2)
+        st = node.child(4)
+        self.on_exp(exp)
+        self.on_statement(st)
+        if len(node) > 6:
+            self.on_statement(node.child(6))
+        return lang.void
+
+    def on_loop(self,node):
+        exp = node.child(2)
+        self.on_exp(exp)
+        if len(node) > 4:
+            self.on_statement(node.child(4))
+        return lang.void
+
+    def on_exp(self,node):
+        if len(node) > 1:
+            lhs = self.on_orexp(node.child(0))
+            self.on_token(node.child(1))
+            rhs = self.on_orexp(node.child(2))
+            lang.check_type_requirement('assign', lhs, rhs)
+            return lrs;
+        else:
+            return self.on_orexp(node.child(0))
+
+    def on_andexp(self,node):
+        if len(node) > 1:
+            lhs = self.on_andexp(node.child(0))
+            self.on_token(node.child(1))
+            rhs = self.on_relexp(node.child(2))
+            lang.check_type_requirement('and', lhs, rhs)
+            return lang.intType
+        else:
+            return self.on_relexp(node.child(0))
+
+    def on_relexp(self,node):
+        if len(node) > 1:
+            lhs = self.on_relexp(node.child(0))
+            m = {
+             '==':'eq',
+             '!=':'ne',
+             '<':'lt',
+             '>':'gt',
+             '<=':'le',
+             '>=':'ge'
+            }
+            relop = m[self.on_token(node.child(1).child(0))]
+            rhs = self.on_term(node.child(2))
+            lang.check_type_requirement(relop, lhs, rhs)
+            return lang.intType
+        else:
+            return self.on_term(node.child(0))
+
+    def on_term(self,node):
+        if len(node) > 1:
+            lhs = self.on_term(node.child(0))
+            op = {'+':'add','-':'minus'}[self.on_token(node.child(1).child(0))]
+            rhs = self.on_factor(node.child(2))
+            lang.check_type_requirement(op, lhs, rhs)
+            return lang.intType
+        else:
+            return self.on_factor(node.child(0))
+
+    def on_factor(self,node):
+        if len(node) > 1:
+            lhs = self.on_factor(node.child(0))
+            op =  {'*':'mul','/':'div','%':'mod'}[self.on_token(node.child(1).child(0))]
+            rhs = self.on_uniexp(node.child(2))
+            lang.check_type_requirement(op, lhs, rhs)
+            return lang.intType
+        else:
+            return self.on_uniexp(node.child(0))
+
+    def on_uniexp(self,node):
+        if len(node) > 1:
+            uniop = {'++':'inc','--':'dec',
+                    '-':'minus_','!':'not','chk':'chk'}[self.on_token(node.child(0).child(0))]
+            uniexp = self.on_uniexp(node.child(1))
+            lang.check_type_requirement(uniop, uniexp)
+            if uniop == 'chk':
+                return lang.void
+            else:
+                return lang.intType
+        else:
+            return self.on_postexp(node.child(0))
+
+    def on_postexp(self,node):
+
+        if len(node) > 1:
+            postexp = self.on_postexp(node.child(0))
+            postfix = node.child(1).child(0)
+            if postfix.type == 'apara':
+                line_no = self.current_token.lineno
+                ret = None
+                if len(postfix) == 2:
+                    ret = postexp.call([],self,line_no)
+                else:
+                    ret = postexp.call(self.on_apara(postfix),self,line_no)
+                self.on_token(postfix.child(-1))# read the ')', to set the current_token right
+                return ret
+            elif postfix.type =='sub':
+                exp = self.on_exp(postfix.child(1))
+                if isinstance(exp, lang.Array):
+                    return exp.base
+                else:
+                    print "errror"
+                    return lang.void
+            elif postfix.type == 'aselect':
+                exp = self.on_token(postfix.child(1))
+                member = self.on_token(postfix.child(1))
+                if isinstance(exp, lang.Struct) and member in exp.members:
+                    return exp.members[member]
+                else:
+                    print "error"
+                    return lang.void
+
+            elif postfix.type == 'tcast':
+                pass
+                #return postexp.op("tcast",self.on_type(postfix.child(1)))
+            if isinstance(postfix,Leaf):
+                value = self.on_token(postfix)
+                if value == '++':
+                    lang.check_type_requirement("inc_", postexp)
+                    return lang.intType
+                elif value == '--':
+                    lang.check_type_requirement("dec_", postexp)
+                    return lang.intType
+        else:
+            return self.on_entity(node.child(0))
+
+    def on_entity(self,node):
+        entity = node.child(0)
+        if entity.type == "cast":
+            return self.on_cast(entity)
+        elif entity.type == "alloc":
+            return self.on_alloc(entity)
+        elif isinstance(entity,Leaf):
+            entity = self.on_token(entity)
+            if isinstance(entity,str):
+                if entity == '?': #input
+                    return self.current_ns.get("read").call([],self)
+                else:
+                    return self.current_ns.get(entity)
+            elif isinstance(entity,int):
+                return lang.Object(lang.intType, entity)
 
 
+
+    def on_alloc(self,node):
+        if len(node) == 2:
+            ret =  self.on_type(node.child(1))
+        else:
+            ret =  lang.Array(self.on_type(node.child(1)))
+        return ret
+
+    def on_apara(self,node):
+        return [self.on_exp(x) for x in node.query("explist>exp")]
+
+    def on_token(self,node):
+        self.current_token = node
+        return node.value
 
 
 def run(data, input_file = sys.stdin, output_file = sys.stdout):
