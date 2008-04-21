@@ -110,7 +110,7 @@ class Shell:
 if __name__ == '__main__':
     if len(sys.argv) <= 1 or sys.argv[1] not in ["L1", "L2"]:
         print "Plase choose a engieer"
-        print "L1 , L2 , L3 "
+        print "L0, L1 , L2 "
         print "eg: %s L1" %(sys.argv[0])
     else:
         if sys.argv[1] == "L1":

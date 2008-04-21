@@ -109,6 +109,17 @@ class MoreParser:
         self.current_token = node #记录当前终结符。调试用
         return node.value
 
+
+class StaticTypeCheck():
+    '''
+    静态类型检查
+    1.函数不需要执行,只需要返回类型
+    2.表达式也只需要返回类型.
+    怎样表达运算符对类型的匹配？
+    规则定义在哪里呢？
+    '''
+    pass
+
 class Interpreter:
 
     def __init__(self,ast,global_ns):
@@ -318,6 +329,10 @@ class Interpreter:
     def on_token(self,node):
         self.current_token = node
         return node.value
+
+
+
+
 
 
 def run(data, input_file = sys.stdin, output_file = sys.stdout):
