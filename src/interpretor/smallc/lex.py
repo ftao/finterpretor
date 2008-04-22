@@ -267,6 +267,13 @@ func void main(){
     print (bin_search(ar,0,9,3))
 }
 '''
+test = '''
+func void main(){
+    var int [] ar end
+    ar = new int[10];
+    ar[1] = 1
+}
+'''
 lex.lex()
 
 if __name__ == '__main__':
