@@ -8,16 +8,12 @@ AST Moudle
   # 子结点查询
 
 '''
-import pydot
-
 class Node:
-    max_id = 0
 
     def __init__(self, type, children=[], prod = None):
         self.type = type
         self.children = children #filter(lambda child:isinstance(child,Node),children)
-        self.id = Node.max_id
-        Node.max_id += 1
+        #self.prod = prod #记录下原始的产生式对象，也许会用到。 不对不是一一对应的...
 
     def getChildren(self):
         return self.children
@@ -85,8 +81,6 @@ class Leaf(Node):
         self.lineno = lineno
         self.lexpos = lexpos
         self.children = []
-        self.id = Node.max_id
-        Node.max_id += 1
 
     def __len__(self):
         return 0
@@ -106,32 +100,57 @@ def all_to_node(p):
             token = p.slice[i]
             p[i] = Leaf(token.type, token.value, token.lineno, token.lexpos)
 
+#导出成图片
+#using pydot and graphviz
 try:
     import pydot
-    def to_graph_node(root, graph):
-        if root is None:
+    def node_to_graph(node, graph):
+        if node is None:
             return None
         parent = pydot.Node(
-            root.id,
+            id(node)
         )
-        if isinstance(root, Leaf):
-            parent.set_label(str(root.value))
+        if isinstance(node, Leaf):
+            parent.set_label('%s' %(str(node.value)))
         else:
-            parent.set_label(root.type)
+            parent.set_label(node.type)
         graph.add_node(parent)
         #print parent.to_string()
-        for n in root:
-            child = to_graph_node(n, graph)
+        for n in node:
+            child = node_to_graph(n, graph)
             if child:
                 graph.add_edge(pydot.Edge(parent, child))
         return parent
 
     def to_graph(root, graph_name):
         graph = pydot.Dot()
-        to_graph_node(root, graph)
+        node_to_graph(root, graph)
         #print graph.to_string()
         graph.write_png(graph_name + '.png', prog='dot')
 
 except ImportError:
     def to_graph(root, graph_name):
         print "pydot is not installed.to_graphp will not work"
+
+
+
+#根据parse.py 文件内容 生成抽象语法树遍历程序
+def gen_walker(lang):
+    import types
+    p = __import__('interpretor.%s.parse' %(lang,), fromlist = ['interpretor' ,lang])
+    walker_src= "class BaseASTWalker:\n"
+    ldict = p.__dict__
+    symbols = [ldict[f] for f in ldict.keys()
+       if (type(ldict[f]) in (types.FunctionType, types.MethodType) and ldict[f].__name__[:2] == 'p_'
+           and ldict[f].__name__[2:] not in p.ast_ommit)]
+    symbols.sort(lambda x,y: cmp(x.func_code.co_firstlineno,y.func_code.co_firstlineno))
+
+    for x in symbols:
+            walker_src += '''
+    def on_%s(self, node):
+        return node.child(0)
+''' %(x.__name__[2:])
+    return walker_src
+
+if __name__ == "__main__":
+    print gen_walker("smallc")

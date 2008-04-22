@@ -391,11 +391,16 @@ def p_error(p):
     #print >>sys.stderr,"parser error at line %d token '%s'" %(p.lineno, p.value)
     raise error.ParseError(p)
 
+#在上面的产生式,起辅助作用的,不会产生AST结点
+ast_ommit = ('error', 'empty', 'var_decls', 'const_decls')
+
+
 parser = yacc.yacc()
 
 def parse(data):
     p = parser.parse(data)
     return p
+
 
 if __name__ == '__main__':
     n =  parse(test)
