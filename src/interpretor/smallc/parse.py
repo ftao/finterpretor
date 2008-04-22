@@ -3,7 +3,7 @@
 
 from ply import yacc
 from interpretor.smallc.lex import *
-from interpretor.ast import Node,all_to_node
+from interpretor.ast import Node,all_to_node,to_graph
 import interpretor.smallc.error as error
 
 
@@ -399,5 +399,4 @@ def parse(data):
 
 if __name__ == '__main__':
     n =  parse(test)
-    print len(n.query("vdecl>decllist>decl"))
-    print len(n.query("class_decls>classdecl"))
+    to_graph(n, "test_smallc")

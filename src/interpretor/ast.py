@@ -8,11 +8,16 @@ AST Moudle
   # 子结点查询
 
 '''
+import pydot
 
 class Node:
+    max_id = 0
+
     def __init__(self, type, children=[], prod = None):
         self.type = type
         self.children = children #filter(lambda child:isinstance(child,Node),children)
+        self.id = Node.max_id
+        Node.max_id += 1
 
     def getChildren(self):
         return self.children
@@ -74,6 +79,8 @@ class Leaf(Node):
         self.lineno = lineno
         self.lexpos = lexpos
         self.children = []
+        self.id = Node.max_id
+        Node.max_id += 1
 
     def __len__(self):
         return 0
@@ -91,3 +98,28 @@ def all_to_node(p):
     for i in range(len(p)):
         if p[i] is not None and not isinstance(p[i], Node):
             p[i] = Leaf(p[i], p.lineno(i), p.lexpos(i))
+
+
+def to_graph_node(root, graph):
+    if root is None:
+        return None
+    parent = pydot.Node(
+        root.id,
+    )
+    if isinstance(root, Leaf):
+        parent.set_label(str(root.value))
+    else:
+        parent.set_label(root.type)
+    graph.add_node(parent)
+    #print parent.to_string()
+    for n in root:
+        child = to_graph_node(n, graph)
+        if child:
+            graph.add_edge(pydot.Edge(parent, child))
+    return parent
+
+def to_graph(root, graph_name):
+    graph = pydot.Dot()
+    to_graph_node(root, graph)
+    #print graph.to_string()
+    graph.write_png(graph_name + '.png', prog='dot')

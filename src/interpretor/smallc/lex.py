@@ -127,7 +127,7 @@ test5 = '''
     }
 '''
 
-test4 = '''
+test = '''
  func int gcd(int a, int b){ var int r end
    chk (a>1 && b>1);
    while (b!=0)(r=a%b; a=b; b=r);
@@ -232,7 +232,7 @@ func void main(){
 }
 '''
 
-test = '''
+test2 = '''
 
 func int bin_search(int[] ar, int start, int en, int target){
     var int m,ret end
