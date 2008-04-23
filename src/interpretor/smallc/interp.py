@@ -28,16 +28,16 @@ class MoreParser:
 
         #类定义
         for n in self.ast.query("class_decls>classdecl"):
-            name = self.on_token(n.child(1))
+            name = self.on_token(n.child("id"))
             struct = lang.Struct(name)
             self.global_ns.set(name, struct)
 
 
         for n in self.ast.query("class_decls>classdecl"):
-            name = self.on_token(n.child(1))
+            name = self.on_token(n.child("id"))
             struct = self.global_ns.get(name)
-            for x in n.child(3):
-                self.on_decl_inside_class(x,struct)
+            for x in n.query("decllist>decl"):
+                self.on_decl_inside_class(x, struct)
 
         #常量
         for n in self.ast.query("condecl>condef"):
@@ -53,25 +53,25 @@ class MoreParser:
 
     def on_decl(self,node,ns):
         '(在函数中的)变量声明'
-        type = self.on_type(node.child(0))
-        for id in node.child(1):
+        type = self.on_type(node.child("type"))
+        for id in node.query("idlist>id"):
             ns.set(id.value,lang.Object(type))
 
     def on_decl_inside_class(self,node,struct):
         '在类中的变量声明'
-        type = self.on_type(node.child(0))
-        for id in node.child(1):
+        type = self.on_type(node.child("type"))
+        for id in node.query("idlist>id"):
             struct.add_member(type,id.value)
 
     def on_paradecl(self,node,ns):
         '函数形参定义'
-        type = self.on_type(node.child(0))
-        name = self.on_token(node.child(1))
+        type = self.on_type(node.child("type"))
+        name = self.on_token(node.child("id"))
         ns.add_param(name,type)
 
     def on_type(self,node):
         '类型'
-        base = self.on_token(node.child(0))
+        base = self.on_token(node.child("id"))
         base_type = self.current_ns.get(base)
         if not base_type:
             pass # raise Error
@@ -84,17 +84,17 @@ class MoreParser:
 
     def on_condef(self,node,ns):
         '常量定义'
-        name = self.on_token(node.child(0))
-        value = self.on_token(node.child(-1))
-        if len(node) > 3:
+        name = self.on_token(node.child("id"))
+        value = self.on_token(node.child("num"))
+        if node.child("-"):
             value = -value
         ns.set(name,lang.ConstObject(lang.intType,value)) # type use lang.intType
 
     def on_fdef(self,node,ns):
         '函数定义'
-        name  = self.on_token(node.child(2).child(0))
+        name  = self.on_token(node.query("head>id")[0])
         fns = Function(name,self.current_ns)
-        fns.ret_type = self.on_type(node.child(1))
+        fns.ret_type = self.on_type(node.child("type"))
         ns.set(name,fns)
 
         for para in node.query("head>paralist>paradecl"):
