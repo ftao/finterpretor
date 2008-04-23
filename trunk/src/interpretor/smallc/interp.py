@@ -14,7 +14,7 @@ from interpretor.smallc.function import Function,get_built_in_ns,copy_ns,set_io
 from interpretor.smallc.parse import parse
 from interpretor.smallc.lex import test
 from interpretor.smallc.astaction import BaseASTAction
-from interpretor.ast import Node,Leaf,BaseASTWalker
+from interpretor.ast import Node,Leaf,BaseASTWalker,ScopeWalker
 
 
 class MoreParser:
@@ -382,153 +382,113 @@ class StaticTypeChecker(BaseASTAction):
     怎样表达运算符对类型的匹配？
     规则定义在哪里呢？
     '''
+    def set_walker(self, walker):
+        self.walker = walker #反向应用,遍历器
+
+    def _check_type(self, op, *nodes):
+        is_type_match = lang.check_type_requirement(
+            op,
+            *[x.attr('type') for x in nodes]
+        )
+        if not is_type_match:
+            print >>sys.stderr, "type not match for operation " , op
+
+    def _check_bin_op(self, node):
+        if len(node) >1:
+            self._check_type(node.child(1).attr('op_name'), node.child(0), node.child(2))
+
+    def _on_bin_exp(self, node):
+        self._check_bin_op(node)
+        node.attr('type', node.child(0).attr('type'))
+
+    def _get_from_first_child(self, node):
+        node.attr('type', node.child(0).attr('type'))
+
+
+    on_st = _get_from_first_child
+
     def on_cond(self, node, children):
         node.attr('type', lang.void)
 
     def on_loop(self, node, children):
         node.attr('type', lang.void)
 
-    def _check_type(self, op, **nodes):
-        is_type_match = lang.check_type_requirement(
-            op,
-            nodes
-        )
-        if not is_type_match:
-            print >>sys.stderr, "assign type not match for operation " , op
+    on_exp = on_orexp = on_andexp = _on_bin_exp
 
-    def on_exp(self, node):
-        self._check_type('assign', node.child(0), node.child(1))
-        node.attr('type', node.child(0).attr('type'))
+    on_relexp = on_term = on_factor = _on_bin_exp
 
-    def on_andexp(self,node):
-        if len(node) > 2:
-            self._check_type('and', node.child(0), node.child(2))
-        node.attr('type', node.child(0).attr('type'))
 
-    def on_relexp(self,node):
+    def on_uniexp(self, node):
         if len(node) > 1:
-            m = {
-             '==':'eq',
-             '!=':'ne',
-             '<':'lt',
-             '>':'gt',
-             '<=':'le',
-             '>=':'ge'
-            }
-            op = m[self.on_token(node.child(1).child(0))]
-            lang.check_type_requirement(relop, lhs, rhs)
-            return lang.intType
-        else:
-            return self.on_term(node.child(0))
-
-    def on_term(self,node):
-        if len(node) > 1:
-            lhs = self.on_term(node.child(0))
-            op = {'+':'add','-':'minus'}[self.on_token(node.child(1).child(0))]
-            rhs = self.on_factor(node.child(2))
-            lang.check_type_requirement(op, lhs, rhs)
-            return lang.intType
-        else:
-            return self.on_factor(node.child(0))
-
-    def on_factor(self,node):
-        if len(node) > 1:
-            lhs = self.on_factor(node.child(0))
-            op =  {'*':'mul','/':'div','%':'mod'}[self.on_token(node.child(1).child(0))]
-            rhs = self.on_uniexp(node.child(2))
-            lang.check_type_requirement(op, lhs, rhs)
-            return lang.intType
-        else:
-            return self.on_uniexp(node.child(0))
-
-    def on_uniexp(self,node):
-        if len(node) > 1:
-            uniop = {'++':'inc','--':'dec',
-                    '-':'minus_','!':'not','chk':'chk'}[self.on_token(node.child(0).child(0))]
-            uniexp = self.on_uniexp(node.child(1))
-            lang.check_type_requirement(uniop, uniexp)
-            if uniop == 'chk':
-                return lang.void
+            op_name = node.child(0).attr('op_name')
+            lang.check_type_requirement(node.child(0).attr('op_name'), node.child(1))
+            if op_name == 'chk':
+                node.attr('type', lang.void)
             else:
-                return lang.intType
+                node.attr('type', node.child(1).attr('type'))
         else:
-            return self.on_postexp(node.child(0))
+            node.attr('type', node.child(0).attr('type'))
 
-    def on_postexp(self,node):
+    def on_postexp(self, node):
 
         if len(node) > 1:
-            postexp = self.on_postexp(node.child(0))
             postfix = node.child(1).child(0)
             if postfix.type == 'apara':
-                line_no = self.current_token.lineno
-                ret = None
-                if len(postfix) == 2:
-                    ret = postexp.call([],self,line_no)
-                else:
-                    ret = postexp.call(self.on_apara(postfix),self,line_no)
-                self.on_token(postfix.child(-1))# read the ')', to set the current_token right
-                return ret
+                pass
+                #TODO 先要标注这个返回值的域
+                #函数调用，返回值类型作为 node的类型
             elif postfix.type =='sub':
-                exp = self.on_exp(postfix.child(1))
-                if isinstance(exp, lang.Array):
-                    return exp.base
-                else:
-                    print "errror"
-                    return lang.void
+                pass
             elif postfix.type == 'aselect':
-                exp = self.on_token(postfix.child(1))
-                member = self.on_token(postfix.child(1))
-                if isinstance(exp, lang.Struct) and member in exp.members:
-                    return exp.members[member]
-                else:
-                    print "error"
-                    return lang.void
-
+                pass
             elif postfix.type == 'tcast':
                 pass
                 #return postexp.op("tcast",self.on_type(postfix.child(1)))
             if isinstance(postfix,Leaf):
-                value = self.on_token(postfix)
-                if value == '++':
-                    lang.check_type_requirement("inc_", postexp)
-                    return lang.intType
-                elif value == '--':
-                    lang.check_type_requirement("dec_", postexp)
-                    return lang.intType
+                lang.check_type_requirement(postfix.attr('op_name', postexp))
+                node.attr('type', node.child(0).attr('type'))
         else:
-            return self.on_entity(node.child(0))
+            node.attr('type', node.child(0).attr('type'))
 
-    def on_entity(self,node):
-        entity = node.child(0)
-        if entity.type == "cast":
-            return self.on_cast(entity)
-        elif entity.type == "alloc":
-            return self.on_alloc(entity)
-        elif isinstance(entity,Leaf):
-            entity = self.on_token(entity)
-            if isinstance(entity,str):
-                if entity == '?': #input
-                    return self.current_ns.get("read").call([],self)
-                else:
-                    return self.current_ns.get(entity)
-            elif isinstance(entity,int):
-                return lang.Object(lang.intType, entity)
+    on_entity = _get_from_first_child
 
+    def on_cast(self, node):
+        node.attr('type', node.child('stlist').attr('type'))
 
+    def on_stlist(self, node):
+        node.attr('type', node[-1].attr('type'))
 
     def on_alloc(self,node):
-        if len(node) == 2:
-            ret =  self.on_type(node.child(1))
+        if node.query('['):
+            node.attr('type', lang.Array(node.child("type").attr('type')))
         else:
-            ret =  lang.Array(self.on_type(node.child(1)))
-        return ret
+            node.attr('type', node.child("type").attr('type'))
 
-    def on_apara(self,node):
-        return [self.on_exp(x) for x in node.query("explist>exp")]
+    def on_type(self, node):
+        if node.query('['):
+            node.attr('type', lang.Array(node.child("type").attr('type')))
+        else:
+            try:
+                node.attr('type', self.walker.get_ns().get(node.child(0).value)) #type : id
+            except error.NameError:
+                print >>sys.stderr, "bad name , type if not defined"
 
-    def on_token(self,node):
+    def _on_token(self, node):
+        if node.type == "num" or node.type == '?':
+            node.attr('type', lang.intType)
+        elif node.type == "id":
+            try:
+                #in_func = node.ancestor("fdef")
+                #func_name = in_func.query("head>id")[0]
+                #func_ns =  self.ns.get(func_name.value)
+                #v = self.ns.get(node.value)
+                v = self.walker.get_ns().get(node.value)
+                if isinstance(v, lang.Object):
+                    node.attr('type', v.type)
+            except error.NameError:
+                print >>sys.stderr, "bad name ", node
+
         self.current_token = node
-        return node.value
 
 
 def run(data, input_file = sys.stdin, output_file = sys.stdout):
@@ -552,6 +512,23 @@ def test_OPAnnotate(data):
     for x in ast.query('**>?'):
         print x._attr
 
+def test_static_checker(data):
+    ast = parse(data)
+    annotate_action = OPAnnotate()
+    ast_walker = BaseASTWalker(ast, annotate_action)
+    ast_walker.run()
+
+    parser = MoreParser(ast)
+    parser.parse()
+
+    check_action = StaticTypeChecker()
+    walker2 = ScopeWalker(ast, check_action)
+    walker2.set_ns(parser.global_ns)
+
+    check_action.walker = walker2
+    walker2.run()
+
 if __name__ == '__main__':
-    test_OPAnnotate(test)
+    #test_OPAnnotate(test)
+    test_static_checker(test)
     #run(test)

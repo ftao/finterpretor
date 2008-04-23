@@ -269,9 +269,10 @@ func void main(){
 '''
 test = '''
 func void main(){
-    var int [] ar end
+    var int [] ar,b end
     ar = new int[10];
-    ar[1] = 1
+    ar[1] = 1;
+    b = null
 }
 '''
 lex.lex()
