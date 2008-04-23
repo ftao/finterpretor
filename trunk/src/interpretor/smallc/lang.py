@@ -71,7 +71,7 @@ def require_same(func):
 def require_same_or_null(func):
     add_type_requirement(func.__name__.split('_')[1], is_same_or_null)
     def wrapped(self,lhs,rhs):
-        if is_same_or_null(self, rhs.type):
+        if not is_same_or_null(self, rhs.type):
             raise error.TypeError(self,rhs)
         return func(self,lhs,rhs)
     return wrapped
