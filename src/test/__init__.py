@@ -65,6 +65,7 @@ def build_test_suit(lang, filter_func = None):
                 expect_out = open(src_file[:src_file.rfind('.')] + '.out').read()
             except IOError,e:
                 expect_out = ""
+            #print >>sys.stderr, "test file " , input_file
             test  = BaseTestCase(interp, code, input_file, expect_out)
             #test.config(interp, code, input_file, expect_out)
             suite.addTest(test)

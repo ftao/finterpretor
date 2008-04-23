@@ -13,7 +13,8 @@ import interpretor.smallc.error as error
 from interpretor.smallc.function import Function,get_built_in_ns,copy_ns,set_io
 from interpretor.smallc.parse import parse
 from interpretor.smallc.lex import test
-from interpretor.ast import Node,Leaf
+from interpretor.smallc.astaction import BaseASTAction
+from interpretor.ast import Node,Leaf,BaseASTWalker
 
 
 class MoreParser:
@@ -111,7 +112,7 @@ class MoreParser:
 
 
 class Interpreter:
-
+    '''递归解释器'''
     def __init__(self,ast,global_ns):
         self.ast = ast
         self.global_ns = global_ns
@@ -329,8 +330,51 @@ class Interpreter:
         self.current_token = node
         return node.value
 
+class OPAnnotate(BaseASTAction):
+    '''标注操作符类型
+    将 + => 'add' , '-' => 'sub' 等等
+    '''
+    op_map = {
+        '='  : 'assign',
+        '&&' : 'and',
+        '||' : 'or',
+        '==' : 'eq',
+        '!=' : 'ne',
+        '<'  : 'lt',
+        '>'  : 'gt',
+        '<=' : 'le',
+        '>=' : 'ge',
+        '+'  : 'add',
+        '-'  : 'minus',
+        '*'  : 'mul',
+        '/'  : 'div',
+        '%'  : 'mod',
+        '++' : 'inc',
+        '--' : 'dec',
+        #'-'  : 'minus_',
+        '!'  : 'not',
+        'chk': 'chk',
+        #'++' : 'inc_',
+        #'--' : 'dec_',
+    }
 
-class StaticTypeChecker(Interpreter):
+    multi_op = ('-', '++', '--')
+
+    #加了个_ 只是为了跟可能出现的on_token区分
+    def _on_token(self, node):
+        if node.value not in OPAnnotate.op_map:
+            return
+        op_name = OPAnnotate.op_map[node.value]
+        if node.value in OPAnnotate.multi_op:
+            if node.value == '-' and node.parent.type == 'uniexp':
+                op_name = op_name + '_'
+            elif (node.value == '++' or node.value == '--') and node.parent.type == 'postexp':
+                op_name = op_name + '_'
+        node.attr('op_name', op_name)
+
+
+
+class StaticTypeChecker(BaseASTAction):
     '''
     静态类型检查
     1.函数不需要执行,只需要返回类型
@@ -338,46 +382,31 @@ class StaticTypeChecker(Interpreter):
     怎样表达运算符对类型的匹配？
     规则定义在哪里呢？
     '''
-    def on_cond(self,node):
-        #print node
-        exp = node.child(2)
-        st = node.child(4)
-        self.on_exp(exp)
-        self.on_statement(st)
-        if len(node) > 6:
-            self.on_statement(node.child(6))
-        return lang.void
+    def on_cond(self, node, children):
+        node.attr('type', lang.void)
 
-    def on_loop(self,node):
-        exp = node.child(2)
-        self.on_exp(exp)
-        if len(node) > 4:
-            self.on_statement(node.child(4))
-        return lang.void
+    def on_loop(self, node, children):
+        node.attr('type', lang.void)
 
-    def on_exp(self,node):
-        if len(node) > 1:
-            lhs = self.on_orexp(node.child(0))
-            self.on_token(node.child(1))
-            rhs = self.on_orexp(node.child(2))
-            lang.check_type_requirement('assign', lhs, rhs)
-            return lrs;
-        else:
-            return self.on_orexp(node.child(0))
+    def _check_type(self, op, **nodes):
+        is_type_match = lang.check_type_requirement(
+            op,
+            nodes
+        )
+        if not is_type_match:
+            print >>sys.stderr, "assign type not match for operation " , op
+
+    def on_exp(self, node):
+        self._check_type('assign', node.child(0), node.child(1))
+        node.attr('type', node.child(0).attr('type'))
 
     def on_andexp(self,node):
-        if len(node) > 1:
-            lhs = self.on_andexp(node.child(0))
-            self.on_token(node.child(1))
-            rhs = self.on_relexp(node.child(2))
-            lang.check_type_requirement('and', lhs, rhs)
-            return lang.intType
-        else:
-            return self.on_relexp(node.child(0))
+        if len(node) > 2:
+            self._check_type('and', node.child(0), node.child(2))
+        node.attr('type', node.child(0).attr('type'))
 
     def on_relexp(self,node):
         if len(node) > 1:
-            lhs = self.on_relexp(node.child(0))
             m = {
              '==':'eq',
              '!=':'ne',
@@ -386,8 +415,7 @@ class StaticTypeChecker(Interpreter):
              '<=':'le',
              '>=':'ge'
             }
-            relop = m[self.on_token(node.child(1).child(0))]
-            rhs = self.on_term(node.child(2))
+            op = m[self.on_token(node.child(1).child(0))]
             lang.check_type_requirement(relop, lhs, rhs)
             return lang.intType
         else:
@@ -516,5 +544,14 @@ def run(data, input_file = sys.stdin, output_file = sys.stdout):
         print >>sys.stderr,e
     #print inter.global_ns.ns
 
+def test_OPAnnotate(data):
+    ast = parse(data)
+    annotate_action = OPAnnotate()
+    ast_walker = BaseASTWalker(ast, annotate_action)
+    ast_walker.run()
+    for x in ast.query('**>?'):
+        print x._attr
+
 if __name__ == '__main__':
-    run(test)
+    test_OPAnnotate(test)
+    #run(test)
