@@ -39,8 +39,9 @@ def add_type_requirement(op_name, requirement):
 
 def check_type_requirement(op_name, *operands):
     ret = True
-    for func in type_requirements['op_name']:
+    for func in type_requirements[op_name]:
         if not func(*operands):
+            print "check type failed on " , func
             ret = False
             break
     return ret

@@ -41,6 +41,15 @@ class Node:
             if len(result) == 1:
                 return result[0]
 
+    def ancestor(self, type):
+        p = self.parent
+        while(p):
+            if p.type == type:
+                break
+            else:
+                p = p.parent
+        return p
+
     def query(self,q="*"):
         '''查询的语法如下 [type|*] {>[type|*])
         eg.  fdef  类型为fdef 的子结点
@@ -68,6 +77,7 @@ class Node:
         return ret
 
     def is_type_match(self, type):
+        #TODO ? is no longer work , as we do have a ? type
         if isinstance(self, Leaf) and type == '?':
             return True
         if self.type == type:
@@ -152,6 +162,7 @@ except ImportError:
 
 
 class BaseASTWalker:
+    '''深度优先，后序遍历'''
     def __init__(self, root, action):
         self.root = root
         self.action = action
@@ -208,6 +219,21 @@ class BaseASTWalker:
         return self._on_node(self.root)
 
 
+class ScopeWalker(BaseASTWalker):
+    '''一个考虑作用域的遍历方式'''
+
+    def set_ns(self, ns):
+        self.ns = ns
+
+    def get_ns(self):
+        return self.ns
+
+    def walk_fdef(self, node):
+        old_ns = self.ns
+        func_name = node.query("head>id")[0].value
+        self.ns = self.ns[func_name]
+        self._walk_node(node)
+        self.ns = old_ns
 
 #根据parse.py 文件内容 生成抽象语法树遍历程序
 def gen_action(lang):
