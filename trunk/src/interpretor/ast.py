@@ -30,8 +30,21 @@ class Node:
         for n in self.children:
             yield n
 
-    def __getitem__(self,ind):
+    def __getitem__(self, ind):
         return self.chilren[ind]
+
+#    def __getattr__(self, attr):
+#        #create Getter and Setter methods for node attribute
+#        if attr.startswith("set_"):
+#            attr_name = attr.split('_')[1]
+#            t = lambda x, a=attr_name : self._attr.__setitem__(a, x)
+#            self.__setattr__(attr,  t)
+#            return t
+#        elif attr.startswith("get_"):
+#            attr_name = attr.split('_')[1]
+#            t = lambda a=attr_name : self._attr.__getitem__(a)
+#            self.__setattr__(attr,  t)
+#            return t
 
     def __len__(self):
         return len(self.children)
@@ -87,11 +100,13 @@ class Node:
             return True
         return False
 
-    def attr(self, name, value=None):
-        if value is None:
-            return self._attr.get(name, None)
-        else:
-            self._attr[name] = value
+
+    def set_attr(self, name, value):
+        self._attr[name] = value
+
+    def get_attr(self, name):
+        return self._attr.get(name, None)
+
 
     def get_postion(self):
         lextokens = self.query("**>?")
@@ -114,7 +129,7 @@ class Leaf(Node):
         self.lexpos = lexpos
         self.children = []
         self._attr = {}
-        self.attr('value', self.value)
+        self.set_attr('value', self.value)
 
     def __len__(self):
         return 0
