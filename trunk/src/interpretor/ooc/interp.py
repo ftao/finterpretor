@@ -28,19 +28,19 @@ class MoreParser:
 
         #类定义  注意这里分了两步来解析类声明。用来解决嵌套问题。 一个类的成员是另一个尚未定义的类
         for n in self.ast.query("classdecl"):
-            name = self.on_token(n.child(2))
+            name = self.on_token(n.child('id'))
             base_cls = None
             decorate = None
-            if n.child(3):
-                base = self.on_token(n.child(3).child(1))
+            if n.child('pos_superclass'):
+                base = self.on_token(n.child('pos_superclass').child(1))
                 base_cls = self.current_ns.get(base)
-            if n.child(1):
+            if n.child('pos_abstract'):
                 decorate = "abstract"
             cls = lang.Class(name, self.global_ns, base_cls, decorate)
             self.global_ns.set(name, cls, decorate)
 
         for n in self.ast.query("classdecl"):
-            name = self.on_token(n.child(2))
+            name = self.on_token(n.child('id'))
             cls = self.global_ns.get(name)
             #常量
             for con in n.query("pos_condecl>condecl>condef"):

@@ -370,10 +370,10 @@ class OPAnnotate(BaseASTAction):
                 op_name = op_name + '_'
             elif (node.value == '++' or node.value == '--') and node.parent.type == 'postexp':
                 op_name = op_name + '_'
-        node.attr('op_name', op_name)
+        node.set_attr('op_name', op_name)
 
     def _as_first_child(self, node):
-        node.attr('op_name', node.child(0).attr('op_name'))
+        node.set_attr('op_name', node.child(0).attr('op_name'))
 
     on_orexp = on_andop = on_relop = on_addop = on_multop = on_uniop = _as_first_child
 
@@ -385,6 +385,10 @@ class StaticTypeChecker(BaseASTAction):
     怎样表达运算符对类型的匹配？
     规则定义在哪里呢？
     '''
+
+    #正在标注的属性的名字
+    annotate_attr_name = 'type'
+
     def set_walker(self, walker):
         self.walker = walker #反向应用,遍历器
 
@@ -399,24 +403,26 @@ class StaticTypeChecker(BaseASTAction):
 
     def _check_bin_op(self, node):
         if len(node) >1:
-            return self._check_type(node.child(1).attr('op_name'), node.child(0).attr('type'), node.child(2).attr('type'))
+            return self._check_type(node.child(1).get_attr('op_name'), node.child(0).get_attr('type'), node.child(2).get_attr('type'))
         return True
 
     def _on_bin_exp(self, node):
         self._check_bin_op(node)
-        node.attr('type', node.child(0).attr('type'))
+        self._copy_from_first_child(node)
 
-    def _get_from_first_child(self, node):
-        node.attr('type', node.child(0).attr('type'))
+    def _copy_from_child(self, node, index):
+        node.set_attr(self.annotate_attr_name , node.child(index).get_attr(self.annotate_attr_name))
 
+    def _copy_from_first_child(self, node):
+        self._copy_from_child(node, 0)
 
-    on_st = _get_from_first_child
+    on_st = _copy_from_first_child
 
     def on_cond(self, node):
-        node.attr('type', lang.void)
+        node.set_attr(self.annotate_attr_name, lang.void)
 
     def on_loop(self, node):
-        node.attr('type', lang.void)
+        node.set_attr(self.annotate_attr_name, lang.void)
 
     on_exp = on_orexp = on_andexp = _on_bin_exp
 
@@ -425,48 +431,62 @@ class StaticTypeChecker(BaseASTAction):
 
     def on_uniexp(self, node):
         if len(node) > 1:
-            op_name = node.child(0).attr('op_name')
-            lang.check_type_requirement(node.child(0).attr('op_name'), node.child(1))
-            if op_name == 'chk':
-                node.attr('type', lang.void)
-            else:
-                node.attr('type', node.child(1).attr('type'))
+            op_name = node.child(0).get_attr('op_name')
+            if self._check_type(op_name, node.child(1).get_attr('type')):
+                if op_name == 'chk':
+                    node.attr('type', lang.void)
+                else:
+                    self._copy_from_child(node, 1)
         else:
-            node.attr('type', node.child(0).attr('type'))
+            self._copy_from_first_child(node)
+
 
     def on_postexp(self, node):
         #TODO really ugly , need clean up
         postexp = node.child(0)
-
         if len(node) > 1:
             postfix = node.child(1).child(0)
             if postfix.type == 'apara':
-                #It is a function call
-                #Check the argument type here
-                id = postexp.query("**>?")[0].value
-                func = self.walker.get_ns().get(id)
-                args = postfix.query("explist>exp")
-                #print args
-                #print func.params_type
-                if self._check_type('argument_pass', func.params_type, [a.attr('type') for a in args]):
-                    node.attr('type', func.ret_type)
+                self._on_postexp_func_call(postexp, postfix)
             elif postfix.type =='sub':
-                if self._check_type('index', postexp.attr('type'), postfix.child(1).attr('type')):
-                    node.attr('type', postexp.attr('type').base)
+                self._on_postexp_array_index(postexp, postfix)
             elif postfix.type == 'aselect':
-                member = postfix.child(1).value
-                if self._check_type('member', postexp.attr('type'), member):
-                    node.attr('type', postexp.attr('type').members[member])
+                self._on_postexp_member(postexp, postfix)
             elif postfix.type == 'tcast':
-                if self._check_type('tcast', node.child(0).attr('type'), postfix.child(1).attr('type')):
-                    node.attr('type', postfix.child(1).attr('type'))
-            if isinstance(postfix,Leaf): # '++' or '--'
-                if self._check_type('op_name', postexp.attr('type')):
-                    node.attr('type', postexp.attr('type'))
+                self._on_postexp_tcast(postexp, postfix)
+            elif isinstance(postfix,Leaf): # '++' or '--'
+                if self._check_type('op_name', postexp.get_attr('type')):
+                    node.set_attr('type', postexp.get_attr('type'))
         else:
-            node.attr('type', node.child(0).attr('type'))
+            self._copy_from_first_child(node)
 
-    on_entity = _get_from_first_child
+    ## 这个辅助函数， 在AST不存在对应类型的节点
+    def _on_postexp_func_call(self, postexp, postfix):
+        '''函数调用，检查参数类型'''
+        func_name = postexp.query("**>?")[0].value
+        func = self.walker.get_ns().get(func_name)
+        args = postfix.query("explist>exp")
+        if self._check_type('argument_pass', func.params_type, [a.get_attr('type') for a in args]):
+            node.set_attr('type', func.ret_type)
+
+    def _on_postexp_array_index(self, postexp, postfix):
+        '''数组下标操作'''
+        postexp = node.child(0)
+        if self._check_type('index', postexp.get_attr('type'), postfix.child(1).get_attr('type')):
+            node.set_attr('type', postexp.get_attr('type').base)
+
+    def _on_postexp_member(self, postexp, postfix):
+        '''结构体成员获取'''
+        member = postfix.child(1).value
+        if self._check_type('member', postexp.get_attr('type'), member):
+            node.set_attr('type', postexp.get_attr('type').members[member])
+
+    def _on_postexp_tcast(self, postexp, postfix):
+        if self._check_type('tcast', node.child(0).get_attr('type'), postfix.child(1).get_attr('type')):
+            node.set_attr('type', postfix.child(1).get_attr('type'))
+
+
+    on_entity = _copy_from_first_child
 
     def on_cast(self, node):
         node.attr('type', node.child('stlist').attr('type'))
