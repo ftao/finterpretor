@@ -366,14 +366,14 @@ class OPAnnotate(BaseASTAction):
             return
         op_name = OPAnnotate.op_map[node.value]
         if node.value in OPAnnotate.multi_op:
-            if node.value == '-' and node.parent.type == 'uniexp':
+            if node.value == '-' and node.parent.type == 'uniop':
                 op_name = op_name + '_'
-            elif (node.value == '++' or node.value == '--') and node.parent.type == 'postexp':
+            elif (node.value == '++' or node.value == '--') and node.parent.type == 'postfix':
                 op_name = op_name + '_'
         node.set_attr('op_name', op_name)
 
     def _as_first_child(self, node):
-        node.set_attr('op_name', node.child(0).attr('op_name'))
+        node.set_attr('op_name', node.child(0).get_attr('op_name'))
 
     on_orexp = on_andop = on_relop = on_addop = on_multop = on_uniop = _as_first_child
 
@@ -386,11 +386,17 @@ class StaticTypeChecker(BaseASTAction):
     规则定义在哪里呢？
     '''
 
+    def __init__(self, ns):
+        self.global_ns = ns
+        self.current_ns = ns
+
     #正在标注的属性的名字
     annotate_attr_name = 'type'
 
-    def set_walker(self, walker):
-        self.walker = walker #反向应用,遍历器
+#===============================================================================
+#    def set_walker(self, walker):
+#        self.walker = walker #反向应用,遍历器
+#===============================================================================
 
     def _check_type(self, op, *operands):
         is_type_match = lang.type_constraint.check(
@@ -415,6 +421,18 @@ class StaticTypeChecker(BaseASTAction):
 
     def _copy_from_first_child(self, node):
         self._copy_from_child(node, 0)
+
+    def before_funbody(self, node):
+        '''在遍历funcbody 的子节点之前,进去对应的名字空间'''
+        #print >>sys.stderr, "before funbody "
+        func_name = node.prev("head").child("id").value
+        #print "func_name ", func_name
+        self.current_ns = self.current_ns.get(func_name)
+        #print "enter func ", func_name
+        #print self.current_ns.ns
+
+    def on_funbody(self, node):
+        self.current_ns = self.global_ns
 
     on_st = _copy_from_first_child
 
@@ -446,42 +464,43 @@ class StaticTypeChecker(BaseASTAction):
         postexp = node.child(0)
         if len(node) > 1:
             postfix = node.child(1).child(0)
-            if postfix.type == 'apara':
-                self._on_postexp_func_call(postexp, postfix)
-            elif postfix.type =='sub':
-                self._on_postexp_array_index(postexp, postfix)
-            elif postfix.type == 'aselect':
-                self._on_postexp_member(postexp, postfix)
-            elif postfix.type == 'tcast':
-                self._on_postexp_tcast(postexp, postfix)
-            elif isinstance(postfix,Leaf): # '++' or '--'
+            if isinstance(postfix,Leaf): # '++' or '--'
                 if self._check_type('op_name', postexp.get_attr('type')):
                     node.set_attr('type', postexp.get_attr('type'))
+            else:#对应不同情况调用下面的辅助函数
+                getattr(self, "_on_postexp_" + postfix.type)(node)
         else:
             self._copy_from_first_child(node)
 
     ## 这个辅助函数， 在AST不存在对应类型的节点
-    def _on_postexp_func_call(self, postexp, postfix):
+    def _on_postexp_apara(self, node):
         '''函数调用，检查参数类型'''
+        postexp = node.child(0)
+        postfix = node.child(1).child(0)
         func_name = postexp.query("**>?")[0].value
         func = self.walker.get_ns().get(func_name)
         args = postfix.query("explist>exp")
         if self._check_type('argument_pass', func.params_type, [a.get_attr('type') for a in args]):
             node.set_attr('type', func.ret_type)
 
-    def _on_postexp_array_index(self, postexp, postfix):
+    def _on_postexp_sub(self, node):
         '''数组下标操作'''
         postexp = node.child(0)
+        postfix = node.child(1).child(0)
         if self._check_type('index', postexp.get_attr('type'), postfix.child(1).get_attr('type')):
             node.set_attr('type', postexp.get_attr('type').base)
 
-    def _on_postexp_member(self, postexp, postfix):
+    def _on_postexp_aselect(self, node):
         '''结构体成员获取'''
+        postexp = node.child(0)
+        postfix = node.child(1).child(0)
         member = postfix.child(1).value
         if self._check_type('member', postexp.get_attr('type'), member):
             node.set_attr('type', postexp.get_attr('type').members[member])
 
-    def _on_postexp_tcast(self, postexp, postfix):
+    def _on_postexp_tcast(self, node):
+        postexp = node.child(0)
+        postfix = node.child(1).child(0)
         if self._check_type('tcast', node.child(0).get_attr('type'), postfix.child(1).get_attr('type')):
             node.set_attr('type', postfix.child(1).get_attr('type'))
 
@@ -489,41 +508,37 @@ class StaticTypeChecker(BaseASTAction):
     on_entity = _copy_from_first_child
 
     def on_cast(self, node):
-        node.attr('type', node.child('stlist').attr('type'))
+        node.set_attr('type', node.child('stlist').get_attr('type'))
 
     def on_stlist(self, node):
-        node.attr('type', node[-1].attr('type'))
+        node.set_attr('type', node.query("st")[-1].get_attr('type'))
 
     def on_alloc(self,node):
         if node.query('['):
-            node.attr('type', lang.Array(node.child("type").attr('type')))
+            node.set_attr('type', lang.Array(node.child("type").get_attr('type')))
         else:
-            node.attr('type', node.child("type").attr('type'))
+            node.set_attr('type', node.child("type").get_attr('type'))
 
     def on_type(self, node):
         if node.query('['):
-            node.attr('type', lang.Array(node.child("type").attr('type')))
+            node.set_attr('type', lang.Array(node.child("type").get_attr('type')))
         else:
             try:
-                node.attr('type', self.walker.get_ns().get(node.child(0).value)) #type : id
+                node.set_attr('type', self.current_ns.get(node.child(0).value)) #type : id
             except error.NameError:
                 print >>sys.stderr, "bad name , type if not defined"
 
     def _on_token(self, node):
         if node.type == "num" or node.type == '?':
-            node.attr('type', lang.intType)
+            node.set_attr('type', lang.intType)
         elif node.type == "id":
             try:
-                #in_func = node.ancestor("fdef")
-                #func_name = in_func.query("head>id")[0]
-                #func_ns =  self.ns.get(func_name.value)
-                #v = self.ns.get(node.value)
-                v = self.walker.get_ns().get(node.value)
-                if isinstance(v, lang.Object):
-                    node.attr('type', v.type)
+                if node.ancestor("funbody"):
+                    v = self.current_ns.get(node.value)
+                    if isinstance(v, lang.Object):
+                        node.set_attr('type', v.type)
             except error.NameError:
                 print >>sys.stderr, "bad name ", node
-
         self.current_token = node
 
 
@@ -557,11 +572,8 @@ def test_static_checker(data):
     parser = MoreParser(ast)
     parser.parse()
 
-    check_action = StaticTypeChecker()
-    walker2 = ScopeWalker(ast, check_action)
-    walker2.set_ns(parser.global_ns)
-
-    check_action.walker = walker2
+    check_action = StaticTypeChecker(parser.global_ns)
+    walker2 = BaseASTWalker(ast, check_action)
     walker2.run()
 
 if __name__ == '__main__':

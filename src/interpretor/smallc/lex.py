@@ -235,7 +235,7 @@ func void main(){
 test = '''
 
 func int bin_search(int[] ar, int start, int en, int target){
-    var int m,ret end
+    var int m,ret;int[] t end
     if (start > en)
         ret = -1
     else (

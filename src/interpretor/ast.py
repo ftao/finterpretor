@@ -66,6 +66,23 @@ class Node:
                 p = p.parent
         return p
 
+    def prev_all(self, node_type):
+        siblings  = self.parent.getChildren()
+        ret = []
+        for sibling in siblings:
+            if sibling is self:
+                break
+            elif sibling.type == node_type:
+                ret.append(sibling)
+        return ret
+
+    def prev(self, type):
+        r = self.prev_all(type)
+        if len(r) >= 1:
+            return r[0]
+        else:
+            return None
+
     def query(self,q="*"):
         '''查询的语法如下 [type|*] {>[type|*])
         eg.  fdef  类型为fdef 的子结点
@@ -112,6 +129,7 @@ class Node:
         lextokens = self.query("**>?")
         return (lextokens[0].lineno, lextokens[-1].lineno)
     def __repr__(self):
+        #return "<Node type=%s [%s]>" %(self.type, str(self.children))
         return " ".join([repr(x) for x in self.query("**>?")])
 
     __str__ = __repr__
@@ -138,7 +156,7 @@ class Leaf(Node):
         return []
 
     def __repr__(self):
-        return str(self.value)
+        return str("<Leaf : %s>" %(self.value,))
 
     __str__ = __repr__
 
