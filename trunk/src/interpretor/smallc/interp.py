@@ -372,7 +372,10 @@ class OPAnnotate(BaseASTAction):
                 op_name = op_name + '_'
         node.attr('op_name', op_name)
 
+    def _as_first_child(self, node):
+        node.attr('op_name', node.child(0).attr('op_name'))
 
+    on_orexp = on_andop = on_relop = on_addop = on_multop = on_uniop = _as_first_child
 
 class StaticTypeChecker(BaseASTAction):
     '''
@@ -385,17 +388,19 @@ class StaticTypeChecker(BaseASTAction):
     def set_walker(self, walker):
         self.walker = walker #反向应用,遍历器
 
-    def _check_type(self, op, *nodes):
-        is_type_match = lang.check_type_requirement(
+    def _check_type(self, op, *operands):
+        is_type_match = lang.type_constraint.check(
             op,
-            *[x.attr('type') for x in nodes]
+            *operands
         )
         if not is_type_match:
-            print >>sys.stderr, "type not match for operation " , op
+            print >>sys.stderr,"line ", str(self.current_token.lineno), "type not match for operation " , op
+        return is_type_match
 
     def _check_bin_op(self, node):
         if len(node) >1:
-            self._check_type(node.child(1).attr('op_name'), node.child(0), node.child(2))
+            return self._check_type(node.child(1).attr('op_name'), node.child(0).attr('type'), node.child(2).attr('type'))
+        return True
 
     def _on_bin_exp(self, node):
         self._check_bin_op(node)
@@ -407,10 +412,10 @@ class StaticTypeChecker(BaseASTAction):
 
     on_st = _get_from_first_child
 
-    def on_cond(self, node, children):
+    def on_cond(self, node):
         node.attr('type', lang.void)
 
-    def on_loop(self, node, children):
+    def on_loop(self, node):
         node.attr('type', lang.void)
 
     on_exp = on_orexp = on_andexp = _on_bin_exp
@@ -430,23 +435,34 @@ class StaticTypeChecker(BaseASTAction):
             node.attr('type', node.child(0).attr('type'))
 
     def on_postexp(self, node):
+        #TODO really ugly , need clean up
+        postexp = node.child(0)
 
         if len(node) > 1:
             postfix = node.child(1).child(0)
             if postfix.type == 'apara':
-                pass
-                #TODO 先要标注这个返回值的域
-                #函数调用，返回值类型作为 node的类型
+                #It is a function call
+                #Check the argument type here
+                id = postexp.query("**>?")[0].value
+                func = self.walker.get_ns().get(id)
+                args = postfix.query("explist>exp")
+                #print args
+                #print func.params_type
+                if self._check_type('argument_pass', func.params_type, [a.attr('type') for a in args]):
+                    node.attr('type', func.ret_type)
             elif postfix.type =='sub':
-                pass
+                if self._check_type('index', postexp.attr('type'), postfix.child(1).attr('type')):
+                    node.attr('type', postexp.attr('type').base)
             elif postfix.type == 'aselect':
-                pass
+                member = postfix.child(1).value
+                if self._check_type('member', postexp.attr('type'), member):
+                    node.attr('type', postexp.attr('type').members[member])
             elif postfix.type == 'tcast':
-                pass
-                #return postexp.op("tcast",self.on_type(postfix.child(1)))
-            if isinstance(postfix,Leaf):
-                lang.check_type_requirement(postfix.attr('op_name', postexp))
-                node.attr('type', node.child(0).attr('type'))
+                if self._check_type('tcast', node.child(0).attr('type'), postfix.child(1).attr('type')):
+                    node.attr('type', postfix.child(1).attr('type'))
+            if isinstance(postfix,Leaf): # '++' or '--'
+                if self._check_type('op_name', postexp.attr('type')):
+                    node.attr('type', postexp.attr('type'))
         else:
             node.attr('type', node.child(0).attr('type'))
 

@@ -64,11 +64,13 @@ class Function(Namespace):
         self.ns = {}
         self.ret_type = ret_type
         self.params = []
+        self.params_type = []
         self.statements = []
 
     def add_param(self, name, type):
         '增加形参'
         self.params.append(name)
+        self.params_type.append(type)
         self.set(name,lang.Object(type))
 
     def freeze(self):

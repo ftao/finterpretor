@@ -232,7 +232,7 @@ func void main(){
 }
 '''
 
-test2 = '''
+test = '''
 
 func int bin_search(int[] ar, int start, int en, int target){
     var int m,ret end
@@ -267,12 +267,14 @@ func void main(){
     print (bin_search(ar,0,9,3))
 }
 '''
-test = '''
+test3 = '''
 func void main(){
-    var int [] ar,b end
+    var int [] ar; int b end
     ar = new int[10];
     ar[1] = 1;
-    b = null
+    b[1] = 3;
+    b = ar;
+    b = 2;
 }
 '''
 lex.lex()

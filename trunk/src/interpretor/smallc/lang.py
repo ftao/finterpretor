@@ -15,6 +15,12 @@ Small C 语言只有三种类型。
 从给的示例代码来看，似乎  整形默认值为0 ,其他默认值为null
 一个结构体，member 也按这个规则初始化。
 我现在的实现没有这么办。。 待讨论
+
+关于类型约束:
+1.赋值
+2.操作符 （算术,逻辑)
+3.函数参数传递
+4.强制类型转换
 '''
 import interpretor.smallc.error as error
 
@@ -27,55 +33,94 @@ import interpretor.smallc.error as error
 # * 操作符
 # * 约束规则列表
 #用一个简单的列表就可以
+class TypeConstraint:
+    '''类型约束,用于静态类型检查'''
+    def __init__(self):
+        self._rules = {}
 
-type_requirements = {}
+    @staticmethod
+    def is_same(*operands):
+        if len(operands) != 2:
+            return False
+        else:
+            return operands[0] == operands[1]
 
-#这里在全局字典 type_requirements 加入对应的条目，
+    @staticmethod
+    def is_same_or_null(*operands):
+        if(len(operands) != 2):
+            return False #Something is wrong
+        else:
+            #TODO: should it be operands[1] = nullType ?
+            return operands[0] == operands[1] or nullType in operands
+
+    @staticmethod
+    def is_castable(from_type, to_type):
+        if from_type == to_type:
+            return True
+        elif to_type == void:
+            return True
+        else:
+            return False
+
+
+    @staticmethod
+    def is_type(type, which = None):
+        def wrapped(*operands):
+            if which is None:
+                for x in operands:
+                    if not isinstance(x, type) :
+                        return False
+                return True
+            else:
+                return isinstance(operands[which], type)
+        return wrapped
+
+    @staticmethod
+    def has_member(struct, member):
+        return member in struct.members
+
+    def add(self, op_name, req):
+        if op_name not in self._rules:
+            self._rules[op_name] = []
+        self._rules[op_name].append(req)
+
+    def check(self, op_name, *operands):
+
+        for func in self._rules[op_name]:
+            if not func(*operands):
+                print "check type failed on " , func, "for" , operands
+                return False
+        return True
+
 #在静态类型检查时将要用到这个
-def add_type_requirement(op_name, requirement):
-    if not type_requirements.has_key(op_name):
-        type_requirements[op_name] = set()
-    type_requirements[op_name].add(requirement)
-
-def check_type_requirement(op_name, *operands):
-    ret = True
-    for func in type_requirements[op_name]:
-        if not func(*operands):
-            print "check type failed on " , func
-            ret = False
-            break
-    return ret
-
-def is_same(*operands):
-    if(len(operands) != 2):
-        return False #Something is wrong
-    else:
-        return operands[0] == operands[1]
-
-def is_same_or_null(*operands):
-    if(len(operands) != 2):
-        return False #Something is wrong
-    else:
-        return operands[0] == operands[1] or operands[1] == nullType
+type_constraint = TypeConstraint()
 
 
-
-#修饰符函数
+#修饰符函数,用于动态类型检查
 def require_same(func):
-    add_type_requirement(func.__name__.split('_')[1], is_same)
+    type_constraint.add(func.__name__.split('_')[1], TypeConstraint.is_same)
     def wrapped(self,lhs,rhs):
-        if not is_same(self, rhs.type):
+        if not TypeConstraint.is_same(self, rhs.type):
             raise error.TypeError(self,rhs)
         return func(self,lhs,rhs)
     return wrapped
 
 def require_same_or_null(func):
-    add_type_requirement(func.__name__.split('_')[1], is_same_or_null)
+    type_constraint.add(func.__name__.split('_')[1], TypeConstraint.is_same_or_null)
     def wrapped(self,lhs,rhs):
-        if not is_same_or_null(self, rhs.type):
+        if not TypeConstraint.is_same_or_null(self, rhs.type):
             raise error.TypeError(self,rhs)
         return func(self,lhs,rhs)
     return wrapped
+
+def require_castable(func):
+    type_constraint.add(func.__name__.split('_')[1], TypeConstraint.is_castable)
+    def wrapped(self,lhs,rhs):
+        if not TypeConstraint.is_castable(self, rhs):
+            raise error.TypeError(self,rhs)
+        return func(self,lhs,rhs)
+    return wrapped
+
 
 def require_not_empty(func):
     def wrapped(self,lhs,rhs):
@@ -110,18 +155,13 @@ class Type:
         ret.value = [1,0][ret.value]
         return ret
 
-
+    @require_castable
     def op_tcast(self,obj,type):
         '强制类型转换'
-        if obj.type == type:
-            return obj
-        elif type == void:
-            return Object(type)
-        else:
-            raise error.TCastError(obj,type)
+        return Object(type, obj.value)
 
 
-    def alloc(self,size = None):
+    def alloc(self, size = None):
         '统一的空间分配策略，具体的分配实现由子类完成 alloc_one 方法'
         if size:
             ret = Object(Array(self))
@@ -212,31 +252,31 @@ class Integer(Type):
 
     #以下为单目操作
 
-    def op_minus_(self,rhs):
+    def op_minus_(self, rhs):
         return Object(intType, - rhs.value)
 
-    def op_not(self,rhs):
+    def op_not(self, rhs):
         return Object(intType, int(not rhs.value) )
 
-    def op_inc(self,rhs):
+    def op_inc(self, rhs):
         rhs.value += 1
         return rhs
 
-    def op_dec(self,rhs):
+    def op_dec(self, rhs):
         rhs.value -= 1
         return rhs
 
-    def op_chk(self,rhs):
+    def op_chk(self, rhs):
         if rhs.value == 0:
             raise error.ChkFailError()
         return rhs
 
-    def op_inc_(self,lhs):
+    def op_inc_(self, lhs):
         ret = Object(intType, lhs.value)
         lhs.value += 1
         return ret
 
-    def op_dec_(self,lhs):
+    def op_dec_(self, lhs):
         ret = Object(intType, lhs.value)
         lhs.value -= 1
         return ret
@@ -277,14 +317,14 @@ class Array(Type):
         return Object(intType, int(not (lhs.value is rhs.value)))
 
     @require_not_empty
-    def op_index(self,lhs,rhs):
+    def op_index(self, lhs, rhs):
         if rhs.type != intType:
             raise error.TypeError(intType,rhs)
         if lhs.value == null.value:
             raise error.NullError(lhs)
 
         ind = rhs.value
-        if ind < 0 or ind >= len(lhs.value):
+        if ind < 0 or ind >= len(lhs.value): #动态错误
             raise error.IndexError(rhs.value,(0,len(lhs.value)))
         return lhs.value[ind]
 
@@ -331,8 +371,6 @@ class Struct(Type):
 
     @require_not_empty
     def op_member(self,lhs,rhs):
-        if not isinstance(rhs,str):
-            raise error.TypeError("id",rhs)
         if lhs.value == null.value:
             raise error.NullError(lhs)
         if rhs not in self.members:
@@ -425,3 +463,10 @@ void = Void()
 nullType = NullType()
 null = ConstObject(nullType,"NULL VALUE")
 
+
+
+type_constraint.add('argument_pass', TypeConstraint.is_same)
+type_constraint.add('member', TypeConstraint.is_type(Struct))
+type_constraint.add('member', TypeConstraint.has_member)
+type_constraint.add('index', TypeConstraint.is_type(Array, 0))
+type_constraint.add('index', TypeConstraint.is_type(Integer, 1))
