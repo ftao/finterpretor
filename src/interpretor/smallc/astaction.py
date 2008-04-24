@@ -3,127 +3,127 @@
 class BaseASTAction:
 
     def on_prog(self, node):
-        return node
+        pass
 
     def on_class_decls(self, node):
-        return node
+        pass
 
     def on_classdecl(self, node):
-        return node
+        pass
 
     def on_decllist(self, node):
-        return node
+        pass
 
     def on_decl(self, node):
-        return node
+        pass
 
     def on_type(self, node):
-        return node
+        pass
 
     def on_idlist(self, node):
-        return node
+        pass
 
     def on_condecl(self, node):
-        return node
+        pass
 
     def on_condef(self, node):
-        return node
+        pass
 
     def on_vdecl(self, node):
-        return node
+        pass
 
     def on_fdefs(self, node):
-        return node
+        pass
 
     def on_fdef(self, node):
-        return node
+        pass
 
     def on_head(self, node):
-        return node
+        pass
 
     def on_paralist(self, node):
-        return node
+        pass
 
     def on_paradecl(self, node):
-        return node
+        pass
 
     def on_funbody(self, node):
-        return node
+        pass
 
     def on_stlist(self, node):
-        return node
+        pass
 
     def on_st(self, node):
-        return node
+        pass
 
     def on_cond(self, node):
-        return node
+        pass
 
     def on_loop(self, node):
-        return node
+        pass
 
     def on_exp(self, node):
-        return node
+        pass
 
     def on_orexp(self, node):
-        return node
+        pass
 
     def on_andexp(self, node):
-        return node
+        pass
 
     def on_relexp(self, node):
-        return node
+        pass
 
     def on_relop(self, node):
-        return node
+        pass
 
     def on_term(self, node):
-        return node
+        pass
 
     def on_addop(self, node):
-        return node
+        pass
 
     def on_factor(self, node):
-        return node
+        pass
 
     def on_mulop(self, node):
-        return node
+        pass
 
     def on_uniexp(self, node):
-        return node
+        pass
 
     def on_uniop(self, node):
-        return node
+        pass
 
     def on_postexp(self, node):
-        return node
+        pass
 
     def on_postfix(self, node):
-        return node
+        pass
 
     def on_apara(self, node):
-        return node
+        pass
 
     def on_explist(self, node):
-        return node
+        pass
 
     def on_sub(self, node):
-        return node
+        pass
 
     def on_aselect(self, node):
-        return node
+        pass
 
     def on_tcast(self, node):
-        return node
+        pass
 
     def on_entity(self, node):
-        return node
+        pass
 
     def on_cast(self, node):
-        return node
+        pass
 
     def on_alloc(self, node):
-        return node
+        pass
 
     def _on_token(self, node):
         pass

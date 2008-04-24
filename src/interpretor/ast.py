@@ -5,8 +5,11 @@ AST Moudle
 抽象语法树模块,提供
   # 节结点
   # 叶结点
-  # 子结点查询
+  # 子/父结点查询
+  # 导出成图片
+  # 通用遍历算法
 
+  # AST 线性化？
 '''
 class Node:
 
@@ -90,6 +93,9 @@ class Node:
         else:
             self._attr[name] = value
 
+    def get_postion(self):
+        lextokens = self.query("**>?")
+        return (lextokens[0].lineno, lextokens[-1].lineno)
     def __repr__(self):
         return " ".join([repr(x) for x in self.query("**>?")])
 
@@ -169,7 +175,10 @@ class BaseASTWalker:
         self.current_token = None
 
     def _on_node(self, node):
-
+        '''Proxy Method to walk the tree
+        Check if a walk_xxx is define ,if so call it
+        otherwise call _walk_node
+        '''
         if hasattr(self, 'walk_' + node.type):
             return getattr(self, 'walk_' + node.type)(node)
         else:
@@ -179,31 +188,24 @@ class BaseASTWalker:
                 return self._walk_node(node)
 
     def _walk_node(self, node):
+        self._do_action(node, 'before')
         for x in node:
             self._on_node(x)
+        self._do_action(node)
+
+    def _do_action(self, node, when = "on"):
+
+        #when shoub be one of ('before', 'on', 'after')
+        assert when in ('before', 'on')
         try:
             action = getattr(
                 self.action,
-                "on_%s_%d" %(node.type, len(node)),
-                getattr(self.action, "on_%s" %(node.type))
+                '%s_%s' %(when,node.type)
             )
             action(node)
         except AttributeError,e:
-            self._default_action(node)
-
-        return node
-
-    def _do_action(self, node):
-        try:
-            action = getattr(
-                self.action,
-                "on_%s_%d" %(node.type, len(node)),
-                getattr(self.action, "on_%s" %(node.type))
-            )
-            action(node)
-        except AttributeError,e:
-            if isinstance(node, Leaf) and hasattr(self.action, '_on_token'):
-                getattr(self.action, '_on_token')(node)
+            if isinstance(node, Leaf) and hasattr(self.action, '_%s_token'%(when,)):
+                getattr(self.action, '_%s_token'%(when,))(node)
             else:
                 self._default_action(node)
 
@@ -252,7 +254,7 @@ class BaseASTAction:
     for x in symbols:
             walker_src += '''
     def on_%s(self, node):
-        return node
+        pass
 ''' %(x.__name__[2:])
 
     walker_src += '''
