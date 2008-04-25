@@ -24,73 +24,39 @@ Small C 语言只有三种类型。
 '''
 import interpretor.smallc.error as error
 from interpretor.common import TypeConstraint
-class SmallCTypeConstraint(TypeConstraint):
 
-    @staticmethod
-    def is_same_or_null(*operands):
-        if(len(operands) != 2):
-            return False #Something is wrong
-        else:
-            return TypeConstraint.is_same(*operands) or nullType in operands
-
-    @staticmethod
-    def is_castable(from_type, to_type):
-        if from_type == to_type:
-            return True
-        elif to_type == void:
-
-            return True
-        else:
-            return False
-
-    @staticmethod
-    def has_member(struct, member):
-        return member in struct.members
-
+def do_type_trans(main_type, op_name, arg = None):
+    if op_name == "argument_pass":
+        return main_type == arg
+    else:
+        return main_type.do_type_trans(op_name, arg)
 
 
 #类型约束
 #这个应该作为语言定义的一部分
 #所以放在这里是合适的
 #但是类型计算规则呢？
-#放在parse.py 里面作为语义动作?
-#一条约束规则应该包含如下的内容
-# * 操作符
-# * 约束规则列表
-#用一个简单的列表就可以
+#答案是放在 每个类型的定义里面
 
-#在静态类型检查时将要用到这个
-type_constraint = TypeConstraint()
-tc_is_same = SmallCTypeConstraint.is_same
-tc_is_same_or_null = SmallCTypeConstraint.is_same_or_null
-
-def add_type_constraint(cons, for_type):
-    def w(func):
-        type_constraint.add(func.__name__.split('_')[1], cons, for_type)
-        return func
-    return w
 
 #修饰符函数,用于动态类型检查
 def require_same(func):
-    #type_constraint.add(func.__name__.split('_')[1], SmallCTypeConstraint.is_same,'first')
     def wrapped(self,lhs,rhs):
-        if not tc_is_same(self, rhs.type):
+        if self != rhs.type:
             raise error.TypeError(self,rhs)
         return func(self,lhs,rhs)
     return wrapped
 
 def require_same_or_null(func):
-    #type_constraint.add(func.__name__.split('_')[1], SmallCTypeConstraint.is_same_or_null, 'first')
     def wrapped(self,lhs,rhs):
-        if not tc_is_same_or_null(self, rhs.type):
+        if self != rhs.type and rhs.type != nullType:
             raise error.TypeError(self,rhs)
         return func(self,lhs,rhs)
     return wrapped
 
 def require_castable(func):
-    type_constraint.add(func.__name__.split('_')[1], SmallCTypeConstraint.is_castable, 'first')
     def wrapped(self,lhs,rhs):
-        if not SmallCTypeConstraint.is_castable(self, rhs):
+        if self != rhs and rhs != void:
             raise error.TypeError(self,rhs)
         return func(self,lhs,rhs)
     return wrapped
@@ -109,10 +75,31 @@ class Type:
     支持的的操作有 assign , eq , ne, tcast
     '''
     def __init__(self):
+        raise Exception("DON't USE THIS CLASS DIRECTLY")
         self.name = "type"
 
     def to_str(self,obj):
         return  str(obj.value)
+
+
+    def do_type_trans(self, op_name, arg = None):
+        if op_name  == 'assign':
+            if arg == self:
+                return self
+            else:
+                return None
+        elif op_name in ('eq','ne'):
+            if arg == self:
+                return intType
+            else:
+                return None
+        elif op_name == 'tcast':
+            if self == arg or arg == voidType:
+                return arg
+            else:
+                return None
+        else:
+            return None
 
 
     @require_same
@@ -171,11 +158,26 @@ class Integer(Type):
     def __init__(self):
         self.name = "int"
 
+
+    def do_type_trans(self, op_name, arg = None):
+        '''检查类型匹配，并根据操作符返回对应的类型 不匹配时返回 None'''
+        if op_name in ('and', 'or', 'lt', 'gt', 'le',
+            'ge','add', 'minus', 'mul', 'div' , 'mod',
+            'assign', 'eq', 'ne'):
+            if arg and arg == self:
+                return self
+            else:
+                return None
+        elif hasattr(self, "op_" + op_name):
+            return self
+        else:
+            return super(Integer,"do_type_trans")(op_name, arg)
+
+
     def asBool(self,obj):
         return bool(obj.value)
 
     @require_same
-
     def op_or(self,lhs,rhs):
         return Object(intType, int(bool(lhs.value or rhs.value)))
 
@@ -275,6 +277,32 @@ class Array(Type):
             self.base = base
         self.name = self.base.name + "[]"
 
+
+    def do_type_trans(self, op_name, arg = None):
+        '''检查类型匹配，并根据操作符返回对应的类型 不匹配时返回 None'''
+        if op_name in ('eq', 'ne'):
+            if (arg == self or arg == nullType):
+                return intType
+            else:
+                return None
+        elif op_name == "assign":
+            if (arg == self or arg == nullType):
+                return self
+            else:
+                return None
+        elif op_name == "index":
+            if arg == intType:
+                return self.base
+            else:
+                return None
+        elif op_name == "member":
+            if arg == "length":
+                return intType
+            else:
+                return None
+        return super(Array,"do_type_trans")(op_name, arg)
+
+
     def to_str(self,obj):
         return '[' + ",".join([x.to_str() for x in obj.value]) + ']'
 
@@ -325,6 +353,25 @@ class Struct(Type):
         self.name = name
         self.members = {}
 
+    def do_type_trans(self, op_name, arg = None):
+        '''检查类型匹配，并根据操作符返回对应的类型 不匹配时返回 None'''
+        if op_name in ('eq', 'ne'):
+            if (arg == self or arg == nullType):
+                return intType
+            else:
+                return None
+        elif op_name == "assign":
+            if (arg == self or arg == nullType):
+                return self
+            else:
+                return None
+        elif op_name == "member":
+            if arg in self.members:
+                return self.members[arg]
+            else:
+                return None
+        return super(Struct, "do_type_trans")(op_name, arg)
+
 
     def add_member(self,type,member_name):
         self.members[member_name] = type
@@ -374,6 +421,13 @@ class NullType(Type):
 
     def __init__(self):
         self.name = "NullType"
+
+    def do_type_trans(self, op_name, arg = None):
+        '''检查类型匹配，并根据操作符返回对应的类型 不匹配时返回 None'''
+        if op_name in ('eq', 'ne'):
+            if (arg == self or arg == nullType):
+                return intType
+        return None
 
     def asBool(self,obj):
         return False
@@ -443,19 +497,3 @@ intType = Integer()
 void = Void()
 nullType = NullType()
 null = ConstObject(nullType,"NULL VALUE")
-
-
-type_constraint.add('argument_pass', SmallCTypeConstraint.is_same)
-type_constraint.add('member', SmallCTypeConstraint.is_a(Struct, 0))
-type_constraint.add('member', SmallCTypeConstraint.has_member)
-#type_constraint.add('index', TypeConstraint.is_type(Array, 0))
-type_constraint.add('index', SmallCTypeConstraint.is_a(Integer, 1))
-
-#===============================================================================
-# type_constraint.add('minus_', TypeConstraint.is_type(Integer, 0))
-# type_constraint.add('not', TypeConstraint.is_type(Integer, 0))
-# type_constraint.add('inc', TypeConstraint.is_type(Integer, 0))
-# type_constraint.add('inc_', TypeConstraint.is_type(Integer, 0))
-# type_constraint.add('dec', TypeConstraint.is_type(Integer, 0))
-# type_constraint.add('dec_', TypeConstraint.is_type(Integer, 0))
-#===============================================================================

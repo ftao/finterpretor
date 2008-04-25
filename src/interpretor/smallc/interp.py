@@ -394,33 +394,37 @@ class StaticTypeChecker(BaseAnnotateAction):
         self.current_ns = ns
 
 
+    def _do_type_trans(self, node, op, *operands):
+        node.set_attr(self.annotate_attr_name, self._check_type(op, *operands))
 
     def _check_type(self, op, *operands):
-        is_type_match = lang.type_constraint.check(
-            op,
-            *operands
-        )
+        main_type = operands[0]
+        if len(operands) > 1:
+            arg = operands[1]
+        else:
+            arg = None
+        is_type_match = lang.do_type_trans(main_type, op, arg)
         if not is_type_match:
-            print >>sys.stderr,"line ", str(self.current_token.lineno), "type not match for operation " , op
+            print "line ", str(self.current_token.lineno), "type not match for operation " , op
+            sys.exit()
         return is_type_match
 
-    def _check_bin_op(self, node):
-        if len(node) >1:
-            return self._check_type(node.child(1).get_attr('op_name'), node.child(0).get_attr('type'), node.child(2).get_attr('type'))
-        return True
 
     def _on_bin_exp(self, node):
-        self._check_bin_op(node)
-        self._copy_from_first_child(node)
+        if len(node) >1:
+            self._do_type_trans(node,
+                node.child(1).get_attr('op_name'),
+                node.child(0).get_attr('type'),
+                node.child(2).get_attr('type')
+            )
+        else:
+            self._copy_from_first_child(node)
 
     def before_funbody(self, node):
         '''在遍历funcbody 的子节点之前,进去对应的名字空间'''
-        #print >>sys.stderr, "before funbody "
         func_name = node.prev("head").child("id").value
-        #print "func_name ", func_name
         self.current_ns = self.current_ns.get(func_name)
-        #print "enter func ", func_name
-        #print self.current_ns.ns
+
 
     def on_funbody(self, node):
         self.current_ns = self.global_ns
@@ -440,15 +444,12 @@ class StaticTypeChecker(BaseAnnotateAction):
 
     def on_uniexp(self, node):
         if len(node) > 1:
-            op_name = node.child(0).get_attr('op_name')
-            if self._check_type(op_name, node.child(1).get_attr('type')):
-                if op_name == 'chk':
-                    node.attr('type', lang.void)
-                else:
-                    self._copy_from_child(node, 1)
+            self._do_type_trans(node,
+                node.child(0).get_attr('op_name'),
+                node.child(1).get_attr('type')
+            )
         else:
             self._copy_from_first_child(node)
-
 
     def on_postexp(self, node):
         #TODO really ugly , need clean up
@@ -456,20 +457,22 @@ class StaticTypeChecker(BaseAnnotateAction):
         if len(node) > 1:
             postfix = node.child(1).child(0)
             if isinstance(postfix,Leaf): # '++' or '--'
-                if self._check_type('op_name', postexp.get_attr('type')):
-                    node.set_attr('type', postexp.get_attr('type'))
+                self._do_type_trans(node, postfix.get_attr('op_name'),postexp.get_attr('type'))
             else:#对应不同情况调用下面的辅助函数
                 getattr(self, "_on_postexp_" + postfix.type)(node)
         else:
             self._copy_from_first_child(node)
 
-    ## 这个辅助函数， 在AST不存在对应类型的节点
+    ## 这些辅助函数， 在AST不存在对应类型的节点
     def _on_postexp_apara(self, node):
         '''函数调用，检查参数类型'''
+
         postexp = node.child(0)
         postfix = node.child(1).child(0)
         func_name = postexp.query("**>?")[0].value
-        func = self.walker.get_ns().get(func_name)
+
+        func = self.current_ns.get(func_name)
+
         args = postfix.query("explist>exp")
         if self._check_type('argument_pass', func.params_type, [a.get_attr('type') for a in args]):
             node.set_attr('type', func.ret_type)
@@ -478,23 +481,19 @@ class StaticTypeChecker(BaseAnnotateAction):
         '''数组下标操作'''
         postexp = node.child(0)
         postfix = node.child(1).child(0)
-        if self._check_type('index', postexp.get_attr('type'), postfix.child(1).get_attr('type')):
-            node.set_attr('type', postexp.get_attr('type').base)
+        self._do_type_trans(node, 'index', postexp.get_attr('type'), postfix.child(1).get_attr('type'))
 
     def _on_postexp_aselect(self, node):
         '''结构体成员获取'''
         postexp = node.child(0)
         postfix = node.child(1).child(0)
         member = postfix.child(1).value
-        if self._check_type('member', postexp.get_attr('type'), member):
-            node.set_attr('type', postexp.get_attr('type').members[member])
+        self._do_type_trans(node, 'member', postexp.get_attr('type'), member)
 
     def _on_postexp_tcast(self, node):
         postexp = node.child(0)
         postfix = node.child(1).child(0)
-        if self._check_type('tcast', node.child(0).get_attr('type'), postfix.child(1).get_attr('type')):
-            node.set_attr('type', postfix.child(1).get_attr('type'))
-
+        self._do_type_trans(node, 'tcast', postexp.get_attr('type'),  postfix.child(1).get_attr('type'))
 
     on_entity = BaseAnnotateAction._copy_from_first_child
 
