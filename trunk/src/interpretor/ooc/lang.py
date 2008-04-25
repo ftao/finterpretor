@@ -2,21 +2,19 @@
 #$Id$
 
 '''
-Small C 语言只有三种类型。
+OOC C 语言只有三种类型。
 1. 整形
 2. Void
 3. 数组
-4. 结构体 （数组）
+4. 类
 注意这个里面变量名是类似java 的引用机制。
 null 表示空引用。
 怎样处理特殊的null 值？ （用Object(nullType,None) 来表示。
 从程序中可以看到 null 似乎可以赋值给任何类型的对象。
 '''
 
-import operator
-import sys
-import interpretor.ooc.error as error
-import interpretor
+from interpretor.ooc import error
+from interpretor.common import TypeConstraint
 
 #class Singleton(type):
 #    def __call__(cls, *args):
@@ -25,8 +23,13 @@ import interpretor
 #        return cls.instance
 
 
+#在静态类型检查时将要用到这个
+type_constraint = TypeConstraint()
+
+
 #修饰符函数
 def require_same(func):
+    type_constraint.add(func.__name__.split('_')[1], TypeConstraint.is_same)
     def wrapped(self,lhs,rhs):
         if (rhs.type != self):
             raise error.TypeError(self,rhs.type)
@@ -34,7 +37,7 @@ def require_same(func):
     return wrapped
 
 def require_same_or_null(func):
-
+    ype_constraint.add(func.__name__.split('_')[1], TypeConstraint.is_same_or_null)
     def wrapped(self,lhs,rhs):
         if (rhs.type != self and rhs.type != nullType):
             raise error.TypeError(self,rhs.type)

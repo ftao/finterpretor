@@ -160,7 +160,7 @@ test3= '''
 
 '''
 
-test2 = '''
+test = '''
 class Link { Node prob; Link next }
 class Node { int level; int[] board }
 const n=8;
@@ -225,6 +225,7 @@ func void outnode(Node this){
 func void main(){
     bound=1;
     head=new Link;
+    head = 1;
     head.prob=new Node;
     head.prob.board=new int[1];
     head.next = null;
@@ -233,7 +234,8 @@ func void main(){
 '''
 
 test = '''
-
+class Link { Node prob; Link next }
+class Node { int level; int[] board }
 func int bin_search(int[] ar, int start, int en, int target){
     var int m,ret;int[] t end
     if (start > en)
@@ -252,7 +254,8 @@ func int bin_search(int[] ar, int start, int en, int target){
     ret
 }
 func void main(){
-    var int [] ar end
+    var int [] ar; Link head end
+    head=new Link;
     ar = new int[10];
     ar[0] = 0;
     ar[1] = 1;
@@ -264,17 +267,20 @@ func void main(){
     ar[7] = 7;
     ar[8] = 8;
     ar[9] = 9;
-    print (bin_search(ar,0,9,3))
+    print (bin_search(ar,0,9,3));
+    ar = null
 }
 '''
 test3 = '''
 func void main(){
     var int [] ar; int b end
+    b = null;
     ar = new int[10];
     ar[1] = 1;
     b[1] = 3;
     b = ar;
     b = 2;
+
 }
 '''
 lex.lex()
