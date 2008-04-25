@@ -228,7 +228,7 @@ class BaseASTWalker:
 
     def _do_action(self, node, when = "on"):
 
-        #when shoub be one of ('before', 'on', 'after')
+        #when shoub be one of ('before', 'on')
         assert when in ('before', 'on')
         try:
             action = getattr(
@@ -253,6 +253,34 @@ class BaseASTWalker:
     def run(self):
         return self._on_node(self.root)
 
+class WFWalker(BaseASTWalker):
+    '''广度优先遍历算法'''
+
+    def __init__(self, root, action):
+        self._to_visit = []
+        super(WFWalker, "__init__")(root, action)
+
+    def _on_node(self, node):
+        '''Proxy Method to walk the tree
+        Check if a walk_xxx is define ,if so call it
+        otherwise call _walk_node
+        '''
+        if hasattr(self, 'walk_' + node.type):
+            getattr(self, 'walk_' + node.type)(node)
+        else:
+            if isinstance(node, Leaf):
+                self._walk_token(node)
+            else:
+                self._walk_node(node)
+
+    def _walk_node(self, node):
+        self._do_action(node)
+        #将子结点放入到待访问队列中
+        self._to_visit.extend(node.getChildren())
+        #取出下一个结点
+        next = self._to_visist.pop(0)
+        self._on_node(next)
+
 
 class ScopeWalker(BaseASTWalker):
     '''一个考虑作用域的遍历方式'''
@@ -269,6 +297,25 @@ class ScopeWalker(BaseASTWalker):
         self.ns = self.ns[func_name]
         self._walk_node(node)
         self.ns = old_ns
+
+
+class BaseAnnotateAction:
+    '''用于属性标记的操作器'''
+
+    #正在标注的属性的名字
+    annotate_attr_name = 'FIXME'
+
+    def _copy_from_child(self, node, index):
+        node.set_attr(self.annotate_attr_name , node.child(index).get_attr(self.annotate_attr_name))
+
+    def _copy_from_first_child(self, node):
+        self._copy_from_child(node, 0)
+
+    def _copy_from_parent(self, node):
+        if node.parent:
+            node.set_attr(self.annotate_attr_name, node.parent.get_attr(self.annotate_attr_name))
+
+
 
 #根据parse.py 文件内容 生成抽象语法树遍历程序
 def gen_action(lang):

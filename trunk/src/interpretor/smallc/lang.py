@@ -23,6 +23,7 @@ Small C 语言只有三种类型。
 4.强制类型转换
 '''
 import interpretor.smallc.error as error
+from interpretor.common import TypeConstraint
 
 #类型约束
 #这个应该作为语言定义的一部分
@@ -33,74 +34,6 @@ import interpretor.smallc.error as error
 # * 操作符
 # * 约束规则列表
 #用一个简单的列表就可以
-class TypeConstraint:
-    '''类型约束,用于静态类型检查'''
-    def __init__(self):
-        self._rules = {}
-
-    @staticmethod
-    def is_same(*operands):
-        if len(operands) != 2:
-            return False
-        else:
-            return operands[0] == operands[1]
-
-    @staticmethod
-    def is_same_or_null(*operands):
-        if(len(operands) != 2):
-            return False #Something is wrong
-        else:
-            #TODO: should it be operands[1] = nullType ?
-            return operands[0] == operands[1] or nullType in operands
-
-    @staticmethod
-    def is_castable(from_type, to_type):
-        if from_type == to_type:
-            return True
-        elif to_type == void:
-            return True
-        else:
-            return False
-
-
-    @staticmethod
-    def is_type(type, which = None):
-        def wrapped(*operands):
-            if which is None:
-                for x in operands:
-                    if not isinstance(x, type) :
-                        return False
-                return True
-            else:
-                return isinstance(operands[which], type)
-        return wrapped
-
-    @staticmethod
-    def has_member(struct, member):
-        return member in struct.members
-
-    @staticmethod
-    def has_op(op_name, operand):
-        return hasattr(operand, "op_" + op_name)
-
-    def add(self, op_name, req):
-        if op_name not in self._rules:
-            self._rules[op_name] = []
-        self._rules[op_name].append(req)
-
-    def check(self, op_name, *operands):
-        assert len(operands) >= 1 #操作数总至少有一个吧？
-        #print operands
-        #首先我们需要类型是否支持该操作符
-        if not self.has_op(op_name, operands[0]):
-            print "operation %s is supported by the %s " %(op_name, operands[0])
-            return False
-        if op_name in self._rules:
-            for func in self._rules[op_name]:
-                if not func(*operands):
-                    print "check type failed on " , func, "for" , op_name , " with " , operands
-                    return False
-        return True
 
 #在静态类型检查时将要用到这个
 type_constraint = TypeConstraint()
@@ -477,7 +410,7 @@ null = ConstObject(nullType,"NULL VALUE")
 type_constraint.add('argument_pass', TypeConstraint.is_same)
 type_constraint.add('member', TypeConstraint.is_type(Struct))
 type_constraint.add('member', TypeConstraint.has_member)
-type_constraint.add('index', TypeConstraint.is_type(Array, 0))
+#type_constraint.add('index', TypeConstraint.is_type(Array, 0))
 type_constraint.add('index', TypeConstraint.is_type(Integer, 1))
 
 #===============================================================================
