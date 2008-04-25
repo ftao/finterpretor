@@ -3,16 +3,9 @@
 
 
 class TypeConstraint:
-    '''类型约束,用于静态类型检查
-    具体规则不同语言可能不一样，但是一些公共的函数，结构可以公用.
-    '''
-    error_template = "Type Constraint Check failed on line %s , for %s. "
-
+    '''类型约束,用于静态类型检查'''
     def __init__(self):
         self._rules = {}
-
-    def report_error(self, line, *operands):
-        print self.error_template %(line, str(operands))
 
     @staticmethod
     def is_same(*operands):
@@ -55,15 +48,29 @@ class TypeConstraint:
     def has_member(struct, member):
         return member in struct.members
 
+    @staticmethod
+    def has_op(op_name, operand):
+        return hasattr(operand, "op_" + op_name)
+
     def add(self, op_name, req):
         if op_name not in self._rules:
             self._rules[op_name] = []
         self._rules[op_name].append(req)
 
     def check(self, op_name, *operands):
-
-        for func in self._rules[op_name]:
-            if not func(*operands):
-                print "check type failed on " , func, "for" , operands
-                return False
+        '''根据操作名和参数检查是否满足类型约束'''
+        assert len(operands) >= 1 #操作数总至少有一个吧？
+        #print operands
+        #首先我们需要类型是否支持该操作符
+        if not self.has_op(op_name, operands[0]):
+            print "operation %s is supported by the %s " %(op_name, operands[0])
+            return False
+        if op_name in self._rules:
+            for func in self._rules[op_name]:
+                if not func(*operands):
+                    print "check type failed on " , func, "for" , op_name , " with " , operands
+                    return False
         return True
+
+
+

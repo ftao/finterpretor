@@ -13,12 +13,15 @@ import interpretor.smallc.error as error
 from interpretor.smallc.function import Function,get_built_in_ns,copy_ns,set_io
 from interpretor.smallc.parse import parse
 from interpretor.smallc.lex import test
-from interpretor.smallc.astaction import BaseASTAction
-from interpretor.ast import Node,Leaf,BaseASTWalker,ScopeWalker
+from interpretor.ast import Node,Leaf,BaseASTWalker,BaseAnnotateAction
 
 
 class MoreParser:
-    '''在AST 基础上进一步处理，根据声明语句建立名字空间和函数'''
+    '''在AST 基础上进一步处理，根据声明语句建立名字空间和函数
+    这里很大程度需要计算继承属性。（比如当前的所在的结构体,函数)
+    但是这个结果似乎不合适标准在AST 上.
+    '''
+
     def __init__(self,ast):
         self.ast = ast
         self.global_ns = get_built_in_ns()
@@ -75,7 +78,8 @@ class MoreParser:
         base = self.on_token(node.child("id"))
         base_type = self.current_ns.get(base)
         if not base_type:
-            pass # raise Error
+            raise error.TypeError()
+            #pass # raise Error
         else:
             if len(node) > 1:
                 dim = (len(node) - 1)/2
@@ -330,10 +334,12 @@ class Interpreter:
         self.current_token = node
         return node.value
 
-class OPAnnotate(BaseASTAction):
+class OPAnnotate(BaseAnnotateAction):
     '''标注操作符类型
     将 + => 'add' , '-' => 'sub' 等等
     '''
+    annotate_attr_name = 'op_name'
+
     op_map = {
         '='  : 'assign',
         '&&' : 'and',
@@ -357,7 +363,7 @@ class OPAnnotate(BaseASTAction):
         #'++' : 'inc_',
         #'--' : 'dec_',
     }
-
+    #有多种含义的操作符
     multi_op = ('-', '++', '--')
 
     #加了个_ 只是为了跟可能出现的on_token区分
@@ -370,33 +376,24 @@ class OPAnnotate(BaseASTAction):
                 op_name = op_name + '_'
             elif (node.value == '++' or node.value == '--') and node.parent.type == 'postfix':
                 op_name = op_name + '_'
-        node.set_attr('op_name', op_name)
+        node.set_attr(self.annotate_attr_name, op_name)
 
-    def _as_first_child(self, node):
-        node.set_attr('op_name', node.child(0).get_attr('op_name'))
+    on_orexp = on_andop = on_relop  = BaseAnnotateAction._copy_from_first_child
+    on_addop = on_multop = on_uniop =  BaseAnnotateAction._copy_from_first_child
 
-    on_orexp = on_andop = on_relop = on_addop = on_multop = on_uniop = _as_first_child
-
-class StaticTypeChecker(BaseASTAction):
+class StaticTypeChecker(BaseAnnotateAction):
+    '''静态类型检查和计算
+    1.类型约束规则保存在lang.type_constraint 中
+    2.操作在类型上的语义蕴含在代码中
     '''
-    静态类型检查
-    1.函数不需要执行,只需要返回类型
-    2.表达式也只需要返回类型.
-    怎样表达运算符对类型的匹配？
-    规则定义在哪里呢？
-    '''
+    #正在标注的属性的名字
+    annotate_attr_name = 'type'
 
     def __init__(self, ns):
         self.global_ns = ns
         self.current_ns = ns
 
-    #正在标注的属性的名字
-    annotate_attr_name = 'type'
 
-#===============================================================================
-#    def set_walker(self, walker):
-#        self.walker = walker #反向应用,遍历器
-#===============================================================================
 
     def _check_type(self, op, *operands):
         is_type_match = lang.type_constraint.check(
@@ -416,12 +413,6 @@ class StaticTypeChecker(BaseASTAction):
         self._check_bin_op(node)
         self._copy_from_first_child(node)
 
-    def _copy_from_child(self, node, index):
-        node.set_attr(self.annotate_attr_name , node.child(index).get_attr(self.annotate_attr_name))
-
-    def _copy_from_first_child(self, node):
-        self._copy_from_child(node, 0)
-
     def before_funbody(self, node):
         '''在遍历funcbody 的子节点之前,进去对应的名字空间'''
         #print >>sys.stderr, "before funbody "
@@ -434,7 +425,7 @@ class StaticTypeChecker(BaseASTAction):
     def on_funbody(self, node):
         self.current_ns = self.global_ns
 
-    on_st = _copy_from_first_child
+    on_st = BaseAnnotateAction._copy_from_first_child
 
     def on_cond(self, node):
         node.set_attr(self.annotate_attr_name, lang.void)
@@ -505,7 +496,7 @@ class StaticTypeChecker(BaseASTAction):
             node.set_attr('type', postfix.child(1).get_attr('type'))
 
 
-    on_entity = _copy_from_first_child
+    on_entity = BaseAnnotateAction._copy_from_first_child
 
     def on_cast(self, node):
         node.set_attr('type', node.child('stlist').get_attr('type'))
