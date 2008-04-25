@@ -24,6 +24,30 @@ Small C 语言只有三种类型。
 '''
 import interpretor.smallc.error as error
 from interpretor.common import TypeConstraint
+class SmallCTypeConstraint(TypeConstraint):
+
+    @staticmethod
+    def is_same_or_null(*operands):
+        if(len(operands) != 2):
+            return False #Something is wrong
+        else:
+            return TypeConstraint.is_same(*operands) or nullType in operands
+
+    @staticmethod
+    def is_castable(from_type, to_type):
+        if from_type == to_type:
+            return True
+        elif to_type == void:
+
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def has_member(struct, member):
+        return member in struct.members
+
+
 
 #类型约束
 #这个应该作为语言定义的一部分
@@ -37,29 +61,36 @@ from interpretor.common import TypeConstraint
 
 #在静态类型检查时将要用到这个
 type_constraint = TypeConstraint()
+tc_is_same = SmallCTypeConstraint.is_same
+tc_is_same_or_null = SmallCTypeConstraint.is_same_or_null
 
+def add_type_constraint(cons, for_type):
+    def w(func):
+        type_constraint.add(func.__name__.split('_')[1], cons, for_type)
+        return func
+    return w
 
 #修饰符函数,用于动态类型检查
 def require_same(func):
-    type_constraint.add(func.__name__.split('_')[1], TypeConstraint.is_same)
+    #type_constraint.add(func.__name__.split('_')[1], SmallCTypeConstraint.is_same,'first')
     def wrapped(self,lhs,rhs):
-        if not TypeConstraint.is_same(self, rhs.type):
+        if not tc_is_same(self, rhs.type):
             raise error.TypeError(self,rhs)
         return func(self,lhs,rhs)
     return wrapped
 
 def require_same_or_null(func):
-    type_constraint.add(func.__name__.split('_')[1], TypeConstraint.is_same_or_null)
+    #type_constraint.add(func.__name__.split('_')[1], SmallCTypeConstraint.is_same_or_null, 'first')
     def wrapped(self,lhs,rhs):
-        if not TypeConstraint.is_same_or_null(self, rhs.type):
+        if not tc_is_same_or_null(self, rhs.type):
             raise error.TypeError(self,rhs)
         return func(self,lhs,rhs)
     return wrapped
 
 def require_castable(func):
-    type_constraint.add(func.__name__.split('_')[1], TypeConstraint.is_castable)
+    type_constraint.add(func.__name__.split('_')[1], SmallCTypeConstraint.is_castable, 'first')
     def wrapped(self,lhs,rhs):
-        if not TypeConstraint.is_castable(self, rhs):
+        if not SmallCTypeConstraint.is_castable(self, rhs):
             raise error.TypeError(self,rhs)
         return func(self,lhs,rhs)
     return wrapped
@@ -82,6 +113,7 @@ class Type:
 
     def to_str(self,obj):
         return  str(obj.value)
+
 
     @require_same
     def op_assign(self,lhs,rhs):
@@ -143,6 +175,7 @@ class Integer(Type):
         return bool(obj.value)
 
     @require_same
+
     def op_or(self,lhs,rhs):
         return Object(intType, int(bool(lhs.value or rhs.value)))
 
@@ -173,6 +206,7 @@ class Integer(Type):
     @require_same
     def op_ge(self,lhs,rhs):
         return Object(intType, int(lhs.value >= rhs.value))
+
     @require_same
     def op_add(self,lhs,rhs):
         return Object(intType, lhs.value + rhs.value)
@@ -337,6 +371,10 @@ class Struct(Type):
 
 
 class NullType(Type):
+
+    def __init__(self):
+        self.name = "NullType"
+
     def asBool(self,obj):
         return False
 
@@ -407,11 +445,11 @@ nullType = NullType()
 null = ConstObject(nullType,"NULL VALUE")
 
 
-type_constraint.add('argument_pass', TypeConstraint.is_same)
-type_constraint.add('member', TypeConstraint.is_type(Struct))
-type_constraint.add('member', TypeConstraint.has_member)
+type_constraint.add('argument_pass', SmallCTypeConstraint.is_same)
+type_constraint.add('member', SmallCTypeConstraint.is_a(Struct, 0))
+type_constraint.add('member', SmallCTypeConstraint.has_member)
 #type_constraint.add('index', TypeConstraint.is_type(Array, 0))
-type_constraint.add('index', TypeConstraint.is_type(Integer, 1))
+type_constraint.add('index', SmallCTypeConstraint.is_a(Integer, 1))
 
 #===============================================================================
 # type_constraint.add('minus_', TypeConstraint.is_type(Integer, 0))
