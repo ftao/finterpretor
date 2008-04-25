@@ -14,7 +14,7 @@ null 表示空引用。
 '''
 
 from interpretor.ooc import error
-from interpretor.common import TypeConstraint
+
 
 #class Singleton(type):
 #    def __call__(cls, *args):
@@ -24,12 +24,11 @@ from interpretor.common import TypeConstraint
 
 
 #在静态类型检查时将要用到这个
-type_constraint = TypeConstraint()
+
 
 
 #修饰符函数
 def require_same(func):
-    type_constraint.add(func.__name__.split('_')[1], TypeConstraint.is_same)
     def wrapped(self,lhs,rhs):
         if (rhs.type != self):
             raise error.TypeError(self,rhs.type)
@@ -37,7 +36,6 @@ def require_same(func):
     return wrapped
 
 def require_same_or_null(func):
-    ype_constraint.add(func.__name__.split('_')[1], TypeConstraint.is_same_or_null)
     def wrapped(self,lhs,rhs):
         if (rhs.type != self and rhs.type != nullType):
             raise error.TypeError(self,rhs.type)

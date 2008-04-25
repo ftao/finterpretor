@@ -21,9 +21,10 @@ Small C 语言只有三种类型。
 2.操作符 （算术,逻辑)
 3.函数参数传递
 4.强制类型转换
+类型约束放在每个类型的定义里面
 '''
 import interpretor.smallc.error as error
-from interpretor.common import TypeConstraint
+
 
 def do_type_trans(main_type, op_name, arg = None):
     if op_name == "argument_pass":
@@ -32,11 +33,7 @@ def do_type_trans(main_type, op_name, arg = None):
         return main_type.do_type_trans(op_name, arg)
 
 
-#类型约束
-#这个应该作为语言定义的一部分
-#所以放在这里是合适的
-#但是类型计算规则呢？
-#答案是放在 每个类型的定义里面
+
 
 
 #修饰符函数,用于动态类型检查
