@@ -12,8 +12,11 @@ import interpretor.ooc.lang as lang
 from interpretor.ooc.parse import parse
 from interpretor.ooc.function import Function,AbstractFunction,get_built_in_ns,copy_ns,set_io
 from interpretor.ooc.lex import test
-from interpretor.ast import Node,Leaf
 import interpretor.ooc.error as error
+from interpretor.ast import Node,Leaf,BaseASTWalker,BaseAnnotateAction
+from interpretor.common import CommonOPAnnotate as OPAnnotate
+
+
 
 
 class MoreParser:
@@ -366,6 +369,22 @@ class Interpreter:
         self.current_token = node
         return node.value
 
+def do_op_annotate(ast):
+    annotate_action = OPAnnotate()
+    ast_walker = BaseASTWalker(ast, annotate_action)
+    ast_walker.run()
+    return ast
+
+def do_namespace_parse(ast):
+    parser = MoreParser(ast)
+    parser.parse()
+    if len(parser.errors) > 0:
+        for x in parser.errors:
+            print >>sys.stderr, x
+        return None
+    return parser.global_ns
+
+
 def run(data, input_file = sys.stdin, output_file = sys.stdout):
     set_io(input_file, output_file)
     ast = parse(data)
@@ -376,5 +395,19 @@ def run(data, input_file = sys.stdin, output_file = sys.stdout):
     inter.run()
     #print inter.global_ns.ns
 
+def run2(data, input_file = sys.stdin, output_file = sys.stdout):
+    set_io(input_file, output_file)
+    try:
+        ast = parse(data)
+        do_op_annotate(ast)
+#        global_ns = do_namespace_parse(ast)
+#        if global_ns:
+#            if check_static_semtanic(ast, global_ns):
+#                inter = Interpreter(ast, global_ns)
+#                inter.run()
+    except error.LangError,e:
+        print >>sys.stderr,e
+
 if __name__ == '__main__':
-    run(test)
+    test = open('../../test/ooc/static.ooc').read()
+    run2(test)

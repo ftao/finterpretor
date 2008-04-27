@@ -4,7 +4,7 @@
 import sys
 from ply import yacc
 from interpretor.ooc.lex import *
-from interpretor.ast import Node,all_to_node
+from interpretor.ast import Node,all_to_node,to_graph
 
 
 
@@ -483,5 +483,6 @@ def parse(data):
     return p
 
 if __name__ == '__main__':
+    #test = open('../../test/ooc/sp.ooc').read()
     n =  parse(test)
-    print len(n.query("classdecl>pos_static"))
+    #to_graph(n, "test_ooc")

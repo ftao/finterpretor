@@ -1,6 +1,56 @@
 #coding=utf8
 #$Id$
 
+from interpretor.ast import Node,Leaf,BaseASTWalker,BaseAnnotateAction
+
+class CommonOPAnnotate(BaseAnnotateAction):
+    '''标注操作符类型
+    将 + => 'add' , '-' => 'sub' 等等
+    这个部分L1 和 L2 是一样的
+    '''
+    annotate_attr_name = 'op_name'
+
+    op_map = {
+        '='  : 'assign',
+        '&&' : 'and',
+        '||' : 'or',
+        '==' : 'eq',
+        '!=' : 'ne',
+        '<'  : 'lt',
+        '>'  : 'gt',
+        '<=' : 'le',
+        '>=' : 'ge',
+        '+'  : 'add',
+        '-'  : 'minus',
+        '*'  : 'mul',
+        '/'  : 'div',
+        '%'  : 'mod',
+        '++' : 'inc',
+        '--' : 'dec',
+        #'-'  : 'minus_',
+        '!'  : 'not',
+        'chk': 'chk',
+        #'++' : 'inc_',
+        #'--' : 'dec_',
+    }
+    #有多种含义的操作符
+    multi_op = ('-', '++', '--')
+
+    #加了个_ 只是为了跟可能出现的on_token区分
+    def _on_token(self, node):
+        if node.value not in self.op_map:
+            return
+        op_name = self.op_map[node.value]
+        if node.value in self.multi_op:
+            if node.value == '-' and node.parent.type == 'uniop':
+                op_name = op_name + '_'
+            elif (node.value == '++' or node.value == '--') and node.parent.type == 'postfix':
+                op_name = op_name + '_'
+        node.set_attr(self.annotate_attr_name, op_name)
+
+    on_relop  = BaseAnnotateAction._copy_from_first_child
+    on_addop = on_multop = on_uniop = BaseAnnotateAction._copy_from_first_child
+
 
 #===============================================================================
 # class TypeConstraint:

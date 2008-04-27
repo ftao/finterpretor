@@ -14,7 +14,7 @@ from interpretor.smallc.function import Function,get_built_in_ns,copy_ns,set_io
 from interpretor.smallc.parse import parse
 from interpretor.smallc.lex import test
 from interpretor.ast import Node,Leaf,BaseASTWalker,BaseAnnotateAction
-
+from interpretor.common import CommonOPAnnotate as OPAnnotate
 
 class MoreParser:
     '''在AST 基础上进一步处理，根据声明语句建立名字空间和函数
@@ -347,52 +347,6 @@ class Interpreter:
         self.current_token = node
         return node.value
 
-class OPAnnotate(BaseAnnotateAction):
-    '''标注操作符类型
-    将 + => 'add' , '-' => 'sub' 等等
-    '''
-    annotate_attr_name = 'op_name'
-
-    op_map = {
-        '='  : 'assign',
-        '&&' : 'and',
-        '||' : 'or',
-        '==' : 'eq',
-        '!=' : 'ne',
-        '<'  : 'lt',
-        '>'  : 'gt',
-        '<=' : 'le',
-        '>=' : 'ge',
-        '+'  : 'add',
-        '-'  : 'minus',
-        '*'  : 'mul',
-        '/'  : 'div',
-        '%'  : 'mod',
-        '++' : 'inc',
-        '--' : 'dec',
-        #'-'  : 'minus_',
-        '!'  : 'not',
-        'chk': 'chk',
-        #'++' : 'inc_',
-        #'--' : 'dec_',
-    }
-    #有多种含义的操作符
-    multi_op = ('-', '++', '--')
-
-    #加了个_ 只是为了跟可能出现的on_token区分
-    def _on_token(self, node):
-        if node.value not in OPAnnotate.op_map:
-            return
-        op_name = OPAnnotate.op_map[node.value]
-        if node.value in OPAnnotate.multi_op:
-            if node.value == '-' and node.parent.type == 'uniop':
-                op_name = op_name + '_'
-            elif (node.value == '++' or node.value == '--') and node.parent.type == 'postfix':
-                op_name = op_name + '_'
-        node.set_attr(self.annotate_attr_name, op_name)
-
-    on_orexp = on_andop = on_relop  = BaseAnnotateAction._copy_from_first_child
-    on_addop = on_multop = on_uniop =  BaseAnnotateAction._copy_from_first_child
 
 class StaticTypeChecker(BaseAnnotateAction):
     '''静态类型检查和计算
