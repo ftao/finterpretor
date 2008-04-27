@@ -26,6 +26,10 @@ class MoreParser:
         self.ast = ast
         self.global_ns = get_built_in_ns()
         self.current_ns = self.global_ns
+        self.errors = []
+
+    def add_error(self, e):
+        self.errors.append(error.Error(self.current_token.lineno, str(e)))
 
     def parse(self):
         '''walk the ast , build the golbal namespace'''
@@ -59,7 +63,10 @@ class MoreParser:
         '(在函数中的)变量声明'
         type = self.on_type(node.child("type"))
         for id in node.query("idlist>id"):
-            ns.set(id.value,lang.Object(type))
+            try:
+                ns.set(id.value,lang.Object(type))
+            except error.StaticSemanticError, e:
+                self.add_error(e)
 
     def on_decl_inside_class(self,node,struct):
         '在类中的变量声明'
@@ -76,16 +83,16 @@ class MoreParser:
     def on_type(self,node):
         '类型'
         base = self.on_token(node.child("id"))
-        base_type = self.current_ns.get(base)
-        if not base_type:
-            raise error.TypeError()
-            #pass # raise Error
+        try:
+            base_type = self.current_ns.get(base)
+        except error.StaticSemanticError, e:
+            self.add_error(e)
+            return None
+        if len(node) > 1:
+            dim = (len(node) - 1)/2
+            return lang.Array(base_type, dim)
         else:
-            if len(node) > 1:
-                dim = (len(node) - 1)/2
-                return lang.Array(base_type, dim)
-            else:
-                return base_type
+            return base_type
 
     def on_condef(self,node,ns):
         '常量定义'
@@ -93,15 +100,21 @@ class MoreParser:
         value = self.on_token(node.child("num"))
         if node.child("-"):
             value = -value
-        ns.set(name,lang.ConstObject(lang.intType,value)) # type use lang.intType
+        try:
+            ns.set(name, lang.ConstObject(lang.intType,value)) # type use lang.intType
+        except error.StaticSemanticError, e:
+            self.add_error(e)
 
     def on_fdef(self,node,ns):
         '函数定义'
         name  = self.on_token(node.query("head>id")[0])
         fns = Function(name,self.current_ns)
         fns.ret_type = self.on_type(node.child("type"))
-        ns.set(name,fns)
-
+        try:
+            ns.set(name,fns)
+        except error.StaticSemanticError, e:
+            self.add_error(e)
+            return None
         for para in node.query("head>paralist>paradecl"):
             self.on_paradecl(para,fns)
         for decl in node.query("funbody>vdecl>decllist>decl"):#vdecl > decllist > decls
@@ -392,7 +405,10 @@ class StaticTypeChecker(BaseAnnotateAction):
     def __init__(self, ns):
         self.global_ns = ns
         self.current_ns = ns
+        self.errors = []
 
+    def add_error(self, e):
+        self.errors.append(error.Error(self.current_token.lineno, str(e)))
 
     def _do_type_trans(self, node, op, *operands):
         node.set_attr(self.annotate_attr_name, self._check_type(op, *operands))
@@ -405,8 +421,10 @@ class StaticTypeChecker(BaseAnnotateAction):
             arg = None
         is_type_match = lang.do_type_trans(main_type, op, arg)
         if not is_type_match:
-            print "line ", str(self.current_token.lineno), "type not match for operation " , op
-            sys.exit()
+            if op =='member':
+                self.add_error(error.MemberError(operands[0], operands[1]))
+            else:
+                self.add_error(error.TypeCheckError(op))
         return is_type_match
 
 
@@ -470,11 +488,17 @@ class StaticTypeChecker(BaseAnnotateAction):
         postexp = node.child(0)
         postfix = node.child(1).child(0)
         func_name = postexp.query("**>?")[0].value
-
-        func = self.current_ns.get(func_name)
-
+        try:
+            func = self.current_ns.get(func_name)
+        except error.NameError,e:
+            self.add_error(e)
+            return None
         args = postfix.query("explist>exp")
-        if self._check_type('argument_pass', func.params_type, [a.get_attr('type') for a in args]):
+        if len(func.params_type) != len(args):
+            self.add_error(error.ParamCountNotMatchError(len(func.params_type), len(args)))
+        else:
+            for i in range(len(func.params_type)):
+                self._check_type('argument_pass', func.params_type[i], args[i].get_attr('type'))
             node.set_attr('type', func.ret_type)
 
     def _on_postexp_sub(self, node):
@@ -515,8 +539,8 @@ class StaticTypeChecker(BaseAnnotateAction):
         else:
             try:
                 node.set_attr('type', self.current_ns.get(node.child(0).value)) #type : id
-            except error.NameError:
-                print >>sys.stderr, "bad name , type if not defined"
+            except error.NameError, e :
+                self.add_error(e)
 
     def _on_token(self, node):
         if node.type == "num" or node.type == '?':
@@ -527,8 +551,9 @@ class StaticTypeChecker(BaseAnnotateAction):
                     v = self.current_ns.get(node.value)
                     if isinstance(v, lang.Object):
                         node.set_attr('type', v.type)
-            except error.NameError:
-                print >>sys.stderr, "bad name ", node
+            except error.NameError, e :
+                pass
+                #self.add_error(e)
         self.current_token = node
 
 
@@ -536,11 +561,12 @@ def run(data, input_file = sys.stdin, output_file = sys.stdout):
     set_io(input_file, output_file)
     try:
         ast = parse(data)
-        parser = MoreParser(ast)
-        parser.parse()
-        #print parser.global_ns.ns
-        inter = Interpreter(ast,parser.global_ns)
-        inter.run()
+        do_op_annotate(ast)
+        global_ns = do_namespace_parse(ast)
+        if global_ns:
+            if check_static_semtanic(ast, global_ns):
+                inter = Interpreter(ast, global_ns)
+                inter.run()
     except error.ParseError,e:
         print >>sys.stderr,e
     #print inter.global_ns.ns
@@ -553,20 +579,33 @@ def test_OPAnnotate(data):
     for x in ast.query('**>?'):
         print x._attr
 
-def test_static_checker(data):
-    ast = parse(data)
+def do_op_annotate(ast):
     annotate_action = OPAnnotate()
     ast_walker = BaseASTWalker(ast, annotate_action)
     ast_walker.run()
+    return ast
 
+def do_namespace_parse(ast):
     parser = MoreParser(ast)
     parser.parse()
+    if len(parser.errors) > 0:
+        for x in parser.errors:
+            print >>sys.stderr, x
+        return None
+    return parser.global_ns
 
-    check_action = StaticTypeChecker(parser.global_ns)
+def check_static_semtanic(ast, global_ns):
+    check_action = StaticTypeChecker(global_ns)
     walker2 = BaseASTWalker(ast, check_action)
     walker2.run()
+    if len(check_action.errors) > 0:
+        for e in check_action.errors:
+            print >>sys.stderr, e
+        return False
+    else:
+        return True
+
 
 if __name__ == '__main__':
     #test_OPAnnotate(test)
-    test_static_checker(test)
-    #run(test)
+    run(test)

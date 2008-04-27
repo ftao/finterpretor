@@ -46,7 +46,7 @@ class Namespace:
 
     def set(self, name, value):
         if name in self.ns:
-            raise error.MultipleError(name)
+            raise error.NameReDefineError(name)
         else:
             self.ns[name] = value
 
