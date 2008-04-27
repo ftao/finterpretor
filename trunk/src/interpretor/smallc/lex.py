@@ -272,7 +272,7 @@ func void main(){
     //ar = 0
 }
 '''
-test3 = '''
+test = '''
 func void main(){
     var int [] ar; int b end
     b = null;
@@ -281,7 +281,22 @@ func void main(){
     b[1] = 3;
     b = ar;
     b = 2;
-
+    b && b;
+    b || b;
+    b + b;
+    b - b;
+    b * b;
+    b / b;
+    b % b;
+    b < b;
+    b > b;
+    b <= b;
+    b >= b;
+    b == b;
+    b != b;
+    !b;
+    -b;
+    chk(b);
 }
 '''
 lex.lex()

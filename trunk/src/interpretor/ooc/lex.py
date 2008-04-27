@@ -246,7 +246,6 @@ comment
    move[5][0]=-1; move[5][1]=-2; move[6][0]=1; move[6][1]=-2; move[7][0]=2; move[7][1]=-1;
    new LabelBack.constructor(new Knight.constructor1(n, 8, move), 1, nset).depthfirst() } }
 '''
-
 lex.lex()
 
 if __name__ == '__main__':
