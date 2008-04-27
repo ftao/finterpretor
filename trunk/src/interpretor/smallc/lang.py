@@ -28,7 +28,7 @@ import interpretor.smallc.error as error
 
 def do_type_trans(main_type, op_name, arg = None):
     if op_name == "argument_pass":
-        return main_type == arg
+        return main_type.do_type_trans("assign", arg)
     else:
         return main_type.do_type_trans(op_name, arg)
 
@@ -67,7 +67,7 @@ def require_not_empty(func):
     return wrapped
 
 
-class Type:
+class Type(object):
     '''SmallC 语言类型基类
     支持的的操作有 assign , eq , ne, tcast
     '''
@@ -168,7 +168,7 @@ class Integer(Type):
         elif hasattr(self, "op_" + op_name):
             return self
         else:
-            return super(Integer,"do_type_trans")(op_name, arg)
+            return super(Integer,self).do_type_trans(op_name, arg)
 
 
     def asBool(self,obj):
@@ -297,7 +297,7 @@ class Array(Type):
                 return intType
             else:
                 return None
-        return super(Array,"do_type_trans")(op_name, arg)
+        return super(Array,self).do_type_trans(op_name, arg)
 
 
     def to_str(self,obj):
@@ -367,7 +367,7 @@ class Struct(Type):
                 return self.members[arg]
             else:
                 return None
-        return super(Struct, "do_type_trans")(op_name, arg)
+        return super(Struct,self).do_type_trans(op_name, arg)
 
 
     def add_member(self,type,member_name):

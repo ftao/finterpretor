@@ -92,7 +92,7 @@ def t_comment1(t):
 
 def t_comment2(t):
     r'/\*(.|\n)*?\*/'
-    t.lineno += t.value.count('\n')
+    t.lexer.lineno += t.value.count('\n')
 
 
 def t_error(t):
@@ -257,6 +257,7 @@ func void main(){
     var int [] ar; Link head end
     head=new Link;
     ar = new int[10];
+    //ar = ar * 10;
     ar[0] = 0;
     ar[1] = 1;
     ar[2] = 2;
@@ -268,7 +269,7 @@ func void main(){
     ar[8] = 8;
     ar[9] = 9;
     print (bin_search(ar,0,9,3));
-    ar = null
+    //ar = 0
 }
 '''
 test3 = '''

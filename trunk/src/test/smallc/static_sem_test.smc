@@ -1,0 +1,51 @@
+/*
+ * @lang L1
+ * @name 静态语义测试
+ * @author Tao Fei (Filia.Tao@gmail.com)
+ */
+
+
+class Link { Node prob; Link next }
+class Node { int level; int[] board }
+
+func void run(Node head)
+{
+	var int[] ar; int b; Link c; Node d end
+	b = 1;
+	c = 2;
+	//ar = b * c;
+	//b = null;
+	//ar = null;
+	//c = null;
+	c.prob = null;
+	c.ppp;
+	c.prob = 0;
+	c.prob = b;
+	c.prob = d;
+	c.prob = c;
+	c.prob = d;
+	c.prob.level = 4;
+	c.prob.level = null;
+	c = d;
+}
+
+func int bin(int a, int b)
+{
+	a+b
+}
+func void main()
+{
+	var Node head end
+	head  = new Node;
+	run(0); //参数类型不对
+	run(head);
+	run(null);
+	run(); //参数个数不对
+	runa(head);
+
+	bin(1,3);
+	bin(head,3);
+	bin(3,head);
+	bin(head, null);
+	bin(head, bin);
+}
