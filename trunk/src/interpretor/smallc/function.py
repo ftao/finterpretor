@@ -103,10 +103,10 @@ class Function(Namespace):
         for i in range(len(self.params)):
             self.set_param(self.params[i], args[i])
         for st in self.statements:
-            #ret = inter.on_statement(st)
+            ret = inter.on_statement(st)
             #print "walking statemnt , ", st
-            inter._walk_node(st)
-            ret = inter.action.get_node_attr(st)
+            #inter._walk_node(st)
+            #ret = inter.action.get_node_attr(st)
 
         #恢复现场
         self.ns = ns_now
