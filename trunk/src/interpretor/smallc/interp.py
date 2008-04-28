@@ -375,9 +375,9 @@ class Interpreter2(BaseASTWalker, BaseAnnotateAction):
                         print >>sys.stderr, "call %s at line %s" %(x[0], x[1])
                     else:
                         print >>sys.stderr, "call %s" % (x[0])
-        except AssertionError,e:
-            print "error at line " , self.current_token.lineno
-            print e
+        #except AssertionError,e:
+        #    print "error at line " , self.current_token.lineno
+        #    print e
         #except StandardError,e:
         #    print >>sys.stderr, "Interpretor inner error "
         #    raise e
@@ -411,9 +411,10 @@ class Interpreter2(BaseASTWalker, BaseAnnotateAction):
         self.set_node_attr(node, lang.Object(lang.void))
 
     def _on_bin_exp(self, node):
-        print "calling _on_bin_exp", node.type, node
+        lhs = self.get_node_attr(node.child(0))
+        assert lhs is not None
         if len(node) > 1:
-            lhs = self.get_node_attr(node.child(0))
+
             op_name = node.child(1).get_attr('op_name')
             rhs = self.get_node_attr(node.child(2))
             v = lhs.op(op_name, rhs)
@@ -421,6 +422,7 @@ class Interpreter2(BaseASTWalker, BaseAnnotateAction):
             self.set_node_attr(node, v)
         else:
             self._copy_from_first_child(node)
+        #print "after_", node.type, node, node._attr
 
     on_exp = _on_bin_exp
 
@@ -432,13 +434,14 @@ class Interpreter2(BaseASTWalker, BaseAnnotateAction):
         self._do_action(node)
 
     def on_orexp(self,node):
-        print "on_orexp", node
+        #print "on_orexp", node
         lhs = self.get_node_attr(node.child(0))
+        assert lhs is not None
         if lhs:
             self.set_node_attr(node, lhs)
-            print "on_" , node.type , node._attr
         else:
             self._on_bin_exp(node)
+        #print "on_" , node.type , node, node._attr
 
     def walk_andexp(self, node):
         self._walk_node(node.child(0))
@@ -452,35 +455,35 @@ class Interpreter2(BaseASTWalker, BaseAnnotateAction):
         assert lhs is not None
         if not lhs:
             self.set_node_attr(node, lhs)
-            print "on_" , node.type , node._attr
         else:
             self._on_bin_exp(node)
+        #print "on_" , node.type , node, node._attr
 
     on_relexp = on_term = on_factor = _on_bin_exp
 
 
 
-    def on_uniexp(self,node):
+    def on_uniexp(self, node):
         if len(node) > 1:
             op_name = node.child(0).get_attr('op_name')
             obj = self.get_node_attr(node.child(1))
             self.set_node_attr(node, obj.op(op_name))
         else:
             self._copy_from_first_child(node)
-        print "uniexp" , node._attr
+        #print "uniexp" , node, node._attr
 
     def on_postexp(self,node):
         if len(node) > 1:
             postexp = self.get_node_attr(node.child(0))
             postfix = node.child(1).child(0)
             if postfix.type == 'apara':
-                print "function call ", postexp
+                #print "function call ", postexp
                 line_no = self.current_token.lineno
                 ret = postexp.call(self.get_node_attr(postfix),self,line_no)
 
                 self.set_node_attr(node, ret)
             elif postfix.type =='sub':
-                print "index is ", postfix
+                #print "index is ", postfix
                 self.set_node_attr(node, postexp.op("index", self.get_node_attr(postfix.child(1))))
             elif postfix.type == 'aselect':
                 self.set_node_attr(node, postexp.op("member",postfix.child(1).value))
@@ -494,7 +497,7 @@ class Interpreter2(BaseASTWalker, BaseAnnotateAction):
         else:
             self._copy_from_first_child(node)
 
-        print "postexp" , node._attr
+        #print "postexp" , node, node._attr
 
     def on_type(self,node):
         base_type = self.current_ns.get(node.child(0).value)
@@ -504,13 +507,23 @@ class Interpreter2(BaseASTWalker, BaseAnnotateAction):
         else:
             self.set_node_attr(node, base_type)
 
-    def on_entity(self,node):
+    def on_entity(self, node):
         self._copy_from_first_child(node)
-        print "entity" , node._attr
+        #print "entity" , node, node._attr, node.child(0).type
+        assert self.get_node_attr(node) is not None
 
-    def on_cast(self,node):
+    def on_cast(self, node):
         '''cast 的语义？ 最后一个statement 的值'''
-        self._copy_from_child(node, -1)
+        #print "quering st " , node.query('stlist')[0]._attr
+        self.set_node_attr(node, self.get_node_attr(node.child('stlist')))
+        #print "after cast " ,node, node._attr
+        assert self.get_node_attr(node) is not None
+
+    def on_stlist(self, node):
+         #print "on_stlist is running " , node
+         self.set_node_attr(node, self.get_node_attr(node.query('st')[-1]))
+         #print "stlist", node._attr
+         assert self.get_node_attr(node) is not None
 
     def on_alloc(self,node):
         if len(node) == 2:
@@ -523,7 +536,7 @@ class Interpreter2(BaseASTWalker, BaseAnnotateAction):
 
 
     def _on_token(self,node):
-        print "on_token " , node
+        #print "on_token " , node
         if node.type == 'num':
             self.set_node_attr(node, lang.Object(lang.intType, node.value))
         elif node.type == '?':
@@ -537,7 +550,8 @@ class Interpreter2(BaseASTWalker, BaseAnnotateAction):
 #            elif isinstance(v, Function):
 #                self.set_node_attr(node, v)
         else:
-            print "something else " , node
+            pass
+            #print "something else " , node
         self.current_token = node
 
 class StaticTypeChecker(BaseAnnotateAction):

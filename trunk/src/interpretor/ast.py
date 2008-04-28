@@ -308,7 +308,7 @@ class BaseAnnotateAction:
 
     def _copy_from_child(self, node, index):
         #print "copy attr " , self.annotate_attr_name , "from child"
-        print self.annotate_attr_name, node.child(index)._attr
+        #print self.annotate_attr_name, node.child(index)._attr
         #assert node.child(index).get_attr(self.annotate_attr_name) is not None
         node.set_attr(self.annotate_attr_name , node.child(index).get_attr(self.annotate_attr_name))
 
