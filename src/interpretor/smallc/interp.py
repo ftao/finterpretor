@@ -726,7 +726,7 @@ def run(data, input_file = sys.stdin, output_file = sys.stdout):
         global_ns = do_namespace_parse(ast)
         if global_ns:
             if check_static_semtanic(ast, global_ns):
-                inter = Interpreter2(ast, global_ns)
+                inter = Interpreter(ast, global_ns)
                 inter.run()
     except error.ParseError,e:
         print >>sys.stderr,e
