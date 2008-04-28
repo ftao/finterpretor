@@ -389,8 +389,8 @@ def p_alloc(p):
 
 def p_error(p):
     import sys
-    print >>sys.stderr,"parser error at line %d token '%s'" %(p.lineno, p.value)
-    #raise error.ParseError(p)
+    #print >>sys.stderr,"parser error at line %d token '%s'" %(p.lineno, p.value)
+    raise error.ParseError(p)
 
 #在上面的产生式,起辅助作用的,不会产生AST结点
 ast_ommit = ('error', 'empty', 'var_decls', 'const_decls')

@@ -254,10 +254,12 @@ func int bin_search(int[] ar, int start, int en, int target){
     ret
 }
 func void main(){
-    var int [] ar; Link head end
-    head=new Link;
+    var int [] ar; Link head; int c end
+    c = 0;
+    //head=new Link;
     ar = new int[10];
     //ar = ar * 10;
+    c = 0;
     ar[0] = 0;
     ar[1] = 1;
     ar[2] = 2;
@@ -272,14 +274,14 @@ func void main(){
     //ar = 0
 }
 '''
-test = '''
+test2 = '''
 func void main(){
     var int [] ar; int b end
-    b = null;
+    //b = null;
     ar = new int[10];
     ar[1] = 1;
-    b[1] = 3;
-    b = ar;
+    //b[1] = 3;
+   // b = ar;
     b = 2;
     b && b;
     b || b;
@@ -297,6 +299,18 @@ func void main(){
     !b;
     -b;
     chk(b);
+}
+'''
+
+test1 = '''
+func void main(){
+    var int i;int[] ar end
+    i = 0;
+    i = i+i;
+    ar = new int[3];
+    ar;
+    ar[0];
+    ar[1] = i;
 }
 '''
 lex.lex()
