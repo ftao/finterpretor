@@ -254,12 +254,10 @@ func int bin_search(int[] ar, int start, int en, int target){
     ret
 }
 func void main(){
-    var int [] ar; Link head; int c end
-    c = 0;
-    //head=new Link;
+    var int [] ar end
+
     ar = new int[10];
-    //ar = ar * 10;
-    c = 0;
+
     ar[0] = 0;
     ar[1] = 1;
     ar[2] = 2;
@@ -270,7 +268,7 @@ func void main(){
     ar[7] = 7;
     ar[8] = 8;
     ar[9] = 9;
-    print (bin_search(ar,0,9,3));
+    print (bin_search(ar,0,9,9));
     //ar = 0
 }
 '''

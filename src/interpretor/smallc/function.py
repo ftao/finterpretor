@@ -86,7 +86,7 @@ class Function(Namespace):
 
     def call(self, args, inter, line_no = None):
         '''用参数args调用函数,解释器对象为inter'''
-        print "enter function ", self.name
+        #print "enter function ", self.name
         #将当前函数压入调用栈
         inter.call_stack.append((self, line_no))
 
@@ -104,7 +104,7 @@ class Function(Namespace):
             self.set_param(self.params[i], args[i])
         for st in self.statements:
             #ret = inter.on_statement(st)
-            print "walking statemnt , ", st
+            #print "walking statemnt , ", st
             inter._walk_node(st)
             ret = inter.action.get_node_attr(st)
 
