@@ -347,6 +347,198 @@ class Interpreter:
         self.current_token = node
         return node.value
 
+class Interpreter2(BaseASTWalker, BaseAnnotateAction):
+    '''递归解释器'''
+
+    annotate_attr_name = "RUNTIME_VALUE"
+
+    def __init__(self,ast,global_ns):
+        self.ast = ast
+        self.global_ns = global_ns
+        self.current_ns = None
+        self.current_token = None
+        self.call_stack = []
+        self.action = self
+
+    def run(self):
+        self.current_ns = self.global_ns
+        try:
+            self.current_ns.get("main").call([],self)
+        except error.LangError,e:
+            if self.current_token is None:
+                print >>sys.stderr,e
+            else:
+                print >>sys.stderr, "error at line %d near token '%s': %s" %(self.current_token.lineno,self.current_token.value,str(e))
+                print >>sys.stderr, "calling stack "
+                for x in self.call_stack:
+                    if x[1]:
+                        print >>sys.stderr, "call %s at line %s" %(x[0], x[1])
+                    else:
+                        print >>sys.stderr, "call %s" % (x[0])
+        except AssertionError,e:
+            print "error at line " , self.current_token.lineno
+            print e
+        #except StandardError,e:
+        #    print >>sys.stderr, "Interpretor inner error "
+        #    raise e
+
+
+    on_st = BaseAnnotateAction._copy_from_first_child
+
+
+    def walk_cond(self, node):
+        self._walk_node(node.child(2))
+        if self.action.get_node_attr(node.child(2)):
+            self._walk_node(node.child(4))
+        elif len(node) > 6:
+            self._walk_node(node.child(6))
+        self._do_action(node)
+
+    def on_cond(self, node):
+         #总是返回lang.Object(lang.Void)
+        self.set_node_attr(node, lang.Object(lang.void))
+
+    def walk_loop(self, node):
+        while True:
+            self._walk_node(node.child(2))
+            if not self.action.get_node_attr(node.child(2)):
+                break
+            if len(node) > 4:
+                self._walk_node(node.child(4))
+        return self._do_action(node)
+
+    def on_loop(self, node):
+        self.set_node_attr(node, lang.Object(lang.void))
+
+    def _on_bin_exp(self, node):
+        print "calling _on_bin_exp", node.type, node
+        if len(node) > 1:
+            lhs = self.get_node_attr(node.child(0))
+            op_name = node.child(1).get_attr('op_name')
+            rhs = self.get_node_attr(node.child(2))
+            v = lhs.op(op_name, rhs)
+            assert v is not None
+            self.set_node_attr(node, v)
+        else:
+            self._copy_from_first_child(node)
+
+    on_exp = _on_bin_exp
+
+    def walk_orexp(self, node):
+        self._walk_node(node.child(0))
+        if len(node) > 1 and not self.action.get_node_attr(node.child(0)):
+            self._walk_node(node.child(1))
+            self._walk_node(node.child(2))
+        self._do_action(node)
+
+    def on_orexp(self,node):
+        print "on_orexp", node
+        lhs = self.get_node_attr(node.child(0))
+        if lhs:
+            self.set_node_attr(node, lhs)
+            print "on_" , node.type , node._attr
+        else:
+            self._on_bin_exp(node)
+
+    def walk_andexp(self, node):
+        self._walk_node(node.child(0))
+        if len(node) > 1 and self.action.get_node_attr(node.child(0)):
+            self._walk_node(node.child(1))
+            self._walk_node(node.child(2))
+        self._do_action(node)
+
+    def on_andexp(self, node):
+        lhs = self.get_node_attr(node.child(0))
+        assert lhs is not None
+        if not lhs:
+            self.set_node_attr(node, lhs)
+            print "on_" , node.type , node._attr
+        else:
+            self._on_bin_exp(node)
+
+    on_relexp = on_term = on_factor = _on_bin_exp
+
+
+
+    def on_uniexp(self,node):
+        if len(node) > 1:
+            op_name = node.child(0).get_attr('op_name')
+            obj = self.get_node_attr(node.child(1))
+            self.set_node_attr(node, obj.op(op_name))
+        else:
+            self._copy_from_first_child(node)
+        print "uniexp" , node._attr
+
+    def on_postexp(self,node):
+        if len(node) > 1:
+            postexp = self.get_node_attr(node.child(0))
+            postfix = node.child(1).child(0)
+            if postfix.type == 'apara':
+                print "function call ", postexp
+                line_no = self.current_token.lineno
+                ret = postexp.call(self.get_node_attr(postfix),self,line_no)
+
+                self.set_node_attr(node, ret)
+            elif postfix.type =='sub':
+                print "index is ", postfix
+                self.set_node_attr(node, postexp.op("index", self.get_node_attr(postfix.child(1))))
+            elif postfix.type == 'aselect':
+                self.set_node_attr(node, postexp.op("member",postfix.child(1).value))
+            elif postfix.type == 'tcast':
+                self.set_node_attr(node, postexp.op("tcast", self.get_node_attr(postfix.child(1))))
+            elif isinstance(postfix,Leaf):
+                op_name = postfix.get_attr('op_name')
+                self.set_node_attr(node, postexp.op(op_name))
+            else:
+                assert False
+        else:
+            self._copy_from_first_child(node)
+
+        print "postexp" , node._attr
+
+    def on_type(self,node):
+        base_type = self.current_ns.get(node.child(0).value)
+        if len(node) > 1:
+            dim = (len(node) - 1)/2
+            self.set_node_attr(node, lang.Array(base_type, dim))
+        else:
+            self.set_node_attr(node, base_type)
+
+    def on_entity(self,node):
+        self._copy_from_first_child(node)
+        print "entity" , node._attr
+
+    def on_cast(self,node):
+        '''cast 的语义？ 最后一个statement 的值'''
+        self._copy_from_child(node, -1)
+
+    def on_alloc(self,node):
+        if len(node) == 2:
+            self.set_node_attr(node, self.get_node_attr(node.child(1)).alloc())
+        else:
+            self.set_node_attr(node, self.get_node_attr(node.child(1)).alloc(self.get_node_attr(node.child(3))))
+
+    def on_apara(self,node):
+        self.set_node_attr(node, [self.get_node_attr(x) for x in node.query("explist>exp")])
+
+
+    def _on_token(self,node):
+        print "on_token " , node
+        if node.type == 'num':
+            self.set_node_attr(node, lang.Object(lang.intType, node.value))
+        elif node.type == '?':
+            self.set_node_attr(node, self.current_ns.get("read").call([],self))
+        elif node.type == 'id':
+            v = self.current_ns.get(node.value)
+            self.set_node_attr(node, v)
+#            if isinstance(v, lang.Object):
+#                self.set_node_attr(node, v)
+#                print node._attr
+#            elif isinstance(v, Function):
+#                self.set_node_attr(node, v)
+        else:
+            print "something else " , node
+        self.current_token = node
 
 class StaticTypeChecker(BaseAnnotateAction):
     '''静态类型检查和计算
@@ -400,6 +592,7 @@ class StaticTypeChecker(BaseAnnotateAction):
 
     def on_funbody(self, node):
         self.current_ns = self.global_ns
+
 
     on_st = BaseAnnotateAction._copy_from_first_child
 
@@ -519,7 +712,7 @@ def run(data, input_file = sys.stdin, output_file = sys.stdout):
         global_ns = do_namespace_parse(ast)
         if global_ns:
             if check_static_semtanic(ast, global_ns):
-                inter = Interpreter(ast, global_ns)
+                inter = Interpreter2(ast, global_ns)
                 inter.run()
     except error.ParseError,e:
         print >>sys.stderr,e

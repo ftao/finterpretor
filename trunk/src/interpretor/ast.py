@@ -156,7 +156,8 @@ class Leaf(Node):
         return []
 
     def __repr__(self):
-        return str("<Leaf : %s>" %(self.value,))
+        return str(self.value)
+        #return str("<Leaf : %s>" %(self.value,))
 
     __str__ = __repr__
 
@@ -207,24 +208,24 @@ class BaseASTWalker:
         self.action = action
         self.current_token = None
 
-    def _on_node(self, node):
+    def _walk_node(self, node):
         '''Proxy Method to walk the tree
         Check if a walk_xxx is define ,if so call it
-        otherwise call _walk_node
+        otherwise call _default_walk
         '''
         if hasattr(self, 'walk_' + node.type):
             return getattr(self, 'walk_' + node.type)(node)
         else:
             if isinstance(node, Leaf):
-                return self._walk_token(node)
+                return self._default_walk(node)
             else:
-                return self._walk_node(node)
+                return self._default_walk(node)
 
-    def _walk_node(self, node):
+    def _default_walk(self, node):
         self._do_action(node, 'before')
         for x in node:
-            self._on_node(x)
-        self._do_action(node)
+            self._walk_node(x)
+        return self._do_action(node)
 
     def _do_action(self, node, when = "on"):
 
@@ -235,12 +236,12 @@ class BaseASTWalker:
                 self.action,
                 '%s_%s' %(when,node.type)
             )
-            action(node)
+            return action(node)
         except AttributeError,e:
             if isinstance(node, Leaf) and hasattr(self.action, '_%s_token'%(when,)):
-                getattr(self.action, '_%s_token'%(when,))(node)
+                return getattr(self.action, '_%s_token'%(when,))(node)
             else:
-                self._default_action(node)
+                return self._default_action(node)
 
     def _default_action(self, node):
         pass
@@ -251,7 +252,7 @@ class BaseASTWalker:
         return node.value
 
     def run(self):
-        return self._on_node(self.root)
+        return self._walk_node(self.root)
 
 class WFWalker(BaseASTWalker):
     '''广度优先遍历算法'''
@@ -260,10 +261,10 @@ class WFWalker(BaseASTWalker):
         self._to_visit = []
         super(WFWalker, "__init__")(root, action)
 
-    def _on_node(self, node):
+    def _walk_node(self, node):
         '''Proxy Method to walk the tree
         Check if a walk_xxx is define ,if so call it
-        otherwise call _walk_node
+        otherwise call _default_walk
         '''
         if hasattr(self, 'walk_' + node.type):
             getattr(self, 'walk_' + node.type)(node)
@@ -273,13 +274,13 @@ class WFWalker(BaseASTWalker):
             else:
                 self._walk_node(node)
 
-    def _walk_node(self, node):
+    def _default_walk(self, node):
         self._do_action(node)
         #将子结点放入到待访问队列中
         self._to_visit.extend(node.getChildren())
         #取出下一个结点
         next = self._to_visist.pop(0)
-        self._on_node(next)
+        self._walk_node(next)
 
 
 class ScopeWalker(BaseASTWalker):
@@ -306,6 +307,9 @@ class BaseAnnotateAction:
     annotate_attr_name = 'FIXME'
 
     def _copy_from_child(self, node, index):
+        #print "copy attr " , self.annotate_attr_name , "from child"
+        print self.annotate_attr_name, node.child(index)._attr
+        #assert node.child(index).get_attr(self.annotate_attr_name) is not None
         node.set_attr(self.annotate_attr_name , node.child(index).get_attr(self.annotate_attr_name))
 
     def _copy_from_first_child(self, node):
@@ -315,6 +319,13 @@ class BaseAnnotateAction:
         if node.parent:
             node.set_attr(self.annotate_attr_name, node.parent.get_attr(self.annotate_attr_name))
 
+    def get_node_attr(self, node):
+        #assert node.get_attr(self.annotate_attr_name) is not None
+        return node.get_attr(self.annotate_attr_name)
+
+    def set_node_attr(self, node, value):
+        #assert value is not None
+        return node.set_attr(self.annotate_attr_name, value)
 
 
 #根据parse.py 文件内容 生成抽象语法树遍历程序

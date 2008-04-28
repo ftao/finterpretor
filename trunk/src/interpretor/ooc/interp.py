@@ -409,5 +409,5 @@ def run2(data, input_file = sys.stdin, output_file = sys.stdout):
         print >>sys.stderr,e
 
 if __name__ == '__main__':
-    test = open('../../test/ooc/static.ooc').read()
+    test = open('../../test/ooc/sp.ooc').read()
     run2(test)
