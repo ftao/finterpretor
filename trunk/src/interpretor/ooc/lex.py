@@ -100,7 +100,7 @@ def t_comment1(t):
 
 def t_comment2(t):
     r'/\*(.|\n)*?\*/'
-    t.lineno += t.value.count('\n')
+    t.lexer.lineno += t.value.count('\n')
 
 
 def t_error(t):

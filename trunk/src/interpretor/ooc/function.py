@@ -69,6 +69,7 @@ class Function(Namespace):
     def __init__(self,name,cls,ret_type, decorate):
         self.name = name
         self.params = []
+        self.params_type = []
         self.ns = {}
         self.cls = cls
         self.ret_type = ret_type
@@ -78,7 +79,8 @@ class Function(Namespace):
     def add_param(self,name,type):
         '增加一个参数'
         self.params.append(name)
-        self.set(name,lang.Object(type))
+        self.params_type.append(type)
+        self.set(name, lang.Object(type))
 
     def freeze(self):
         '函数定义完成后,冻结这个函数'
@@ -159,7 +161,7 @@ class Function(Namespace):
 class AbstractFunction(Function):
     def __init__(self,name,cls,ret_type, decorate):
         self.name = name
-        self.params = []
+        self.params_type = []
         self.cls = cls
         self.ret_type = ret_type
         self.decorate = decorate

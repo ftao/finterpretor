@@ -140,6 +140,7 @@ class Main {
     func void main()
     {
         var int i,j,x,y end
+
         i = MIN;
         x = 0;
         y = 0;

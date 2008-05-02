@@ -25,6 +25,10 @@ class MoreParser:
         self.ast = ast
         self.global_ns = get_built_in_ns()
         self.current_ns = self.global_ns
+        self.errors = []
+
+    def add_error(self, e):
+        self.errors.append(error.Error(self.current_token.lineno, str(e)))
 
     def parse(self):
         '''walk the ast , build the golbal namespace and classses '''
@@ -369,6 +373,206 @@ class Interpreter:
         self.current_token = node
         return node.value
 
+class StaticTypeChecker(BaseAnnotateAction):
+    '''静态类型检查和计算'''
+    #正在标注的属性的名字
+    annotate_attr_name = 'type'
+
+    def __init__(self, ns):
+        self.global_ns = ns
+        self.current_ns = ns
+        self.errors = []
+
+    def add_error(self, e):
+        #print "add error " , e
+        #raise
+        self.errors.append(error.Error(self.current_token.lineno, str(e)))
+
+    def _do_type_trans(self, node, op, *operands):
+        node.set_attr(self.annotate_attr_name, self._check_type(op, *operands))
+
+    def _check_type(self, op, *operands):
+        main_type = operands[0]
+        if len(operands) > 1:
+            arg = operands[1]
+        else:
+            arg = None
+        is_type_match = lang.do_type_trans(main_type, op, arg)
+        if not is_type_match:
+            if op =='member':
+                self.add_error(error.MemberError(operands[0], operands[1]))
+            else:
+                self.add_error(error.TypeCheckError(op))
+        return is_type_match
+
+
+    def _on_bin_exp(self, node):
+        if len(node) >1:
+            self._do_type_trans(node,
+                node.child(1).get_attr('op_name'),
+                node.child(0).get_attr('type'),
+                node.child(2).get_attr('type')
+            )
+        else:
+            self._copy_from_first_child(node)
+
+    def before_classdecl(self, node):
+        class_name = node.child('id').value
+        self.current_class = self.global_ns.get(class_name)
+        #print "enter class" , self.current_class
+
+    def on_classdecl(self, node):
+        self.current_class = None
+
+    def before_funbody(self, node):
+        '''在遍历funcbody 的子节点之前,进去对应的名字空间'''
+        func_name = node.prev("head").child("id").value
+        #print "enter func " , func_name
+        self.current_ns = self.current_class.get_cls_member(func_name)
+        if self.current_ns.decorate != "static":
+            self.current_ns.obj = self.current_class.alloc_one()
+        #print self.current_ns
+
+    def on_funbody(self, node):
+        self.current_ns = self.global_ns
+
+
+    on_st = BaseAnnotateAction._copy_from_first_child
+
+    def on_cond(self, node):
+        node.set_attr(self.annotate_attr_name, lang.void)
+
+    def on_loop(self, node):
+        node.set_attr(self.annotate_attr_name, lang.void)
+
+    on_exp = on_orexp = on_andexp = _on_bin_exp
+
+    on_relexp = on_term = on_factor = _on_bin_exp
+
+
+    def on_uniexp(self, node):
+        if len(node) > 1:
+            self._do_type_trans(node,
+                node.child(0).get_attr('op_name'),
+                node.child(1).get_attr('type')
+            )
+        else:
+            self._copy_from_first_child(node)
+
+    def on_postexp(self, node):
+        postexp = node.child(0)
+        if len(node) > 1:
+            postfix = node.child(1).child(0)
+            if isinstance(postfix,Leaf): # '++' or '--'
+                self._do_type_trans(node, postfix.get_attr('op_name'),postexp.get_attr('type'))
+            else:#对应不同情况调用下面的辅助函数
+                getattr(self, "_on_postexp_" + postfix.type)(node)
+        else:
+            self._copy_from_first_child(node)
+        node.set_attr('id_type', node.child(0).get_attr('id_type'))
+
+    ## 这些辅助函数， 在AST不存在对应类型的节点
+    def _on_postexp_apara(self, node):
+        '''函数调用，检查参数类型'''
+        print "_on_postexp_apara", node
+        postexp = node.child(0)
+        postfix = node.child(1).child(0)
+
+        func = postexp.get_attr('type')
+        print "function call " , func
+        args = postfix.query("explist>exp")
+
+        if len(func.params_type) != len(args):
+            self.add_error(error.ParamCountNotMatchError(len(func.params_type), len(args)))
+        else:
+            for i in range(len(func.params_type)):
+                self._check_type('argument_pass', func.params_type[i], args[i].get_attr('type'))
+            node.set_attr('type', func.ret_type)
+
+    def _on_postexp_index(self, node):
+        '''数组下标操作'''
+        postexp = node.child(0)
+        postfix = node.child(1).child(0)
+        self._do_type_trans(node, 'index', postexp.get_attr('type'), postfix.child(1).get_attr('type'))
+
+    def _on_postexp_aselect(self, node):
+        '''类成员成员获取'''
+        postexp = node.child(0)
+        postfix = node.child(1).child(0)
+        member = postfix.child(1).value
+        #print "get member %s from %s" %(member, str(postexp))
+        #print postexp._attr
+        op_name = None
+        if postexp.get_attr('id_type') == 'obj':
+            #这里检测但前所在函数是否是postexp 的类。
+            #如果是,可以访问私有变量
+            #否则，不能访问私有变量
+            if self.current_ns.cls == postexp.get_attr('type'):
+                op_name = "member"
+            else:
+                op_name = "member_no_private"
+        elif postexp.get_attr('id_type') == 'class':
+            op_name = "member_cls"
+        if op_name:
+           self._do_type_trans(node, op_name, postexp.get_attr('type'), member)
+
+    def _on_postexp_tcast(self, node):
+        postexp = node.child(0)
+        postfix = node.child(1).child(0)
+        self._do_type_trans(node, 'tcast', postexp.get_attr('type'),  postfix.child(1).get_attr('type'))
+
+    def on_entity(self, node):
+        node.set_attr('type', node.child(0).get_attr('type'))
+        node.set_attr('id_type', node.child(0).get_attr('id_type'))
+        #BaseAnnotateAction._copy_from_first_child
+
+    def on_cast(self, node):
+        node.set_attr('type', node.child('stlist').get_attr('type'))
+
+    def on_stlist(self, node):
+        node.set_attr('type', node.query("st")[-1].get_attr('type'))
+
+    def on_alloc(self,node):
+        if node.query('['):
+            node.set_attr('type', lang.Array(node.child("type").get_attr('type')))
+        else:
+            node.set_attr('type', node.child("type").get_attr('type'))
+
+    def on_type(self, node):
+        if node.query('['):
+            node.set_attr('type', lang.Array(node.child("type").get_attr('type')))
+            node.set_attr('id_type', 'class')
+        else:
+            try:
+                node.set_attr('type', self.current_ns.get(node.child(0).value)) #type : id
+                node.set_attr('id_type', 'class')
+            except error.NameError, e :
+                self.add_error(e)
+
+    def _on_token(self, node):
+        if node.type == "num" or node.type == '?':
+            node.set_attr('type', lang.intType)
+        elif node.type == "id":
+            try:
+                #在函数体里面，并且不是 a.b 这个语法的情况下
+                if node.ancestor("funbody") and not node.ancestor("aselect"):
+                    v = self.current_ns.get(node.value)
+                    #print v
+                    if isinstance(v, lang.Object):
+                        node.set_attr('type', v.type)
+                        node.set_attr('id_type', 'obj')
+                    elif isinstance(v, (list,tuple)) and isinstance(v[0], Function):
+                        print "get function " , v[0]
+                        node.set_attr('type', v[0])
+                        node.set_attr('id_type', 'func')
+                    elif isinstance(v, lang.RootClass):
+                        node.set_attr('type', v)
+                        node.set_attr('id_type', 'class')
+            except error.NameError, e :
+                self.add_error(e)
+        self.current_token = node
+
+
 def do_op_annotate(ast):
     annotate_action = OPAnnotate()
     ast_walker = BaseASTWalker(ast, annotate_action)
@@ -384,6 +588,17 @@ def do_namespace_parse(ast):
         return None
     return parser.global_ns
 
+def check_static_semtanic(ast, global_ns):
+    check_action = StaticTypeChecker(global_ns)
+    walker2 = BaseASTWalker(ast, check_action)
+    walker2.run()
+    if len(check_action.errors) > 0:
+        print >>sys.stderr, "found error ", len(check_action.errors)
+        for e in check_action.errors:
+            print >>sys.stderr, e
+        return False
+    else:
+        return True
 
 def run(data, input_file = sys.stdin, output_file = sys.stdout):
     set_io(input_file, output_file)
@@ -397,17 +612,17 @@ def run(data, input_file = sys.stdin, output_file = sys.stdout):
 
 def run2(data, input_file = sys.stdin, output_file = sys.stdout):
     set_io(input_file, output_file)
-    try:
-        ast = parse(data)
-        do_op_annotate(ast)
-#        global_ns = do_namespace_parse(ast)
-#        if global_ns:
-#            if check_static_semtanic(ast, global_ns):
-#                inter = Interpreter(ast, global_ns)
-#                inter.run()
-    except error.LangError,e:
-        print >>sys.stderr,e
+    #try:
+    ast = parse(data)
+    do_op_annotate(ast)
+    global_ns = do_namespace_parse(ast)
+    if global_ns:
+        if check_static_semtanic(ast, global_ns):
+            inter = Interpreter(ast, global_ns)
+            inter.run()
+    #except error.LangError,e:
+    #    print >>sys.stderr,e
 
 if __name__ == '__main__':
-    test = open('../../test/ooc/sp.ooc').read()
+    test = open('../../test/ooc/static_sem_test.ooc').read()
     run2(test)

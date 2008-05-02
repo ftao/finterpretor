@@ -23,7 +23,12 @@ from interpretor.ooc import error
 #        return cls.instance
 
 
-#在静态类型检查时将要用到这个
+def do_type_trans(main_type, op_name, arg = None):
+    #print "do_type_trans", main_type, op_name , arg
+    if op_name == "argument_pass":
+        return main_type.do_type_trans("assign", arg)
+    else:
+        return main_type.do_type_trans(op_name, arg)
 
 
 
@@ -70,16 +75,37 @@ def is_type_castable(obj,type):
         else:
             base = base.base
     else:
-        return False
-    return True
+        return True
+    return False
 
-class Type:
+
+class Type(object):
     def __init__(self):
         self.name = "type"
         self.base = None
 
     def to_str(self,obj):
         return  str(obj.value)
+
+    def do_type_trans(self, op_name, arg = None):
+        if op_name  == 'assign':
+            if arg == self:
+                return self
+            else:
+                return None
+        elif op_name in ('eq','ne'):
+            if arg == self:
+                return intType
+            else:
+                return None
+        elif op_name == 'tcast':
+            if self == arg or arg == voidType:
+                return arg
+            else:
+                return None
+        else:
+            return None
+
 
     @require_same
     def op_assign(self,lhs,rhs):
@@ -148,6 +174,22 @@ class Integer(Type):
     def __init__(self):
         self.name = "int"
         self.base = None
+
+    def do_type_trans(self, op_name, arg = None):
+        '''检查类型匹配，并根据操作符返回对应的类型 不匹配时返回 None'''
+        #print "interger do_type_trans" , op_name, arg
+        if op_name in ('and', 'or', 'lt', 'gt', 'le',
+            'ge','add', 'minus', 'mul', 'div' , 'mod',
+            'assign', 'eq', 'ne'):
+            if arg and arg == self:
+                return self
+            else:
+                return None
+        elif hasattr(self, "op_" + op_name):
+            return self
+        else:
+            return super(Integer, self).do_type_trans(op_name, arg)
+
     def asBool(self,obj):
         return bool(obj.value)
 
@@ -248,6 +290,32 @@ class Array(Type):
         self.name = self.base_type.name + "[]"
         self.base = None
 
+    def do_type_trans(self, op_name, arg = None):
+        '''检查类型匹配，并根据操作符返回对应的类型 不匹配时返回 None'''
+        #print "array do_type_trans" , op_name, arg
+        if op_name in ('eq', 'ne'):
+            if (arg == self or arg == nullType):
+                return intType
+            else:
+                return None
+        elif op_name == "assign":
+            if (arg == self or arg == nullType):
+                return self
+            else:
+                return None
+        elif op_name == "index":
+            if arg == intType:
+                return self.base_type
+            else:
+                return None
+        elif op_name == "member_no_private":
+            if arg == "length":
+                return intType
+            else:
+                return None
+        return super(Array, self).do_type_trans(op_name, arg)
+
+
     def to_str(self, obj):
         return '[' + ",".join([x.to_str() for x in obj.value]) + ']'
 
@@ -290,6 +358,33 @@ class RootClass(Type):
     def __init__(self):
         self.name = "Object"
         self.base = None
+
+    def is_base_of(self, base):
+        while(base):
+            if base == self:
+                break
+            else:
+                base = base.base
+        else:
+            return False
+        return True
+
+    def do_type_trans(self, op_name, arg = None):
+        '''检查类型匹配，并根据操作符返回对应的类型 不匹配时返回 None'''
+        if op_name in ('eq', 'ne'):
+            if arg == nullType or self.is_base_of(arg) or arg.do_type_trans(op_name, self):
+                return intType
+            else:
+                return None
+        elif op_name == "assign":
+            if arg == nullType or self.is_base_of(arg):
+                return self
+            else:
+                return None
+        elif op_name in("member", "op_member_no_private", "op_member_cls"):
+            return None
+        return super(RootClass, self).do_type_trans(op_name, arg)
+
 
     @require_same_base_or_null
     def op_assign(self, lhs, rhs):
@@ -366,6 +461,29 @@ class Class(RootClass):
         }
         self.cls_var = {}
 
+    def do_type_trans(self, op_name, arg = None):
+        '''检查类型匹配，并根据操作符返回对应的类型 不匹配时返回 None'''
+
+        if op_name in ('eq', 'ne'):
+            if arg == nullType or self.is_base_of(arg) or arg.do_type_trans(op_name, self):
+                return intType
+            else:
+                return None
+        if op_name in ("member","member_no_private"):# "member_cls"):
+            try:
+                t = self.alloc_one()
+                ret = getattr(self, "op_" + op_name)(t, arg)
+                return ret.type
+            except error.MemberError:
+                return None
+        elif op_name in ("member_cls"):
+            #print "member_cls"
+            try:
+                ret = getattr(self, "op_" + op_name)(arg)
+                return ret.type
+            except error.MemberError:
+                return None
+        return super(Class, self).do_type_trans(op_name, arg)
 
     def add_var(self,name,value,decorate):
         self.members[name] = (value,decorate)

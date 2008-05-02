@@ -348,7 +348,7 @@ class Interpreter:
         return node.value
 
 class Interpreter2(BaseASTWalker, BaseAnnotateAction):
-    '''递归解释器'''
+    '''递归解释器(这个版块不可用)'''
 
     annotate_attr_name = "RUNTIME_VALUE"
 
@@ -555,10 +555,7 @@ class Interpreter2(BaseASTWalker, BaseAnnotateAction):
         self.current_token = node
 
 class StaticTypeChecker(BaseAnnotateAction):
-    '''静态类型检查和计算
-    1.类型约束规则保存在lang.type_constraint 中
-    2.操作在类型上的语义蕴含在代码中
-    '''
+    '''静态类型检查和计算'''
     #正在标注的属性的名字
     annotate_attr_name = 'type'
 
