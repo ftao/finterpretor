@@ -90,22 +90,22 @@ L1 语言支持如下基本类型:
 	|| && 		|| and	 		|| int 			|| int 			|| 		||  
 	|| == 		|| eq	 		|| int 			|| int 			|| 		||  
 	|| != 		|| ne	 		|| int 			|| int 			|| 		||  
-    || < 		|| lt	 		|| int 			|| int 			|| 		||  
-    || <= 		|| le	 		|| int 			|| int 			|| 		||  
-    || > 		|| gt	 		|| int 			|| int 			|| 		||  
-    || >= 		|| ge	 		|| int 			|| int 			|| 		||  
-    || + 		|| add	 		|| int 			|| int 			|| 		||  
-    || - 		|| minus 		|| int 			|| int 			|| 		||  
-    || * 		|| mul	 		|| int 			|| int 			|| 		||  
-    || / 		|| div	 		|| int 			|| int 			|| 		||  
-    || % 		|| mod	 		|| int 			|| int 			|| 		||  
-    || - 		|| minus_		|| - 			|| int 			|| 负号 ||  
-    || ! 		|| not			|| - 			|| int 			|| 		||  
-    || chk 		|| chk			|| - 			|| int 			|| 		||  
-    || ++ 		|| inc			|| - 			|| int 			|| 前缀	||  
-    || ++ 		|| inc_			|| - 			|| int 			|| 后缀	||  
-    || -- 		|| dec			|| - 			|| int 			|| 前缀	||  
-    || -- 		|| dec_			|| - 			|| int 			|| 后缀	||  
+	|| < 		|| lt	 		|| int 			|| int 			|| 		||  
+	|| <= 		|| le	 		|| int 			|| int 			|| 		||  
+	|| > 		|| gt	 		|| int 			|| int 			|| 		||  
+	|| >= 		|| ge	 		|| int 			|| int 			|| 		||  
+	|| + 		|| add	 		|| int 			|| int 			|| 		||  
+	|| - 		|| minus 		|| int 			|| int 			|| 		||  
+	|| * 		|| mul	 		|| int 			|| int 			|| 		||  
+	|| / 		|| div	 		|| int 			|| int 			|| 		||  
+	|| % 		|| mod	 		|| int 			|| int 			|| 		||  
+	|| - 		|| minus_		|| - 			|| int 			|| 负号 ||  
+	|| ! 		|| not			|| - 			|| int 			|| 		||  
+	|| chk 		|| chk			|| - 			|| int 			|| 		||  
+	|| ++ 		|| inc			|| - 			|| int 			|| 前缀	||  
+	|| ++ 		|| inc_			|| - 			|| int 			|| 后缀	||  
+	|| -- 		|| dec			|| - 			|| int 			|| 前缀	||  
+	|| -- 		|| dec_			|| - 			|| int 			|| 后缀	||  
 
   * 赋值  	(=)      除void , nulltype 外的所有类型都支持赋值运算(=),组合类型的赋值只是一个引用(类似Java).
   * 逻辑  	(&&, ||) int支持逻辑运算 与或非. 非零为真,0 为假. 结果是 1 或 0
