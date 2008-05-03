@@ -124,12 +124,25 @@ L1 语言支持如下基本类型:
   * 类(class) 组合类型
 	支持的操作符如下表所列
 || 操作符 	|| 实现用标识符 || 附加参数类型 || 操作结果类型 || 备注 ||  
-|| = 		|| assign 		|| SAME_TYPE 或者nullType	|| SAME_TYPE	|| 		||  
-|| == 		|| eq	 		|| SAME_TYPE 或者nullType 	|| int 			|| 		||  
-|| != 		|| ne	 		|| SAME_TYPE 或者nullType	|| int 			|| 		||  
+|| = 		|| assign 		|| SAME_TYPE 或者 nullType	|| SAME_TYPE	|| 		||  
+|| == 		|| eq	 		|| SAME_TYPE 或者 nullType 	|| int 			|| 		||  
+|| != 		|| ne	 		|| SAME_TYPE 或者 nullType	|| int 			|| 		||  
 || . 		|| member 		|| string		|| 根据class具体定义决定|| 注意这里的附加参数类型 string 实际上并不是L1语言的类型||  
 
+上面阐述了各个类型支持的操作符及其类型约束条件,具体的语义将被蕴含在实现中. 下面介绍具体的实现细节.
+每一个类型都有一个对应的类，定义了如下方法
+  # do_type_trans(self, op_name, arg = None) 这个函数是静态类型检查和计算接口.
+    这个函数体现了上面表格中的所有内容.
+  # op_xxx 对于该类型支持每一个操作,都有一个对应的op_开头的函数. (比如op_assign, op_index 等等)
+    对于二元操作符的原型是 op_binop(self, lhs, rhs) 对于一元操作符的原型是 op_uniop(self, obj)
 
+下面是Integer 类型的实现的代码片段. 
+{{{
+class Integer(Type):
+    '''Small C 整数类型'''
+
+
+}}}
 = 流程控制 =
 L1 支持条件和循环结构
 具体语法见上面的语法定义
