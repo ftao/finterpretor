@@ -28,31 +28,51 @@ class StaticSemanticError(LangError):
 
 
 class NameError(StaticSemanticError):
+    '名字未定义错误'
     def __init__(self, name):
         self.name = name
         self.msg = "name '%s' is not defined" %(self.name)
 
 class NameReDefineError(StaticSemanticError):
+    '名字重定义错误'
     def __init__(self, name):
         self.name = name
         self.msg = "name '%s' is already defined" %(self.name)
 
 class TypeCheckError(StaticSemanticError):
+    '''类型匹配错误'''
     def __init__(self, op):
         self.op = op
         self.msg = "type not match for operation '%s'" %(self.op)
 
 class MemberError(StaticSemanticError):
+    '''对象成员错误'''
     def __init__(self, type, member):
         self.type = type
         self.member = member
         self.msg = "'%s' dont't have '%s' member" %(self.type.name, self.member)
+
+class NoPrivateMemberError(StaticSemanticError):
+    '''对象公共成员错误'''
+    def __init__(self, type, member):
+        self.type = type
+        self.member = member
+        self.msg = "'%s' dont't have '%s' member" %(self.type.name, self.member)
+
+class ClsMmeberError(StaticSemanticError):
+    '''类成员错误'''
+    def __init__(self, type, member):
+        self.type = type
+        self.member = member
+        self.msg = "'%s' dont't have '%s' class member" %(self.type.name, self.member)
+
 
 class ParamCountNotMatchError(StaticSemanticError):
     def __init__(self, expect_count, real_count):
         self.expect_count = expect_count
         self.real_count = real_count
         self.msg = "param count not match , expect %d , got %d" %(self.expect_count, self.real_count)
+
 
 
 class TCastError(LangError):

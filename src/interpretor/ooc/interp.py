@@ -474,12 +474,12 @@ class StaticTypeChecker(BaseAnnotateAction):
     ## 这些辅助函数， 在AST不存在对应类型的节点
     def _on_postexp_apara(self, node):
         '''函数调用，检查参数类型'''
-        print "_on_postexp_apara", node
+        #print "_on_postexp_apara", node
         postexp = node.child(0)
         postfix = node.child(1).child(0)
 
         func = postexp.get_attr('type')
-        print "function call " , func
+        #print "function call " , func
         args = postfix.query("explist>exp")
 
         if len(func.params_type) != len(args):
@@ -562,7 +562,7 @@ class StaticTypeChecker(BaseAnnotateAction):
                         node.set_attr('type', v.type)
                         node.set_attr('id_type', 'obj')
                     elif isinstance(v, (list,tuple)) and isinstance(v[0], Function):
-                        print "get function " , v[0]
+                        #print "get function " , v[0]
                         node.set_attr('type', v[0])
                         node.set_attr('id_type', 'func')
                     elif isinstance(v, lang.RootClass):
