@@ -1,13 +1,20 @@
-#summary L2语言定义
+﻿#summary L2语言定义
 #labels Featured,Phase-Design
 
 L2 (aka OOC) 语言的定义
 
+L2 语言一个简单的面向对象的语言. 有如下特性:
+  * 支持基本类型,数组类型 和 类
+  * 支持条件 循环等流程控制语句 (参考L1Define)
+  * 有私有 公有等访问控制特性
+  * 有继承 多态等特性
+  * 有抽象方法的概念
+这个语言是一个相对完整的面向对象的语言. 
+
 = 语法 =
 {{{
 (1) <prog> ::= <classdecl>{<classdecl>}
-(2) <classdecl> ::= 'class' [ 'abstract' ] id [ ':' id ] '{' [<condecl>][ 'static' <memebr>]
-[ 'private' <member>] [ 'public' <member>] [ 'redef' {<cfdef>}] '}'
+(2) <classdecl> ::= 'class' [ 'abstract' ] id [ ':' id ] '{' [<condecl>][ 'static' <memebr>] [ 'private' <member>] [ 'public' <member>] [ 'redef' {<cfdef>}] '}'
 (3) <condecl> ::= 'const' <condef>{ ',' <condef>} ';'
 (4) <condef> ::= id '=' [ '-' ] num
 (5) <member> ::= [<vdecl>]{<fdef>}
@@ -56,7 +63,7 @@ L2 语言支持如下基本类型:
 
 支持如下的组合类型:
   * array 数组 数组元素类型可以是任何合法的L1类型，但是各个元素类型必须一致
-  * class 类 类似Java 的class. 所有类都是Object 类的子类. 也就是说L2语言也是1个单根的语言
+  * class 类 类似Java 的class. 所有类都是Object 类的子类. 也就是说L2语言也是一个单根的语言
 
 = 类 =
 L2 语言中的类的概念类似Java.不过要注意以下几点:
@@ -64,13 +71,35 @@ L2 语言中的类的概念类似Java.不过要注意以下几点:
   * const 成员作为类的公共的整型成员
   * 支持单继承
 
-= 操作符/运算符 =
-请参考L1语言相关部分.
-不过要补充2点:
-  # 数组类型支持成员操作符'.',不过只支持 'length' 这个成员
-  # 对于双目操作符要求的类型匹配定义如下:
-    * 相同类型
-    * 对于类类型, 同nulltype 和 子类匹配
+== 操作符/运算符 ==
+大部分都可以参考L1语言相关部分.
+不过对于数组类型和类类型需要有一些不同的地方.
+===数组(array)===
+组合类型
+数组元素类型用base_type表示
+支持的操作符如下表所列
+
+|| 操作符 	|| 实现用标识符 || 附加参数类型 || 操作结果类型 || 备注 ||  
+|| = 		|| assign 		|| SAME_TYPE	|| SAME_TYPE	|| 		||  
+|| == 		|| eq	 		|| SAME_TYPE 	|| int 			|| 		||  
+|| != 		|| ne	 		|| SAME_TYPE	|| int 			|| 		||  
+|| [] 		|| index 		|| int 			|| base_type	|| 		||  
+|| .        || member       || "length"     || int          || 数组支持array.length 这样的操作 ||
+
+===类(class)===
+组合类型
+支持的操作符如下表所列
+SUB_CLASS 表示该类的子类(派生类)
+BASE_CLASS 表示该类的父类(基类)
+|| 操作符 	|| 实现用标识符 || 附加参数类型 || 操作结果类型 || 备注 ||  
+|| = 		|| assign 		|| SAME_TYPE 或者 SUB_CLASS 或者 nullType 	|| SAME_TYPE	|| 		||  
+|| == 		|| eq	 		|| SAME_TYPE 或者 BASE_CLASS 或者 或者SUB_CLASS 或者 nullType 	|| int 			|| 		||  
+|| != 		|| ne	 		|| SAME_TYPE 或者 BASE_CLASS 或者 或者SUB_CLASS 或者 nullType 	|| int 			|| 		||  
+|| . 		|| member 		|| string		|| 根据class具体定义决定|| 注意这里的附加参数类型 string 实际上并不是L2语言的类型||  
+
+注意这里的.(member)操作符返回的不仅可能返回数据,而且也可能返回函数等语言元素了.
+
+= 语言模型 = 
 
 = 流程控制 =
 L2 支持条件和循环结构

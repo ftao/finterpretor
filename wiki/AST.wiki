@@ -1,9 +1,36 @@
-#summary 抽象语法树相关
+﻿#summary 抽象语法树相关
+
+= AST 的定义 = 
+== AST Node 抽象语法树结点== 
+member:
+ type : string #节点类型， 一般与产生式中的名字相同
+ children : list #子节点列表
+ _attr : dict #属性
+ parent : Node # 父节点
+
+method:
+ query(q) # 查询子/子孙结点
+
+ get_postion() # 或者这个结点在输入文件中的位置，供错误报告用
+
+
+
+= 遍历 和操作 AST = 
+对于AST 的访问和操作绝大部分是遍历操作.
 
 将抽象语法树的访问和操作分离成遍历器和动作器,将遍历算法和针对各个结点的操作分离出来.
 提高代码的可重用性.
 
-= ASTWalker 遍历器 =
+== ASTWalker 遍历器 ==
+根据一定的算法遍历AST,比如
+  * BaseASTWalker 深度优先后序遍历 这里的后序含义是对这个结点的操作在所有自结点的操作完成后进行,这种遍历方式很合适进行综合属性的计算.
+  * WFASTWalker 广度优先的遍历
+同时我们继承这些类并实现walk_xxx 方法来定制遍历器,实现对某些类型的结点执行特殊的遍历方法. 
 
-= ASTAction 动作器 =
+ASTWalker保存一个ASTAction实例的引用, 在访问一个结点前或后执行ASTAction中定义的对应动作.(如果没有定义则执行默认动作)
+
+== ASTAction 动作器 ==
+这个类定义遇到访问结点前/后执行的动作.比如
+ * on_cond 表示 访问完cond 结点后动作
+ * before_loop 表示访问cond 前的动作
 
