@@ -11,7 +11,7 @@ member:
 method:
  query(q) # 查询子/子孙结点
 
- get_postion() # 或者这个结点在输入文件中的位置，供错误报告用
+ get_postion() # 或者这个结点在输入文件中的位置，供错误报告
 
 
 
