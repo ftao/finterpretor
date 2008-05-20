@@ -60,9 +60,6 @@ L1 语言支持如下基本类型:
   * array 数组 数组元素类型可以是任何合法的L1类型，但是各个元素类型必须一致
   * class 结构体 类似C 的结构体
 
-下面这个图说明了这些类型之间的关系
-
-http://finterpretor.googlecode.com/svn/wiki/L1Types.png
 
 = 操作符/运算符 =
 
@@ -151,39 +148,32 @@ null值的类型, 在语法中没有关键字表示这个类型，这个类型�
 || != 		|| ne	 		|| SAME_TYPE 或者 nullType	|| int 			|| 		||  
 || . 		|| member 		|| string		|| 根据class具体定义决定|| 注意这里的附加参数类型 string 实际上并不是L1语言的类型||  
 
-上面阐述了各个类型支持的操作符及其类型约束条件,具体的语义将被蕴含在实现中. 下面介绍具体的实现细节.
-每一个类型都有一个对应的类，定义了如下方法
-  # do_type_trans(self, op_name, arg = None) 这个函数是静态类型检查和计算接口.
-    这个函数体现了上面表格中的所有内容.
-  # op_xxx 对于该类型支持每一个操作,都有一个对应的op_开头的函数. (比如op_assign, op_index 等等)
-    对于二元操作符的原型是 op_binop(self, lhs, rhs) 对于一元操作符的原型是 op_uniop(self, obj)
-	这些函数的实现蕴含了动态语义, 比如op_add 就会执行加法.
+上面阐述了各个类型支持的操作符及其类型约束条件,具体的语义将被蕴含在实现中. 具体的实现细节在下面的语言模型部分介绍. 
 
-下面是Integer 类型的实现的代码片段. 
-{{{
-class Integer(Type):
-    '''Small C 整数类型'''
-
-
-}}}
 
 = 语言模型 = 
 TODO:什么是语言模型？
 
+下面介绍具体的实现细节.
+
 == 类型 ==
 每一类型都将定义一个类，这个类包含有如下要素:
   * 名字
+  * do_type_trans(self, op_name, arg = None) 这个函数是静态类型检查和计算接口. 这个函数体现了上面表格中的所有内容.
+  * op_xxx 对于该类型支持每一个操作,都有一个对应的op_开头的函数. (比如op_assign, op_index 等等)
+    对于二元操作符的原型是 op_binop(self, lhs, rhs) 对于一元操作符的原型是 op_uniop(self, obj)
+	这些函数的实现蕴含了动态语义, 比如op_add 就会执行加法.
   * 静态类型检查接口 do_type_trans 接口
   * 操作接口 op_xxx 方法
   * 内存分配接口 alloc_one
 
 == 值 ==
 一个值都有两个属性
-  * 类型 
+  * 类型  
   * 实际的内部表示值 
 比如一个 L1 的 int 型值12 的表示方式就会是:
   
-  type -> intType
+  type -> intType  (其中intType = Integer())
   value -> 12
 
 值可能是可变的(变量)或者是不可变的(常量).
@@ -192,6 +182,11 @@ L1语言中的常量只有一个隐式的类型int型,实现中将常量作为�
   op(self, op, arg)
 
 通过调用类型的相关函数来实现运算. 
+
+下面这个图列出这些概念,并说明了它们之间的关系
+
+http://finterpretor.googlecode.com/svn/wiki/L1Types.png
+
 
 == 名字和名字空间,作用域 ==
 名字空间保存 名字 -> 值 对, 是对字典(哈希表的)的简单封装.
