@@ -1,22 +1,23 @@
 ﻿#summary 抽象语法树相关
 
-= AST 的定义 = 
-== AST Node 抽象语法树结点== 
-member:
- type : string #节点类型， 一般与产生式中的名字相同
- children : list #子节点列表
- _attr : dict #属性
- parent : Node # 父节点
-
-method:
- query(q) # 查询子/子孙结点
-
- get_postion() # 或者这个结点在输入文件中的位置，供错误报告
-
-这个类的UML图
+抽象语法树相关的内容可以用下面这个UML图概括.
 
 http://finterpretor.googlecode.com/svn/wiki/AST.png
 
+= AST 的定义 = 
+== AST Node 抽象语法树结点== 
+member:
+  * type : string 节点类型， 一般与产生式中的名字相同
+  * children : list 子节点列表
+  * _attr : dict 属性
+  * parent : Node  父节点
+
+method:
+  * query(q)  查询子/子孙结点
+  * get_postion()  或者这个结点在输入文件中的位置，供错误报告
+
+== AST Leaf 抽象语法树叶结点 == 
+这个类是AST Node 的子类, children 属性为 [] , _attr 中有一个value值表示对应LEXTOKEN 的值 
 
 
 = 遍历 和操作 AST = 
