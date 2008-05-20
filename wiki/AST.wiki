@@ -13,6 +13,10 @@ method:
 
  get_postion() # 或者这个结点在输入文件中的位置，供错误报告
 
+这个类的UML图
+
+http://finterpretor.googlecode.com/svn/wiki/AST.png
+
 
 
 = 遍历 和操作 AST = 
