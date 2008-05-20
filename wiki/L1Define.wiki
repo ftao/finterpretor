@@ -60,6 +60,9 @@ L1 语言支持如下基本类型:
   * array 数组 数组元素类型可以是任何合法的L1类型，但是各个元素类型必须一致
   * class 结构体 类似C 的结构体
 
+下面这个图说明了这些类型之间的关系
+http://finterpretor.googlecode.com/svn/wiki/L1Types.png
+
 = 操作符/运算符 =
 
 ==操作符分组列表==
@@ -155,7 +158,6 @@ null值的类型, 在语法中没有关键字表示这个类型，这个类型�
     对于二元操作符的原型是 op_binop(self, lhs, rhs) 对于一元操作符的原型是 op_uniop(self, obj)
 	这些函数的实现蕴含了动态语义, 比如op_add 就会执行加法.
 
-[L1Types.png]
 下面是Integer 类型的实现的代码片段. 
 {{{
 class Integer(Type):
