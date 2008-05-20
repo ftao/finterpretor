@@ -155,6 +155,7 @@ null值的类型, 在语法中没有关键字表示这个类型，这个类型�
     对于二元操作符的原型是 op_binop(self, lhs, rhs) 对于一元操作符的原型是 op_uniop(self, obj)
 	这些函数的实现蕴含了动态语义, 比如op_add 就会执行加法.
 
+[L1Types.png]
 下面是Integer 类型的实现的代码片段. 
 {{{
 class Integer(Type):
@@ -165,7 +166,8 @@ class Integer(Type):
 
 = 语言模型 = 
 TODO:什么是语言模型？
-= 类型 = 
+
+== 类型 ==
 每一类型都将定义一个类，这个类包含有如下要素:
   * 名字
   * 静态类型检查接口 do_type_trans 接口
