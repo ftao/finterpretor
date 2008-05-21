@@ -1,7 +1,7 @@
 ﻿#summary L1语言定义
 #labels Featured,Phase-Design
 
-L1 (aka SmallC) 语言的定义
+L1 (也被称为 SmallC) 语言的定义
 
 L1 是一个相对完整的高级语言,拥有如下特性:
   * 基本类型 和 数组，类(结构体)组合类型

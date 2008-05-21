@@ -1,7 +1,7 @@
 ﻿#summary L2语言定义
 #labels Featured,Phase-Design
 
-L2 (aka OOC) 语言的定义
+L2 (也被称为 OOC) 语言的定义
 
 L2 语言一个简单的面向对象的语言. 有如下特性:
   * 支持基本类型,数组类型 和 类
