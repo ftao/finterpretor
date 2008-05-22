@@ -113,6 +113,34 @@ TODO:什么是语言模型？
 
 http://finterpretor.googlecode.com/svn/wiki/L2Types.png
 
+== 类 == 
+L2 是一个面向对象的语言,类是组成L2程序的基本成分.
+
+一个类包含如下内容:
+  * 常量  修饰符为const 使用说明同static 变量一致，但是值不能更改 
+  * 变量  可能的修饰符为 
+      * public  能在本类和子类非static成员函数内部访问 也可以通过obj.var_name这种形式访问 
+      * static  能在本类和子类成员函数内部访问 也可以通过class_name.var_name 或者 obj.var_name这种形式访问 
+      * private 只能本类在非static 方法内部访问  子类的方法不能访问
+  * 方法  可能的修饰符有
+      * abstract 未实现的,子类需要覆盖abstract 方法
+      * static 静态方法  只能访问类属性和其他静态方法. 能在本类和子类成员函数内部访问 也可以通过class_name.var_name 或者 obj.var_name这种形式访问 
+      * public 公有方法  能在本类和子类非static成员函数内部访问 也可以通过class_name.method_name 或者 obj.method_name这种形式访问 
+      * private 私有方法 只能本类非static 方法内部调用  子类的方法不能调用
+      * redef 重新定义的方法(基类必须有同名公有方法) 
+
+L2语言类的成员修饰符有const static abstract public private redef 这几个, 下面的表格列出了它们的含义.
+注意L2 语言每个成员的修饰符只能有一个,而不像C++那样可以重叠. 
+
+|| 修饰符 	|| 访问性 	|| 静态性 		|| 适用于 		||
+|| abstract || public 	|| non-static 	|| 方法			||
+|| public   || public 	|| non-static 	|| 方法 变量	||
+|| private  || private 	|| non-static 	|| 方法 变量	||
+|| static   || public 	|| static 		|| 方法 变量	||
+|| redef    || public 	|| non-static	|| 方法			||
+|| const    || public 	|| static		|| 变量			||
+
+
 == 名字和名字空间,作用域 ==
 名字空间提供查询和设置接口.
   * 查询 get 查询名字对应的值, 可能是类型,函数，或者 变量，常量  
