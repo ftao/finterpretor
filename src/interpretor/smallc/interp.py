@@ -153,9 +153,9 @@ class Interpreter:
                         print >>sys.stderr, "call %s at line %s" %(x[0], x[1])
                     else:
                         print >>sys.stderr, "call %s" % (x[0])
-        #except StandardError,e:
-        #    print >>sys.stderr, "Interpretor inner error "
-        #    raise e
+        except StandardError,e:
+            print >>sys.stderr, "Interpretor inner error "
+            raise
 
     def on_node(self, node):
         if isinstance(node, Node):
@@ -581,6 +581,7 @@ class StaticTypeChecker(BaseAnnotateAction):
             if op =='member':
                 self.add_error(error.MemberError(operands[0], operands[1]))
             else:
+                print main_type, op, arg
                 self.add_error(error.TypeCheckError(op))
         return is_type_match
 
@@ -652,12 +653,14 @@ class StaticTypeChecker(BaseAnnotateAction):
             self.add_error(e)
             return None
         args = postfix.query("explist>exp")
-        if len(func.params_type) != len(args):
-            self.add_error(error.ParamCountNotMatchError(len(func.params_type), len(args)))
-        else:
-            for i in range(len(func.params_type)):
-                self._check_type('argument_pass', func.params_type[i], args[i].get_attr('type'))
-            node.set_attr('type', func.ret_type)
+        # a little trick , not check static sem for built in functions
+        if func_name not in ['read', 'eof', 'print', 'println']:
+            if len(func.params_type) != len(args):
+                self.add_error(error.ParamCountNotMatchError(len(func.params_type), len(args)))
+            else:
+                for i in range(len(func.params_type)):
+                    self._check_type('argument_pass', func.params_type[i], args[i].get_attr('type'))
+        node.set_attr('type', func.ret_type)
 
     def _on_postexp_sub(self, node):
         '''数组下标操作'''
