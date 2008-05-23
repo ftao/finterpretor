@@ -84,7 +84,7 @@ class Node:
             return None
 
     def query(self,q="*"):
-        '''查询的语法如下 [type|*] {>[type|*])
+        '''查询的语法如下 [type|*] {>[type|*]}
         eg.  fdef  类型为fdef 的子结点
              fdef>vdecl 类型为fdef的子结点下面的类型为vdecl的子结点
              *>exp 第二层的exp结点

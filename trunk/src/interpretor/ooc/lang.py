@@ -75,8 +75,8 @@ def is_type_castable(obj,type):
         else:
             base = base.base
     else:
-        return True
-    return False
+        return False 
+    return True
 
 
 class Type(object):
@@ -130,7 +130,7 @@ class Type(object):
         3.任何类型向void 转换
         转换后的值有如下特征：
         obj.org_type  = type
-        obj.type 不变
+        obj.type = type 
         '''
         if obj.type == type:
             return obj
@@ -139,6 +139,7 @@ class Type(object):
         else:
             if is_type_castable(obj,type):
                 obj.org_type = type
+                obj.type = type
                 return obj
             else:
                 raise error.TCastError(obj,type)
@@ -638,6 +639,7 @@ class NullType(Type):
         '''
         if isinstance(type,(RootClass,NullType)):
             obj.ort_type = type
+            obj.type = type
             return obj
         else:
             raise error.TCastError(obj,type)
