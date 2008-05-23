@@ -123,7 +123,8 @@ class PrintFunc(Function):
     'print 函数 输出'
     def __init__(self):
         self.name = "print"
-
+        self.ret_type = lang.void
+        
     def call(self, args, inter, line_no = None):
         for x in args:
             print >>io['output'], x.to_str(),
@@ -133,6 +134,7 @@ class PrintlnFunc(Function):
     'println 函数 输出并换行'
     def __init__(self):
         self.name = "println"
+        self.ret_type = lang.void
 
     def call(self,args,inter, line_no = None):
         for x in args:
@@ -145,6 +147,8 @@ class ReadFunc(Function):
     '''read 函数 读入数据'''
     def __init__(self):
         self.name = "read"
+        self.ret_type = lang.intType
+
     def call(self, args, inter, line_no = None):
         if io["input_buff"]:
             inp = io["input_buff"]
@@ -176,6 +180,7 @@ class EofFunc(Function):
     '''eof 函数,检测输入是否结束'''
     def __init__(self):
         self.name = "eof"
+        self.ret_type = lang.intType
 
     def call(self, args, inter, line_no = None):
         while not io["input_buff"] and not io['is_eof']:
