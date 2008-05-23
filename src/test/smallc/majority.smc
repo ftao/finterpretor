@@ -1,0 +1,63 @@
+/**
+ * @lang L1
+ * @name 查找众数
+ * @author Tao Fei (Filia.Tao@gmail.com)
+ */
+
+func int majority(int[] x , int length)
+{
+    var int c,m,i,count,maj end
+
+    c = x[0];
+    m = 1;
+    //首次扫描,删除除去c以为的所有选票
+    i = 1;
+    while( i < length)(
+        if (m == 0) ( 
+            c = x[i]; m = 1
+        )
+        else(
+            // m = m + (c == x[i]);
+            if (c == x[i]) ( m = m + 1) else ( m = m -1)
+        );
+        i = i + 1;
+    ); 
+    //第二次扫描: 检验 c 是否是众数
+    if (m == 0) (
+        maj = -1
+    )
+    else (
+        count = 0;     
+        i = 1;
+        while( i < length)
+        (
+            //x[i] == c && count = count + 1;
+            if (x[i] == c) count = count +1 ;
+            i = i + 1;
+        );
+        if (count > length/2) (maj = c) else ( maj = -1);
+    );
+    maj; 
+}
+
+func int load_to_array(int[] a, int length)
+{
+    var int i; int t end
+    i = 0;
+    while(!eof() && i < length)
+    ( 
+       a[i] = read(); 
+       i = i + 1;
+    ); 
+    i;
+}
+
+func void main()
+{
+    var int [] a; int length end
+    a = new int [20000];
+    length = load_to_array(a, 20000);  
+    //println (length); 
+    print (majority(a, length));
+}
+

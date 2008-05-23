@@ -1,3 +1,9 @@
+/**
+ * @lang L2
+ * @name S先生与P先生谜题
+ * @author Tao Fei (Filia.Tao@gmail.com)
+ */
+
 class Main {
 
 	const MIN = 2, MAX = 99;
@@ -57,7 +63,7 @@ class Main {
 	    ar
 	}
 
-    //条件1 - S：我确信你不知道这两个数是什么，但我也不知道ﾷￖￎ￶
+    //条件1 - S：我确信你不知道这两个数是什么，但我也不知道
     func int Condition1(int x, int y)
     {
         var int[][] s_sep; int i,ret end
@@ -82,7 +88,7 @@ class Main {
         ret
     }
 
-    //条件2 - P: 一听你说这句话，我就知道这两个数是什么了。ﾷￖￎ￶
+    //条件2 - P: 一听你说这句话，我就知道这两个数是什么了
     func int Condition2(int x, int y)
     {
         var int[][] p_sep; int i,ret end
@@ -108,7 +114,7 @@ class Main {
         ret
     }
 
-    //条件3 - S: 我也是，现在我也知道了。ﾷￖￎ￶
+    //条件3 - S: 我也是，现在我也知道了。
     func int Condition3(int x, int y)
     {
         var int[][] s_sep; int i,ret end
