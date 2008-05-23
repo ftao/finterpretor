@@ -118,6 +118,7 @@ class Function(Namespace):
         else:
             self.ns[name] = value
 
+
     def call(self, obj, args, inter, line_no = None):
         '在obj 上调用本函数，参数为args, 解释器对象是inter'
 

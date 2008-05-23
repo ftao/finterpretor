@@ -285,6 +285,7 @@ class Interpreter:
             postexp = self.on_postexp(node.child(0))
             postfix = node.child(1).child(0)
             if postfix.type == 'apara':
+                #TODO should check postexp is a (func obj) pair
                 func = postexp[0]
                 obj = postexp[1]
                 line_no = self.current_token.lineno
