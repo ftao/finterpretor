@@ -125,16 +125,17 @@ L2 是一个面向对象的语言,类是组成L2程序的基本成分.
       * private 私有方法 只能本类非static 方法内部调用  子类的方法不能调用
       * redef 重新定义的方法(基类必须有同名公有方法) 
 
-L2语言类的成员修饰符有const static abstract public private redef 这几个, 下面的表格列出了它们的含义.
+L2语言类的成员修饰符有const static public private redef 这几个, 下面的表格列出了它们的含义.
 注意L2 语言每个成员的修饰符只能有一个,而不像C++那样可以重叠. 
 
 || 修饰符 	|| 访问性 	|| 静态性 		|| 适用于 		||
-|| abstract || public 	|| non-static 	|| 方法			||
 || public   || public 	|| non-static 	|| 方法 变量	||
 || private  || private 	|| non-static 	|| 方法 变量	||
 || static   || public 	|| static 		|| 方法 变量	||
 || redef    || public 	|| non-static	|| 方法			||
 || const    || public 	|| static		|| 变量			||
+
+另外有一个修饰符abstract 可以修饰方法或者类表示没有实现。
 
 == 继承 ==
 L2语言的类支持单继承, 使用类似C++的语法
@@ -190,4 +191,3 @@ L2程序由类组成, 有一个全局作用域,每一个类方法都有一个局
   * 实例变量
   * this 变量
 名字查找顺序 参数,局部变量 -> 实例变量 -> 类变量  -> 全局名字空间
-
