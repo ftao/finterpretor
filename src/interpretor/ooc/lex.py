@@ -10,7 +10,9 @@ import ply.lex as lex
 tokens = ('id', 'num',
           'orop','andop','eqop', 'neop', 'ltop', 'gtop', 'leop', 'geop', 'chkop', 'incop', 'decop',
           'kw_class', 'kw_const', 'kw_var', 'kw_end', 'kw_func', 'kw_while', 'kw_if', 'kw_else', 'kw_new',
-          "kw_abstract","kw_private","kw_public","kw_redef","kw_static")
+          "kw_abstract","kw_private","kw_public","kw_redef","kw_static",
+          "string"
+          )
 
 literals = ['{', '}', ';', ",", "[", "]", '(', ')', '=', '+', '-', '*', '/', '%' ,'!', '@' ,'.', '?', ':']
 
@@ -61,6 +63,10 @@ def t_num(t):
         t.value = 0
     return t
 
+def t_string(t):
+    r'".*"'
+    t.value = eval('%s' %(t.value))
+    return t
 
 reserved  = {
     "class":   "kw_class",

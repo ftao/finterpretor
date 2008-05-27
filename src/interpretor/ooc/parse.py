@@ -451,6 +451,7 @@ def p_tcast(p):
 def p_entity(p):
     '''entity : id
               | num
+              | string
               | cast
               | alloc
     '''
