@@ -249,7 +249,8 @@ def get_built_in_ns():
         'println': ((PrintlnFunc(),None),"builtin"),
         'read': ((ReadFunc(),None),"builtin"),
         'eof': ((EofFunc(),None),"builtin"),
-        'Object': (lang.rootClass,"builtin")
+        'Object': (lang.rootClass,"builtin"),
+        'String': (lang.string,"builtin")
     }
     return built_in_ns
 

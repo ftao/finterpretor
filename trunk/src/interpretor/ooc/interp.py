@@ -340,6 +340,8 @@ class Interpreter:
             return self.on_cast(entity)
         elif entity.type == "alloc":
             return self.on_alloc(entity)
+        elif entity.type == 'string':
+            return lang.Object(lang.string, entity.value)
         elif isinstance(entity,Leaf):
             entity = self.on_token(entity)
             if isinstance(entity,str):

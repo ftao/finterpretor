@@ -433,6 +433,15 @@ class RootClass(Type):
     def op_member_cls(self,name):
         raise error.MemberError(self, name)
 
+class String(RootClass):
+    '''字符串类型'''
+    def __init__(self):
+        self.name = "String"
+        self.base = rootClass 
+    
+    def to_str(self, obj):
+        return obj.value
+
 class Class(RootClass):
     '''OOC 语言的类。
     所有redef 成员认为是public
@@ -707,6 +716,7 @@ class ConstObject(Object):
 intType = Integer()
 void = Void()
 rootClass = RootClass()
+string = String()
 nullType = NullType()
 null = ConstObject(nullType,None)
 
