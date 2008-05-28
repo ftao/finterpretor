@@ -12,9 +12,9 @@
     # [Architecture 解释器总体框架]
       # 各部分的原理和技术的介绍
       # 对用到的第三方工具的介绍
-	# [L0Define L0 语言定义和实现]
-	# [L1Define L1 语言定义和实现]
-	# [L2Define L2 语言定义和实现]
+    # [L0Define L0 语言定义和实现]
+    # [L1Define L1 语言定义和实现]
+    # [L2Define L2 语言定义和实现]
   # [HowToUse 解释器使用手册]
   # [TestAndExperiment 测试与实验]
   # 结论
