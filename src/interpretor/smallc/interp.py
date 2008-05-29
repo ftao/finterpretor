@@ -153,9 +153,9 @@ class Interpreter:
                         print >>sys.stderr, "call %s at line %s" %(x[0], x[1])
                     else:
                         print >>sys.stderr, "call %s" % (x[0])
-        #except StandardError,e:
-        #    print >>sys.stderr, "Interpretor inner error "
-        #    raise
+        except StandardError,e:
+            print >>sys.stderr, "Interpretor inner error "
+            raise
 
     def on_node(self, node):
         if isinstance(node, Leaf):
