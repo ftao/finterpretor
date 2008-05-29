@@ -28,6 +28,24 @@ L0 (aka KernelC) 语言的定义
 (21)<cast> ::= '('<stlist>')'
 }}}
 
+= 抽象语法 = 
+{{{
+prog ::= fdef*
+fdef ::= func_name:id; body : stlist
+stlist ::= st*
+st ::= exp | cond | loop
+cond ::= test: exp; then_part:st; else_part :st;
+loop ::= test:exp; body : st 
+exp ::= binexp | uniexp | postexp | entity 
+binexp ::= term1,term2: exp;op : binoperator 
+binoperator ::= and | or | lt | le | eq | ne | ge | gt | add | minus | mul | div | mod 
+uniexp ::= op:unioperator; term: exp
+unioperator ::= '-' | '!' | '++' | '--' | 'chk' | '*' | '@'
+postexp ::= op:postfix; term:exp
+entity ::= num | call | '?' | '#' | cast
+call ::= func_name:id
+cast ::= body : stlist
+}}}
 = 类型系统 =
 L0 语言只有一个类型, 我们称其为int (实际上名字是无关紧要的)
   
