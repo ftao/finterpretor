@@ -7,7 +7,8 @@ import unittest
 from test import BaseTestCase, build_test_suit
 
 def filter(f):
-    return f.find("static") != -1
+    return True
+    return f.find("majority") != -1
 
 if __name__ == '__main__':
     unittest.TextTestRunner(verbosity = 2).run(build_test_suit('smallc', filter))
