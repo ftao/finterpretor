@@ -225,7 +225,6 @@ func void outnode(Node this){
 func void main(){
     bound=1;
     head=new Link;
-    head = 1;
     head.prob=new Node;
     head.prob.board=new int[1];
     head.next = null;
@@ -233,7 +232,7 @@ func void main(){
 }
 '''
 
-test = '''
+test1 = '''
 class Link { Node prob; Link next }
 class Node { int level; int[] board }
 func int bin_search(int[] ar, int start, int en, int target){
@@ -268,7 +267,7 @@ func void main(){
     ar[7] = 7;
     ar[8] = 8;
     ar[9] = 9;
-    print (bin_search(ar,0,9,9));
+    print (bin_search(ar,0,9,7));
     //ar = 0
 }
 '''

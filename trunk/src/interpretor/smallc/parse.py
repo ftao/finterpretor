@@ -38,7 +38,7 @@ def p_class_decls(p):
 def p_classdecl(p):
     "classdecl : kw_class id '{' decllist '}'"
     all_to_node(p)
-    p[0] = Node("classdecl",p[1:])
+    p[0] = Node("classdecl",[p[2],p[4]])
 
 
 def p_decllist(p):
@@ -138,7 +138,7 @@ def p_fdefs(p):
 def p_fdef(p):
     "fdef : kw_func type head '{' funbody '}'"
     all_to_node(p)
-    p[0] = Node("fdef", p[1:])
+    p[0] = Node("fdef", [p[2], p[3], p[5]])
 
 
 
@@ -191,8 +191,8 @@ def p_st(p):
           | cond
           | loop
     '''
+    #p[0] = p[1]
     p[0] = Node("st",p[1:])
-
 
 
 def p_cond(p):
@@ -216,33 +216,40 @@ def p_exp(p):
            | orexp '=' orexp
     '''
     all_to_node(p)
-    p[0] = Node("exp",p[1:])
-
-
+    if len(p) > 2:
+        p[0] = Node('exp', [Node("assignexp",p[1:])])
+    else:
+        p[0] = Node('exp', [p[1]])
 
 def p_orexp(p):
     '''orexp : andexp
              | orexp  orop andexp
     '''
     all_to_node(p)
-    p[0] = Node("orexp",p[1:])
-
+    if len(p) > 2:
+        p[0] = Node("orexp",p[1:])
+    else:
+        p[0] = p[1]
 
 def p_andexp(p):
     '''andexp : relexp
               | andexp andop relexp
     '''
     all_to_node(p)
-    p[0] = Node("andexp",p[1:])
-
+    if len(p) > 2:
+        p[0] = Node("andexp",p[1:])
+    else:
+        p[0] = p[1]
 
 def p_relexp(p):
     '''relexp : term
               | relexp relop term
     '''
     all_to_node(p)
-    p[0] = Node("relexp",p[1:])
-
+    if len(p) > 2:
+        p[0] = Node("binexp", p[1:])
+    else:
+        p[0] = p[1]
 
 def p_relop(p):
     '''relop : eqop
@@ -260,14 +267,17 @@ def p_term(p):
     '''term : factor
             | term addop factor
     '''
-    p[0] = Node("term",p[1:])
-
+    if(len(p) > 2):
+        p[0] = Node("binexp",p[1:])
+    else:
+        p[0] = p[1]
 
 def p_addop(p):
     '''addop : '+'
              | '-'
     '''
     all_to_node(p)
+    #p[0] = p[1]
     p[0] = Node("addop",p[1:])
 
 
@@ -275,8 +285,10 @@ def p_factor(p):
     '''factor : uniexp
               | factor multop uniexp
     '''
-    p[0] = Node("factor",p[1:])
-
+    if len(p) > 2:
+        p[0] = Node("binexp",p[1:])
+    else:
+        p[0] = p[1]
 
 def p_mulop(p):
     '''multop : '*'
@@ -292,7 +304,11 @@ def p_uniexp(p):
     '''uniexp : uniop uniexp
               | postexp
     '''
-    p[0] = Node("uniexp",p[1:])
+    if(len(p) > 2):
+        p[0] = Node("uniexp",p[1:])
+    else:
+        p[0] = p[1]
+
 
 
 def p_uniop(p):
@@ -310,7 +326,11 @@ def p_postexp(p):
     '''postexp : entity
                | postexp postfix
     '''
-    p[0] = Node("postexp",p[1:])
+    if len(p) > 2:
+        p[0] = Node("postexp",p[1:])
+    else:
+        p[0] = p[1]
+
 
 
 def p_postfix(p):
@@ -406,5 +426,6 @@ def parse(data):
 if __name__ == '__main__':
     #test = open("../../test/smallc/parse.smc").read()
     n =  parse(test)
-    print n
-    #to_graph(n, "test_smallc")
+    #print n
+    to_graph(n.query("**>explist")[0], "test_smallc")
+    to_graph(n.query("**>explist")[1], "test_smallc2")
