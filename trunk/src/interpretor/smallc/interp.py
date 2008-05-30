@@ -88,9 +88,8 @@ class MoreParser:
         except error.StaticSemanticError, e:
             self.add_error(e)
             return None
-        if len(node) > 1:
-            dim = (len(node) - 1)/2
-            return lang.Array(base_type, dim)
+        if node.dim > 0:
+            return lang.Array(base_type, node.dim)
         else:
             return base_type
 
@@ -196,8 +195,6 @@ class Interpreter:
     def on_exp(self,node):
         return self.on_node(node.child(0))
 
-
-
     def on_binexp(self, node):
         lhs = self.on_node(node.child(0))
         self.on_node(node.child(1))
@@ -221,7 +218,7 @@ class Interpreter:
             return lhs
         self.on_node(node.child(1))
         rhs = self.on_node(node.child(2))
-        return lhs.op("and",rhs)
+        return lhs.op("and", rhs)
 
     def on_uniexp(self,node):
         op_name = node.child(0).get_attr('op_name')
@@ -229,37 +226,32 @@ class Interpreter:
         return uniexp.op(op_name)
 
     def on_postexp(self,node):
-        postexp = self.on_node(node.child(0))
-        postfix = node.child(1).child(0)
-        if postfix.type == 'apara':
-            line_no = self.current_token.lineno
-            ret = None
-            if len(postfix) == 2:
-                ret = postexp.call([],self,line_no)
-            else:
-                ret = postexp.call(self.on_node(postfix),self,line_no)
-            self.on_node(postfix.child(-1))# read the ')', to set the current_token right
-            return ret
-        elif postfix.type =='sub':
-            return postexp.op("index",self.on_node(postfix.child(1)))
-        elif postfix.type == 'aselect':
-            return postexp.op("member",self.on_node(postfix.child(1)))
-        elif postfix.type == 'tcast':
-            return postexp.op("tcast",self.on_node(postfix.child(1)))
-        if isinstance(postfix,Leaf):
-            value = self.on_node(postfix)
-            if value == '++':
-                return postexp.op("inc_")
-            elif value == '--':
-                return postexp.op("dec_")
+        return self.on_node(node.child(0)).op(node.child(1).get_attr('op_name'))
 
+    def on_func_call(self, node):
+        func = self.on_node(node.child(0))
+        args = [self.on_node(x) for x in node.getChildren()[1:]]
+        line_no = self.current_token.lineno
+        return func.call(args, self, line_no)
 
-    def on_type(self,node):
+    def on_array_index(self, node):
+        return self.on_node(node.child(0)).op("index", self.on_node(node.child(1)))
+
+    def on_class_member(self, node):
+        return self.on_node(node.child(0)).op("member", self.on_node(node.child(1)))
+
+    def on_type_cast(self, node):
+        return self.on_node(node.child(0)).op("tcast", self.on_node(node.child(1)))
+
+    def on_type(self, node):
         base = self.on_node(node.child(0))
-        base_type = self.current_ns.get(base)
-        if len(node) > 1:
-            dim = (len(node) - 1)/2
-            return lang.Array(base_type, dim)
+        try:
+            base_type = self.current_ns.get(base)
+        except error.StaticSemanticError, e:
+            self.add_error(e)
+            return None
+        if node.dim > 0:
+            return lang.Array(base_type, node.dim)
         else:
             return base_type
 
@@ -326,7 +318,6 @@ class StaticTypeChecker(BaseAnnotateAction):
             if op =='member':
                 self.add_error(error.MemberError(operands[0], operands[1]))
             else:
-                print main_type, op, arg
                 self.add_error(error.TypeCheckError(op))
         return is_type_match
 
@@ -358,7 +349,9 @@ class StaticTypeChecker(BaseAnnotateAction):
     def on_loop(self, node):
         node.set_attr(self.annotate_attr_name, lang.void)
 
-    on_exp = on_orexp = on_binexp
+    on_exp = BaseAnnotateAction._copy_from_first_child
+
+    on_assignexp = on_orexp = on_andexp = on_binexp
 
 
     def on_uniexp(self, node):
@@ -371,30 +364,21 @@ class StaticTypeChecker(BaseAnnotateAction):
             self._copy_from_first_child(node)
 
     def on_postexp(self, node):
-        #TODO really ugly , need clean up
-        postexp = node.child(0)
-        if len(node) > 1:
-            postfix = node.child(1).child(0)
-            if isinstance(postfix,Leaf): # '++' or '--'
-                self._do_type_trans(node, postfix.get_attr('op_name'),postexp.get_attr('type'))
-            else:#对应不同情况调用下面的辅助函数
-                getattr(self, "_on_postexp_" + postfix.type)(node)
-        else:
-            self._copy_from_first_child(node)
+        self._do_type_trans(node,
+            node.child(1).get_attr('op_name'),
+            node.child(0).get_attr('type'),
+        )
 
-    ## 这些辅助函数， 在AST不存在对应类型的节点
-    def _on_postexp_apara(self, node):
+    def on_func_call(self, node):
         '''函数调用，检查参数类型'''
-
-        postexp = node.child(0)
-        postfix = node.child(1).child(0)
-        func_name = postexp.query("**>?")[0].value
+        #FIXME
+        func_name = node.child(0).query('**>?')[0].value
+        args = node.getChildren()[1:]
         try:
             func = self.current_ns.get(func_name)
         except error.NameError,e:
             self.add_error(e)
             return None
-        args = postfix.query("explist>exp")
         # a little trick , not check static sem for built in functions
         if func_name not in ['read', 'eof', 'print', 'println']:
             if len(func.params_type) != len(args):
@@ -404,23 +388,16 @@ class StaticTypeChecker(BaseAnnotateAction):
                     self._check_type('argument_pass', func.params_type[i], args[i].get_attr('type'))
         node.set_attr('type', func.ret_type)
 
-    def _on_postexp_sub(self, node):
+    def on_array_index(self, node):
         '''数组下标操作'''
-        postexp = node.child(0)
-        postfix = node.child(1).child(0)
-        self._do_type_trans(node, 'index', postexp.get_attr('type'), postfix.child(1).get_attr('type'))
+        self._do_type_trans(node, 'index', node.child(0).get_attr('type'), node.child(1).get_attr('type'))
 
-    def _on_postexp_aselect(self, node):
+    def on_class_member(self, node):
         '''结构体成员获取'''
-        postexp = node.child(0)
-        postfix = node.child(1).child(0)
-        member = postfix.child(1).value
-        self._do_type_trans(node, 'member', postexp.get_attr('type'), member)
+        self._do_type_trans(node, 'member', node.child(0).get_attr('type'), node.child(1).value)
 
-    def _on_postexp_tcast(self, node):
-        postexp = node.child(0)
-        postfix = node.child(1).child(0)
-        self._do_type_trans(node, 'tcast', postexp.get_attr('type'),  postfix.child(1).get_attr('type'))
+    def on_type_cast(self, node):
+        self._do_type_trans(node, 'tcast', node.child(0).get_attr('type'), node.child(1).get_attr('type'))
 
     on_entity = BaseAnnotateAction._copy_from_first_child
 
@@ -437,13 +414,16 @@ class StaticTypeChecker(BaseAnnotateAction):
             node.set_attr('type', node.child("type").get_attr('type'))
 
     def on_type(self, node):
-        if node.query('['):
-            node.set_attr('type', lang.Array(node.child("type").get_attr('type')))
+        base = node.child(0).value
+        try:
+            base_type = self.current_ns.get(base)
+        except error.StaticSemanticError, e:
+            self.add_error(e)
+            return None
+        if node.dim > 0:
+            node.set_attr('type', lang.Array(base_type, node.dim))
         else:
-            try:
-                node.set_attr('type', self.current_ns.get(node.child(0).value)) #type : id
-            except error.NameError, e :
-                self.add_error(e)
+            node.set_attr('type', base_type)
 
     def _on_token(self, node):
         if node.type == "num" or node.type == '?':

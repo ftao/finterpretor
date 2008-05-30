@@ -31,7 +31,7 @@ class Node:
             yield n
 
     def __getitem__(self, ind):
-        return self.chilren[ind]
+        return self.children[ind]
 
 #    def __getattr__(self, attr):
 #        #create Getter and Setter methods for node attribute
@@ -231,17 +231,15 @@ class BaseASTWalker:
 
         #when shoub be one of ('before', 'on')
         assert when in ('before', 'on')
-        try:
-            action = getattr(
+        if hasattr(self.action, '%s_%s' %(when, node.type)):
+            getattr(
                 self.action,
-                '%s_%s' %(when,node.type)
-            )
-            return action(node)
-        except AttributeError,e:
-            if isinstance(node, Leaf) and hasattr(self.action, '_%s_token'%(when,)):
-                return getattr(self.action, '_%s_token'%(when,))(node)
-            else:
-                return self._default_action(node)
+                '%s_%s' %(when, node.type)
+            )(node)
+        elif isinstance(node, Leaf) and hasattr(self.action, '_%s_token'%(when,)):
+            return getattr(self.action, '_%s_token'%(when,))(node)
+        else:
+            return self._default_action(node)
 
     def _default_action(self, node):
         pass

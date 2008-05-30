@@ -8,7 +8,7 @@ from test import BaseTestCase, build_test_suit
 
 def filter(f):
     return True
-    return f.find("majority") != -1
+    return f.find("quicksort") != -1
 
 if __name__ == '__main__':
     unittest.TextTestRunner(verbosity = 2).run(build_test_suit('smallc', filter))
