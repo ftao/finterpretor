@@ -232,7 +232,7 @@ func void main(){
 }
 '''
 
-test1 = '''
+test = '''
 class Link { Node prob; Link next }
 class Node { int level; int[] board }
 func int bin_search(int[] ar, int start, int en, int target){
@@ -271,7 +271,7 @@ func void main(){
     //ar = 0
 }
 '''
-test2 = '''
+test1 = '''
 func void main(){
     var int [] ar; int b end
     //b = null;
@@ -295,6 +295,7 @@ func void main(){
     b != b;
     !b;
     -b;
+    print(a,b,c,d);
     chk(b);
 }
 '''

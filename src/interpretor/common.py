@@ -44,7 +44,7 @@ class CommonOPAnnotate(BaseAnnotateAction):
         if node.value in self.multi_op:
             if node.value == '-' and node.parent.type == 'uniop':
                 op_name = op_name + '_'
-            elif (node.value == '++' or node.value == '--') and node.parent.type == 'postfix':
+            elif (node.value == '++' or node.value == '--') and node.parent.type in ('postfix', 'postexp'): #FIXME
                 op_name = op_name + '_'
         node.set_attr(self.annotate_attr_name, op_name)
 

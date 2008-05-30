@@ -17,3 +17,8 @@
      if (k==i) println(i)) }
  func void main() { a=new int[10]; n=3;
    while (n<=5)( narci(); ++n ) }
+   
+   
+   
+   
+

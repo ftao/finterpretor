@@ -33,8 +33,6 @@ def p_class_decls(p):
         p[0] = Node("class_decls",[p[1]])
 
 
-
-
 def p_classdecl(p):
     "classdecl : kw_class id '{' decllist '}'"
     all_to_node(p)
@@ -56,17 +54,18 @@ def p_decl(p):
     p[0] = Node("decl",p[1:])
 
 #类型
-
 def p_type(p):
     '''type : type '[' ']'
             | id
     '''
     all_to_node(p)
-    #the final ast should like  id {'[' ']'}
+    #FIXME make a ast not a ast ???
     if len(p) > 2:
-        p[0] = Node("type",p[1].getChildren() + p[2:])
+        p[0] = p[1]
+        p[0].dim = p[0].dim + 1
     else:
-        p[0] = Node("type",p[1:])
+        p[0] = Node("type", p[1:])
+        p[0].dim = 0
 
 
 def p_idlist(p):
@@ -299,7 +298,6 @@ def p_mulop(p):
     p[0] = Node("multop",p[1:])
 
 
-
 def p_uniexp(p):
     '''uniexp : uniop uniexp
               | postexp
@@ -308,8 +306,6 @@ def p_uniexp(p):
         p[0] = Node("uniexp",p[1:])
     else:
         p[0] = p[1]
-
-
 
 def p_uniop(p):
     '''uniop : '-'
@@ -321,16 +317,23 @@ def p_uniop(p):
     all_to_node(p)
     p[0] = Node("uniop",p[1:])
 
-
 def p_postexp(p):
     '''postexp : entity
                | postexp postfix
     '''
     if len(p) > 2:
-        p[0] = Node("postexp",p[1:])
+        if p[2].type == 'apara':
+            p[0] =  Node("func_call", [p[1]] + p[2].query("explist>exp"))
+        elif p[2].type == 'sub':
+            p[0] = Node("array_index", [p[1], p[2][0]])
+        elif p[2].type == 'aselect':
+            p[0] =  Node("class_member", [p[1], p[2][0]])
+        elif p[2].type == 'tcast':
+            p[0] =  Node("type_cast", [p[1], p[2][0]])
+        else:
+            p[0] = Node("postexp",p[1:])
     else:
         p[0] = p[1]
-
 
 
 def p_postfix(p):
@@ -342,15 +345,14 @@ def p_postfix(p):
                | tcast
     '''
     all_to_node(p)
-    p[0] = Node("postfix",p[1:])
-
+    p[0] = p[1]
 
 def p_apara(p):
     '''apara : '(' explist ')'
              | '(' ')'
     '''
     all_to_node(p)
-    p[0] = Node("apara",p[1:])
+    p[0] = Node("apara", p[1:])
 
 
 def p_explist(p):
@@ -359,21 +361,22 @@ def p_explist(p):
     '''
     all_to_node(p)
     if len(p) > 2:
-        p[0] = Node("explist",[p[1]] + p[3].getChildren())
+        p[0] = Node("explist", [p[1]] + p[3].getChildren())
     else:
-        p[0] = Node("explist",p[1:])
+        p[0] = Node("explist", p[1:])
 
 
 def p_sub(p):
     "sub : '[' exp ']'"
     all_to_node(p)
-    p[0] = Node("sub",p[1:])
+    #p[0] = p[2]
+    p[0] = Node("sub", [p[2]])
 
 
 def p_aselect(p):
     "aselect : '.' id"
     all_to_node(p)
-    p[0] = Node("aselect",p[1:])
+    p[0] = Node("aselect",[p[2]])
 
 
 def p_tcast(p):
