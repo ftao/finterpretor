@@ -20,8 +20,8 @@ import interpretor.kernelc.error as error
 from interpretor.kernelc.function import Namespace,Function,get_built_in_ns
 from interpretor.kernelc.parse import parse
 from interpretor.kernelc.lex import test
-from interpretor.ast import Node,Leaf
-
+from interpretor.ast import Node,Leaf,BaseASTWalker,BaseAnnotateAction
+from interpretor.common import CommonOPAnnotate as OPAnnotate
 
 class MoreParser:
     '''在AST 基础上进一步处理'''
@@ -73,21 +73,26 @@ class Interpreter:
                         print >>sys.stderr, "call %s at line %s" %(x[0], x[1])
                     else:
                         print >>sys.stderr, "call %s" % (x[0])
-        #except StandardError,e:
-        #    print >>sys.stderr, "Interpretor inner error "
-        #    raise e
+        except StandardError,e:
+            print >>sys.stderr, "Interpretor inner error "
+            raise e
 
-    def on_statement(self,node):
-        node = node.child(0)
-        if node.type == "cond":
-            return self.on_cond(node)
-        elif node.type == "loop":
-            return self.on_loop(node)
-        elif node.type == "exp":
-            return self.on_exp(node)
+    def on_node(self, node):
+        if isinstance(node, Leaf):
+            return self.on_token(node)
+        else:
+            if hasattr(self, 'on_' + node.type):
+                return getattr(self, 'on_' + node.type)(node)
+            else:
+                if len(node) == 1:
+                    return self.on_node(node.child(0))
+                else:
+                    print >>sys.stderr, "not such node ", node.type, node
+
+    on_statement = on_node
 
     def on_cond(self,node):
-        #print node
+
         exp = node.child(2)
         if self.on_exp(exp):
             return self.on_statement(node.child(4))
@@ -96,7 +101,6 @@ class Interpreter:
         return None
 
     def on_loop(self,node):
-        #print node
         exp = node.child(2)
         ret = None
         while self.on_exp(exp):
@@ -112,13 +116,8 @@ class Interpreter:
             self.on_token(node.child(1))
             rhs = self.on_orexp(node.child(2))
             #赋值形式为 n1 = n2
-            #表示 sle.fns[n1] = n2
+            #表示 self.ns[n1] = n2
             return self.ns[lhs.value].op("assign", rhs)
-            #try:
-            #    return lhs.op("assign",rhs)
-            #except error.NotLeftValueError: #处理 2=3 这种赋值
-            #    #print "special assign for %s" %lhs.value
-            #    return self.ns[lhs.value].op("assign", rhs)
         else:
             return self.on_orexp(node.child(0))
 
@@ -252,6 +251,7 @@ def run(data, input_file = sys.stdin, output_file = sys.stdout):
     #set_io(input_file, output_file)
     try:
         ast = parse(data)
+        ast = do_op_annotate(ast)
         parser = MoreParser(ast)
         parser.parse()
         #print parser.ns
@@ -260,6 +260,13 @@ def run(data, input_file = sys.stdin, output_file = sys.stdout):
     except error.ParseError,e:
         print >>sys.stderr,e
     #print inter.global_ns.ns
+
+def do_op_annotate(ast):
+    annotate_action = OPAnnotate()
+    ast_walker = BaseASTWalker(ast, annotate_action)
+    ast_walker.run()
+    return ast
+
 
 if __name__ == '__main__':
     run(test)
