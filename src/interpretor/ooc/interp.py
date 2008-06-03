@@ -87,7 +87,7 @@ class MoreParser:
         fns = AbstractFunction(name,cls,self.on_type(node.child(2)),decorate)
         cls.add_func(name,fns,decorate)
         for type in node.query("type_list>type"):
-            fns.params.append(self.on_type(type))
+            fns.params_type.append(self.on_type(type))
 
 
     def on_cfdef(self,node,cls,decorate):
@@ -150,7 +150,7 @@ class Interpreter:
         try:
             main_cls = self.current_ns.get("Main")
             main = main_cls.op_member_cls("main")
-            main[0].call(main[1],[],self)
+            main.call([],self)
         #except Exception,e:
         except error.LangError,e:
             if self.current_token is None:
@@ -286,13 +286,11 @@ class Interpreter:
             postfix = node.child(1).child(0)
             if postfix.type == 'apara':
                 #TODO should check postexp is a (func obj) pair
-                func = postexp[0]
-                obj = postexp[1]
                 line_no = self.current_token.lineno
                 if len(postfix) == 2:
-                    ret =  func.call(obj,[],self,line_no)
+                    ret =  postexp.call([],self,line_no)
                 else:
-                    ret =  func.call(obj,self.on_apara(postfix),self,line_no)
+                    ret =  postexp.call(self.on_apara(postfix),self,line_no)
                 # read the ')', to set the current_token right
                 self.on_token(postfix.child(-1))
                 return ret
@@ -307,7 +305,7 @@ class Interpreter:
                         return postexp.op("member",self.on_token(postfix.child(1)))
                     else:
                         return postexp.op("member_no_private",self.on_token(postfix.child(1)))
-                elif isinstance(postexp, lang.Class):
+                elif isinstance(postexp, lang.RootClass):
                     return postexp.op_member_cls(self.on_token(postfix.child(1)))
                 else:
                     raise error.UnsupportedOPError("member")
@@ -348,8 +346,10 @@ class Interpreter:
                 #if entity == '?': #input
                 #    return self.current_ns.get("read").call([],self)
                 #else:
-                ret = self.current_ns.get(entity)
-                return ret
+                #print self.current_ns, "entity......", entity,self.current_ns.get(entity)
+                #print entity,self.current_ns.name,self.current_ns.ns['this']
+                return self.current_ns.get(entity)
+
             elif isinstance(entity,int):
                 return lang.Object(lang.intType, entity)
 
@@ -390,6 +390,7 @@ class StaticTypeChecker(BaseAnnotateAction):
         #print "add error " , e
         #raise
         self.errors.append(error.Error(self.current_token.lineno, str(e)))
+
 
     def _do_type_trans(self, node, op, *operands):
         node.set_attr(self.annotate_attr_name, self._check_type(op, *operands))
@@ -484,7 +485,7 @@ class StaticTypeChecker(BaseAnnotateAction):
         func = postexp.get_attr('type')
         #print "function call " , func
         args = postfix.query("explist>exp")
-
+        #print node, func
         if len(func.params_type) != len(args):
             self.add_error(error.ParamCountNotMatchError(len(func.params_type), len(args)))
         else:
@@ -542,8 +543,9 @@ class StaticTypeChecker(BaseAnnotateAction):
             node.set_attr('type', node.child("type").get_attr('type'))
 
     def on_type(self, node):
+
         if node.query('['):
-            node.set_attr('type', lang.Array(node.child("type").get_attr('type')))
+            node.set_attr('type', lang.Array(node.child(0).get_attr('type')))
             node.set_attr('id_type', 'class')
         else:
             try:
@@ -557,18 +559,20 @@ class StaticTypeChecker(BaseAnnotateAction):
             node.set_attr('type', lang.intType)
         elif node.type == "id":
             try:
+                print "get " , node.value , "from ns "
+                print "is in funbody" , node.ancestor("funbody")
+                print "is in aselect" , node.ancestor("aselect")
                 #在函数体里面，并且不是 a.b 这个语法的情况下
-                if node.ancestor("funbody") and not node.ancestor("aselect"):
+                if node.ancestor("funbody") is not None and not node.ancestor("aselect"):
                     v = self.current_ns.get(node.value)
-                    #print v
+                    print "get " , node.value , "from ns "
                     if isinstance(v, lang.Object):
                         node.set_attr('type', v.type)
                         node.set_attr('id_type', 'obj')
-                    elif isinstance(v, (list,tuple)) and isinstance(v[0], Function):
-                        #print "get function " , v[0]
-                        node.set_attr('type', v[0])
+                    elif isinstance(v, Function):
+                        node.set_attr('type', v)
                         node.set_attr('id_type', 'func')
-                    elif isinstance(v, lang.RootClass):
+                    elif isinstance(v, lang.Type):
                         node.set_attr('type', v)
                         node.set_attr('id_type', 'class')
             except error.NameError, e :
@@ -591,6 +595,16 @@ def do_namespace_parse(ast):
         return None
     return parser.global_ns
 
+#===============================================================================
+# class StaticSemWalker(BaseASTWalker):
+#
+#    def walk_classdecl(self, node):
+#        self._do_action(node, 'before')
+#        for x in node:
+#            self._walk_node(x)
+#        return self._do_action(node)
+#===============================================================================
+
 def check_static_semtanic(ast, global_ns):
     check_action = StaticTypeChecker(global_ns)
     walker2 = BaseASTWalker(ast, check_action)
@@ -603,7 +617,7 @@ def check_static_semtanic(ast, global_ns):
     else:
         return True
 
-def run(data, input_file = sys.stdin, output_file = sys.stdout):
+def old_run(data, input_file = sys.stdin, output_file = sys.stdout):
     set_io(input_file, output_file)
     ast = parse(data)
     parser = MoreParser(ast)
@@ -613,14 +627,15 @@ def run(data, input_file = sys.stdin, output_file = sys.stdout):
     inter.run()
     #print inter.global_ns.ns
 
-def run2(data, input_file = sys.stdin, output_file = sys.stdout):
+def run(data, input_file = sys.stdin, output_file = sys.stdout):
     set_io(input_file, output_file)
     #try:
     ast = parse(data)
     do_op_annotate(ast)
     global_ns = do_namespace_parse(ast)
     if global_ns:
-        if check_static_semtanic(ast, global_ns):
+        #if check_static_semtanic(ast, global_ns):
+            #pass
             inter = Interpreter(ast, global_ns)
             inter.run()
     #except error.LangError,e:
@@ -628,4 +643,4 @@ def run2(data, input_file = sys.stdin, output_file = sys.stdout):
 
 if __name__ == '__main__':
     test = open('../../test/ooc/static_sem_test.ooc').read()
-    run2(test)
+    run(test)

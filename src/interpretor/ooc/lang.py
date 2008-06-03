@@ -16,6 +16,7 @@ null 表示空引用。
 from interpretor.ooc import error
 
 
+
 #class Singleton(type):
 #    def __call__(cls, *args):
 #        if not hasattr(cls, 'instance'):
@@ -49,19 +50,22 @@ def require_same_or_null(func):
 
 def require_same_base_or_null(func):
     '''
-    是否相容？
+    是否相容？ .. 逻辑很复杂了。。。
 
     '''
-    def wrapped(self,lhs,rhs):
+    def wrapped(self, lhs, rhs):
         base = rhs.org_type
         if base == nullType:
-            return func(self,lhs,rhs)
+            return func(self, lhs, rhs)
+        if lhs.type == rhs.type or lhs.org_type == rhs.type:
+            return func(self, lhs, rhs)
         while(base):
             if base == lhs.org_type:
                 break
             else:
                 base = base.base
-        else:#break out so mathces
+        else:
+            #print "tttt", lhs.org_type , rhs.type
             raise error.TypeError(lhs.org_type,rhs.org_type)
         return func(self,lhs,rhs)
     return wrapped
@@ -75,7 +79,7 @@ def is_type_castable(obj,type):
         else:
             base = base.base
     else:
-        return False 
+        return False
     return True
 
 
@@ -130,7 +134,7 @@ class Type(object):
         3.任何类型向void 转换
         转换后的值有如下特征：
         obj.org_type  = type
-        obj.type = type 
+        #obj.type = type
         '''
         if obj.type == type:
             return obj
@@ -139,7 +143,7 @@ class Type(object):
         else:
             if is_type_castable(obj,type):
                 obj.org_type = type
-                obj.type = type
+                #obj.type = type
                 return obj
             else:
                 raise error.TCastError(obj,type)
@@ -360,12 +364,12 @@ class RootClass(Type):
         self.name = "Object"
         self.base = None
 
-    def is_base_of(self, base):
-        while(base):
-            if base == self:
+    def is_base_of(self, arg):
+        while(arg):
+            if arg == self:
                 break
             else:
-                base = base.base
+                arg = arg.base
         else:
             return False
         return True
@@ -437,8 +441,8 @@ class String(RootClass):
     '''字符串类型'''
     def __init__(self):
         self.name = "String"
-        self.base = rootClass 
-    
+        self.base = rootClass
+
     def to_str(self, obj):
         return obj.value
 
@@ -483,7 +487,11 @@ class Class(RootClass):
             try:
                 t = self.alloc_one()
                 ret = getattr(self, "op_" + op_name)(t, arg)
-                return ret.type
+                #It is a member function
+                if not isinstance(ret, Object):
+                    return ret
+                else:
+                    return ret.type
             except error.MemberError:
                 return None
         elif op_name in ("member_cls"):
@@ -504,6 +512,12 @@ class Class(RootClass):
         elif decorate == "const":
             self.cls_var[name] = value
 
+    def is_var(self, member):
+        pass
+
+    def is_func(self, member):
+        pass
+
     def add_func(self,name,value,decorate):
         self.members[name] = (value,decorate)
         self.by_type['func'].append(name)
@@ -517,7 +531,7 @@ class Class(RootClass):
         except error.MemberError:
             return self.global_ns.get(rhs)
 
-    def op_member(self,lhs,rhs):
+    def op_member(self, lhs, rhs):
         '''
         ins.var 这种类型的引用.
         可以获得当前类的私有，公有和基类的公有成员
@@ -532,11 +546,12 @@ class Class(RootClass):
         else:
             #类变量/函数
             ret = self.get_cls_member(rhs)
-            if rhs in self.by_type['func']:
-                ret = (ret,lhs)
+            if not isinstance(ret, Object):
+                ret = ret.bind(lhs)
             return ret
 
-    def op_member_no_private(self,lhs,rhs):
+
+    def op_member_no_private(self, lhs, rhs):
         '''
         ins.var 这种类型的引用
         这种方法只可以获得类或其基类的public 成员
@@ -552,10 +567,9 @@ class Class(RootClass):
         else:
             #类变量/函数
             ret = self.get_cls_member(rhs, True)
-            if rhs in self.by_type['func']:
-                ret = (ret,lhs)
+            if not isinstance(ret, Object):
+                ret = ret.bind(lhs)
             return ret
-
 
     def insert_public(self,value):
         if self.base:
@@ -571,13 +585,12 @@ class Class(RootClass):
         if no_private and name in self.by_decorate['private']:
             #TODO 应该用一个更好的提示
             raise error.MemberError(self,name)
-
         if name in self.cls_var: #类变量，static 和 const 变量
             return self.cls_var[name]
         elif name in self.by_type["func"]: #方法
             return self.members[name][0]
         else:
-            return self.base.get_cls_member(name,True) #基类的私有成员总是不能访问的
+            return self.base.get_cls_member(name, True) #基类的私有成员总是不能访问的
 
     def op_get_cls(self,name):
         '''在static 方法中可以访问的名字空间
@@ -595,7 +608,7 @@ class Class(RootClass):
         if name in self.cls_var: #static 和const 变量
             return self.cls_var[name]
         elif name in self.by_type['func'] and name in self.by_decorate["static"]: #static 函数
-            return (self.members[name][0],None)
+            return self.members[name][0]
         else: #调用基类
             return self.base.op_member_cls(name)
 

@@ -36,7 +36,7 @@ class Main{
 		rander = new Rand.constructor(seed);
 		while( i < num)
 		(
-			print(i);
+			//print(i);
 			print(rander.rand());
 			println();
 			i++;
