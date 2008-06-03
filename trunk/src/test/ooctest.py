@@ -3,20 +3,11 @@
 
 '''Unit Test For interpretor.ooc package'''
 import unittest
+from test import BaseTestCase, build_test_suit
 
-import interpretor.ooc.interp
-
-
-class GoodSourceTest(unittest.TestCase):
-    pass
-
-
-class BadSourceTest(unittest.TestCase):
-    pass
-
-
-
-
+def filter(f):
+    #return True
+    return f.find("rand") != -1
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.TextTestRunner(verbosity = 2).run(build_test_suit('ooc', filter))

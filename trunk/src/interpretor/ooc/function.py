@@ -2,8 +2,8 @@
 #$Id$
 
 import copy,sys
-import interpretor.ooc.lang as lang
-import interpretor.ooc.error as error
+from interpretor.ooc import lang
+from interpretor.ooc import error
 
 def copy_ns(ns_dict):
     ret = copy.copy(ns_dict)
@@ -44,8 +44,8 @@ class Namespace:
         else:
             raise error.NameError(name)
 
-    def __getitem__(self, key):
-        return self.get(key)
+#    def __getitem__(self, key):
+#        return self.get(key)
 
     def set(self, name, value, decorate = None):
         "将名字加入到名字空间,检查重复定义"
@@ -75,6 +75,7 @@ class Function(Namespace):
         self.ret_type = ret_type
         self.decorate = decorate
         self.obj = None  #调用函数的对象。
+        self._bind = None
 
     def add_param(self,name,type):
         '增加一个参数'
@@ -93,6 +94,14 @@ class Function(Namespace):
         else:
             self.ns[name].op("assign",value)  #注意这里，使用op_assign来设置参数可保证语义正确
 
+    def bind(self, obj):
+        '''将方法绑定到一个对象上'''
+        self._bind = obj
+        #self.set('this', obj)
+        #print "binding .... " ,self.name, "to", obj
+        #print self.ns['this']
+        return self
+
     def get(self, name):
         '''取得name 对应的对象
          函数中访问一个名字，来源可能有：
@@ -104,11 +113,14 @@ class Function(Namespace):
             if self.decorate == "static":#如果调用的静态方法
                 #类静态变量，对全局名字空间的访问包含在这个调用中，下同。
                 return self.cls.op_get_cls(name)
-            else:
-                if name == "this":   #对于this 特殊处理
-                    return self.obj
+            else:#在非静态函数中，必然存在一个this对象
+                #assert 'this' in self.ns
+                #print self.cls,self.name,name
+                obj = self.ns['this']
                 #通过实例可以访问的变量。包括实例变量和类变量
-                return self.obj.op("get", name)
+                r =  obj.op("get", name)
+                return r
+
 
 
     def set(self, name, value):
@@ -119,10 +131,12 @@ class Function(Namespace):
             self.ns[name] = value
 
 
-    def call(self, obj, args, inter, line_no = None):
+    def call(self, args, inter, line_no = None):
         '在obj 上调用本函数，参数为args, 解释器对象是inter'
-
-        #print "calling func %s in obj %s with args %s" %(self.name,obj,args)
+        #assert self.decorate == 'static' or 'this' in self.ns
+        #print self.decorate == 'static'
+        #print 'this' in self.ns
+        #print "calling func %s with args %s, obj %s" %(self.name,args, self._bind)
         #将当前函数压入调用栈
         inter.call_stack.append((self, line_no))
 
@@ -130,13 +144,14 @@ class Function(Namespace):
         ns_now = self.ns
         #这里的copy_ns 是一个半深半浅的复制
         self.ns = copy_ns(self.ns_org)
-
-        old_obj = self.obj
-        self.obj = obj
+        if self._bind:
+            #print self._bind.org_type,self._bind.type,self.cls
+            #self._bind.org_type = self.cls
+            self.set('this', self._bind)
+        self._bind = None
 
         old_current = inter.current_ns
         inter.current_ns = self
-
 
         for i in range(len(self.params)):
             self.set_param(self.params[i], args[i])
@@ -146,11 +161,10 @@ class Function(Namespace):
         #恢复现场
         self.ns = ns_now
         inter.current_ns = old_current
-        self.obj = old_obj
 
         #调用栈弹出当前函数
         inter.call_stack.pop()
-
+        #print "exit func %s " %(self.name)
         #转换成返回类型
         return ret.op("tcast", self.ret_type)
 
@@ -167,7 +181,7 @@ class AbstractFunction(Function):
         self.ret_type = ret_type
         self.decorate = decorate
 
-    def call(self,obj,args,inter):
+    def call(self, obj, args, inter, line_no = None):
         '试图调用abstract 函数时，引发一个异常'
         raise error.UnimplementedMethodError(self.name , self.cls.name)
 
@@ -177,7 +191,7 @@ class PrintFunc(Function):
     def __init__(self):
         self.name = "print"
 
-    def call(self,obj,args,inter,line_no):
+    def call(self,args,inter,line_no):
         for x in args:
             print >>io['output'], x.to_str(),
         return lang.Object(lang.void)
@@ -189,7 +203,7 @@ class PrintlnFunc(Function):
     def __init__(self):
         self.name = "println"
 
-    def call(self,obj,args,inter,line_no):
+    def call(self,args,inter,line_no):
         for x in args:
             print >>io['output'], x.to_str(),
         print >>io['output']
@@ -202,7 +216,7 @@ class ReadFunc(Function):
     def __init__(self):
         self.name = "read"
         self.input = input
-    def call(self,obj,args,inter,line_no):
+    def call(self,args,inter,line_no):
         if io["input_buff"]:
             inp = io["input_buff"]
             io["input_buff"] = ""
@@ -229,7 +243,7 @@ class EofFunc(Function):
     def __init__(self):
         self.name = "eof"
         self.input = input
-    def call(self,obj,args,inter,line_no):
+    def call(self,args,inter,line_no):
         if not io["input_buff"] and not io['is_eof']:
             line = io['input'].readline()
             if line == "":
@@ -245,10 +259,10 @@ def get_built_in_ns():
         'int': (lang.intType,"builtin"),
         'void': (lang.void,"builtin"),
         'null': (lang.null,"builtin"),
-        'print': ((PrintFunc(),None),"builtin"),
-        'println': ((PrintlnFunc(),None),"builtin"),
-        'read': ((ReadFunc(),None),"builtin"),
-        'eof': ((EofFunc(),None),"builtin"),
+        'print': (PrintFunc(),"builtin"),
+        'println': (PrintlnFunc(),"builtin"),
+        'read': (ReadFunc(),"builtin"),
+        'eof': (EofFunc(),"builtin"),
         'Object': (lang.rootClass,"builtin"),
         'String': (lang.string,"builtin")
     }

@@ -1,6 +1,6 @@
 #coding=utf8
 #$Id$
-lang = {
+lang_info = {
     'name' : 'L1',
     'path' : 'smallc',
     'suffix' : 'smc',
