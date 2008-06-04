@@ -130,7 +130,7 @@ class Function(Namespace):
                 #print self.cls,self.name,name
                 if 'this' in self.ns:
                     obj = self.ns['this']
-                elif self._bind:
+                elif self._bind is not None:
                     obj = self._bind
                 else:
                     raise StandardError()
@@ -165,7 +165,7 @@ class Function(Namespace):
         ns_now = self.ns
         #这里的copy_ns 是一个半深半浅的复制
         self.ns = copy_ns(self.ns_org)
-        if self._bind:
+        if self._bind is not None:
             #print "self set this" , self._bind, self.name
             #self._bind.org_type = self.cls
             self.set('this', self._bind)

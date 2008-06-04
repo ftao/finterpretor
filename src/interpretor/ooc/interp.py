@@ -390,6 +390,7 @@ class StaticTypeChecker(BaseAnnotateAction):
         #raise
         self.errors.append(error.Error(self.current_token.lineno, str(e)))
         #print >>sys.stderr, error.Error(self.current_token.lineno, str(e))
+        #sys.exit(-1)
 
     def _do_type_trans(self, node, op, *operands):
         node.set_attr(self.annotate_attr_name, self._check_type(op, *operands))
@@ -402,7 +403,7 @@ class StaticTypeChecker(BaseAnnotateAction):
             arg = None
         is_type_match = lang.do_type_trans(main_type, op, arg)
         if not is_type_match:
-            if op =='member':
+            if op in ('member', 'member_no_private'):
                 self.add_error(error.MemberError(operands[0], operands[1]))
             else:
                 self.add_error(error.TypeCheckError(op))
@@ -473,7 +474,7 @@ class StaticTypeChecker(BaseAnnotateAction):
                 getattr(self, "_on_postexp_" + postfix.type)(node)
         else:
             self._copy_from_first_child(node)
-        node.set_attr('id_type', node.child(0).get_attr('id_type'))
+            node.set_attr('id_type', node.child(0).get_attr('id_type'))
 
     ## 这些辅助函数， 在AST不存在对应类型的节点
     def _on_postexp_apara(self, node):
@@ -493,12 +494,14 @@ class StaticTypeChecker(BaseAnnotateAction):
                 for i in range(len(func.params_type)):
                     self._check_type('argument_pass', func.params_type[i], args[i].get_attr('type'))
                 node.set_attr('type', func.ret_type)
+                node.set_attr('id_type', 'obj')
 
     def _on_postexp_index(self, node):
         '''数组下标操作'''
         postexp = node.child(0)
         postfix = node.child(1).child(0)
         self._do_type_trans(node, 'index', postexp.get_attr('type'), postfix.child(1).get_attr('type'))
+        node.set_attr('id_type', 'obj')
 
     def _on_postexp_aselect(self, node):
         '''类成员成员获取'''
@@ -520,8 +523,12 @@ class StaticTypeChecker(BaseAnnotateAction):
             op_name = "member_cls"
 
         if op_name:
-           self._do_type_trans(node, op_name, postexp.get_attr('type'), member)
-
+            self._do_type_trans(node, op_name, postexp.get_attr('type'), member)
+            v = node.get_attr('type')
+            if isinstance(v, Function):
+                node.set_attr('id_type', 'func')
+            else:
+                node.set_attr('id_type', 'obj')
         else:
             self.add_error(error.MemberError(postexp, member))
 
@@ -529,6 +536,7 @@ class StaticTypeChecker(BaseAnnotateAction):
         postexp = node.child(0)
         postfix = node.child(1).child(0)
         self._do_type_trans(node, 'tcast', postexp.get_attr('type'),  postfix.child(1).get_attr('type'))
+        node.set_attr('id_type', 'obj')
 
     def on_entity(self, node):
         node.set_attr('type', node.child(0).get_attr('type'))
