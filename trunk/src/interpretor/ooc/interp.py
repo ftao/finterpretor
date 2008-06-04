@@ -113,16 +113,16 @@ class MoreParser:
         ns.add_param(name,type)
 
     def on_type(self,node):
-        base = self.on_token(node.child(0))
-        base_type = self.current_ns.get(base)
-        if not base_type:
-            pass # raise Error
+        base = self.on_token(node.child("id"))
+        try:
+            base_type = self.current_ns.get(base)
+        except error.StaticSemanticError, e:
+            self.add_error(e)
+            return None
+        if node.dim > 0:
+            return lang.Array(base_type, node.dim)
         else:
-            if len(node) > 1:
-                dim = (len(node) - 1)/2
-                return lang.Array(base_type, dim)
-            else:
-                return base_type
+            return base_type
 
     def on_condef(self,node,cls):
         #print node
@@ -324,11 +324,10 @@ class Interpreter:
 
 
     def on_type(self,node):
-        base = self.on_token(node.child(0))
+        base = self.on_token(node.child("id"))
         base_type = self.current_ns.get(base)
-        if len(node) > 1:
-            dim = (len(node) - 1)/2
-            return lang.Array(base_type, dim)
+        if node.dim > 0:
+            return lang.Array(base_type, node.dim)
         else:
             return base_type
 
@@ -390,7 +389,7 @@ class StaticTypeChecker(BaseAnnotateAction):
         #print "add error " , e
         #raise
         self.errors.append(error.Error(self.current_token.lineno, str(e)))
-
+        #print >>sys.stderr, error.Error(self.current_token.lineno, str(e))
 
     def _do_type_trans(self, node, op, *operands):
         node.set_attr(self.annotate_attr_name, self._check_type(op, *operands))
@@ -438,6 +437,7 @@ class StaticTypeChecker(BaseAnnotateAction):
         #print self.current_ns
 
     def on_funbody(self, node):
+        self.current_ns.unbind()
         self.current_ns = self.global_ns
 
 
@@ -549,16 +549,18 @@ class StaticTypeChecker(BaseAnnotateAction):
         node.set_attr('id_type', 'obj')
 
     def on_type(self, node):
-
-        if node.query('['):
-            node.set_attr('type', lang.Array(node.child(0).get_attr('type')))
-            node.set_attr('id_type', 'class')
+        base = node.child(0).value
+        try:
+            base_type = self.current_ns.get(base)
+        except error.StaticSemanticError, e:
+            self.add_error(e)
+            return None
+        if node.dim > 0:
+            node.set_attr('type', lang.Array(base_type, node.dim))
         else:
-            try:
-                node.set_attr('type', self.current_ns.get(node.child(0).value)) #type : id
-                node.set_attr('id_type', 'class')
-            except error.NameError, e :
-                self.add_error(e)
+            node.set_attr('type', base_type)
+        node.set_attr('id_type', 'class')
+
 
     def _on_token(self, node):
         if node.type == "num" or node.type == '?':
@@ -569,9 +571,9 @@ class StaticTypeChecker(BaseAnnotateAction):
                 #print "is in funbody" , node.ancestor("funbody")
                 #print "is in aselect" , node.ancestor("aselect")
                 #在函数体里面，并且不是 a.b 这个语法的情况下
-                if node.ancestor("funbody") is None or node.ancestor("aselect") is None:
+                if self.current_ns == self.global_ns or node.parent.type == "aselect":
+                    #print "sss",node, node.lineno
                     return
-
                 v = self.current_ns.get(node.value)
                 #print "get " , node.value , "from ns ",self.current_ns
                 if isinstance(v, lang.Object):
@@ -580,12 +582,13 @@ class StaticTypeChecker(BaseAnnotateAction):
                 elif isinstance(v, Function):
                     node.set_attr('type', v)
                     node.set_attr('id_type', 'func')
-                elif isinstance(v, lang.Type):
-                    node.set_attr('type', v)
-                    node.set_attr('id_type', 'class')
-
+#                elif isinstance(v, lang.Type):
+#                    node.set_attr('type', v)
+#                    node.set_attr('id_type', 'class')
             except error.NameError, e :
                 self.add_error(e)
+        #if node.get_attr('type') is None:
+        #    print "sssssss", node, node.lineno
         self.current_token = node
 
 
@@ -615,16 +618,21 @@ def do_namespace_parse(ast):
 #===============================================================================
 
 def check_static_semtanic(ast, global_ns):
-    check_action = StaticTypeChecker(global_ns)
-    walker2 = BaseASTWalker(ast, check_action)
-    walker2.run()
-    if len(check_action.errors) > 0:
-        print >>sys.stderr, "found error ", len(check_action.errors)
-        for e in check_action.errors:
-            print >>sys.stderr, e
-        return False
-    else:
-        return True
+    #try:
+        check_action = StaticTypeChecker(global_ns)
+        walker2 = BaseASTWalker(ast, check_action)
+        walker2.run()
+        if len(check_action.errors) > 0:
+            print >>sys.stderr, "found error ", len(check_action.errors)
+            for e in check_action.errors:
+                print >>sys.stderr, e
+            return False
+        else:
+            return True
+    #except StandardError,e:
+        #print >>sys.stderr, "Interpretor inner error (when do static check)"
+        #print walker2.current_token
+        #return False
 
 def old_run(data, input_file = sys.stdin, output_file = sys.stdout):
     set_io(input_file, output_file)
@@ -634,21 +642,23 @@ def old_run(data, input_file = sys.stdin, output_file = sys.stdout):
     #print parser.global_ns.ns
     inter = Interpreter(ast,parser.global_ns)
     inter.run()
+
     #print inter.global_ns.ns
 
 def run(data, input_file = sys.stdin, output_file = sys.stdout):
-    set_io(input_file, output_file)
     #try:
-    ast = parse(data)
-    do_op_annotate(ast)
-    global_ns = do_namespace_parse(ast)
-    if global_ns:
-        #if #check_static_semtanic(ast, global_ns):
-            #pass
-            inter = Interpreter(ast, global_ns)
-            inter.run()
-    #except error.LangError,e:
-    #    print >>sys.stderr,e
+        set_io(input_file, output_file)
+        ast = parse(data)
+        do_op_annotate(ast)
+        global_ns = do_namespace_parse(ast)
+        if global_ns:
+            if check_static_semtanic(ast, global_ns):
+                pass
+                inter = Interpreter(ast, global_ns)
+                inter.run()
+    #except StandardError,e:
+    #    print >>sys.stderr, "Interpretor inner error "
+
 
 if __name__ == '__main__':
     test = open('../../test/ooc/static_sem_test.ooc').read()

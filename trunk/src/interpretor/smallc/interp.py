@@ -245,11 +245,7 @@ class Interpreter:
 
     def on_type(self, node):
         base = self.on_node(node.child(0))
-        try:
-            base_type = self.current_ns.get(base)
-        except error.StaticSemanticError, e:
-            self.add_error(e)
-            return None
+        base_type = self.current_ns.get(base)
         if node.dim > 0:
             return lang.Array(base_type, node.dim)
         else:
