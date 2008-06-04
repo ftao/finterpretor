@@ -314,7 +314,7 @@ class Array(Type):
                 return self.base_type
             else:
                 return None
-        elif op_name == "member_no_private":
+        elif op_name in ("member_no_private", "member"):
             if arg == "length":
                 return intType
             else:

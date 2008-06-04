@@ -7,7 +7,7 @@ from test import BaseTestCase, build_test_suit
 
 def filter(f):
     #return True
-    return f.find("2") != -1
+    return f.find("sp") != -1
 
 if __name__ == "__main__":
     unittest.TextTestRunner(verbosity = 2).run(build_test_suit('ooc', filter))
