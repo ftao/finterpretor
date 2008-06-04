@@ -434,7 +434,7 @@ class StaticTypeChecker(BaseAnnotateAction):
         #print "enter func " , func_name
         self.current_ns = self.current_class.get_cls_member(func_name)
         if self.current_ns.decorate != "static":
-            self.current_ns.obj = self.current_class.alloc_one()
+            self.current_ns.bind(self.current_class.alloc_one())
         #print self.current_ns
 
     def on_funbody(self, node):
@@ -485,13 +485,14 @@ class StaticTypeChecker(BaseAnnotateAction):
         func = postexp.get_attr('type')
         #print "function call " , func
         args = postfix.query("explist>exp")
-        #print node, func
-        if len(func.params_type) != len(args):
-            self.add_error(error.ParamCountNotMatchError(len(func.params_type), len(args)))
-        else:
-            for i in range(len(func.params_type)):
-                self._check_type('argument_pass', func.params_type[i], args[i].get_attr('type'))
-            node.set_attr('type', func.ret_type)
+        #print node, func,node.child(0),node.child(0)._attr
+        if func.name not in ("eof", "read", "print", "println"):
+            if len(func.params_type) != len(args):
+                self.add_error(error.ParamCountNotMatchError(len(func.params_type), len(args)))
+            else:
+                for i in range(len(func.params_type)):
+                    self._check_type('argument_pass', func.params_type[i], args[i].get_attr('type'))
+                node.set_attr('type', func.ret_type)
 
     def _on_postexp_index(self, node):
         '''数组下标操作'''
@@ -517,8 +518,12 @@ class StaticTypeChecker(BaseAnnotateAction):
                 op_name = "member_no_private"
         elif postexp.get_attr('id_type') == 'class':
             op_name = "member_cls"
+
         if op_name:
            self._do_type_trans(node, op_name, postexp.get_attr('type'), member)
+
+        else:
+            self.add_error(error.MemberError(postexp, member))
 
     def _on_postexp_tcast(self, node):
         postexp = node.child(0)
@@ -541,6 +546,7 @@ class StaticTypeChecker(BaseAnnotateAction):
             node.set_attr('type', lang.Array(node.child("type").get_attr('type')))
         else:
             node.set_attr('type', node.child("type").get_attr('type'))
+        node.set_attr('id_type', 'obj')
 
     def on_type(self, node):
 
@@ -559,22 +565,25 @@ class StaticTypeChecker(BaseAnnotateAction):
             node.set_attr('type', lang.intType)
         elif node.type == "id":
             try:
-                print "get " , node.value , "from ns "
-                print "is in funbody" , node.ancestor("funbody")
-                print "is in aselect" , node.ancestor("aselect")
+                #print "get " , node.value , "from ns ", self.current_ns
+                #print "is in funbody" , node.ancestor("funbody")
+                #print "is in aselect" , node.ancestor("aselect")
                 #在函数体里面，并且不是 a.b 这个语法的情况下
-                if node.ancestor("funbody") is not None and not node.ancestor("aselect"):
-                    v = self.current_ns.get(node.value)
-                    print "get " , node.value , "from ns "
-                    if isinstance(v, lang.Object):
-                        node.set_attr('type', v.type)
-                        node.set_attr('id_type', 'obj')
-                    elif isinstance(v, Function):
-                        node.set_attr('type', v)
-                        node.set_attr('id_type', 'func')
-                    elif isinstance(v, lang.Type):
-                        node.set_attr('type', v)
-                        node.set_attr('id_type', 'class')
+                if node.ancestor("funbody") is None or node.ancestor("aselect") is None:
+                    return
+
+                v = self.current_ns.get(node.value)
+                #print "get " , node.value , "from ns ",self.current_ns
+                if isinstance(v, lang.Object):
+                    node.set_attr('type', v.type)
+                    node.set_attr('id_type', 'obj')
+                elif isinstance(v, Function):
+                    node.set_attr('type', v)
+                    node.set_attr('id_type', 'func')
+                elif isinstance(v, lang.Type):
+                    node.set_attr('type', v)
+                    node.set_attr('id_type', 'class')
+
             except error.NameError, e :
                 self.add_error(e)
         self.current_token = node
@@ -634,7 +643,7 @@ def run(data, input_file = sys.stdin, output_file = sys.stdout):
     do_op_annotate(ast)
     global_ns = do_namespace_parse(ast)
     if global_ns:
-        #if check_static_semtanic(ast, global_ns):
+        #if #check_static_semtanic(ast, global_ns):
             #pass
             inter = Interpreter(ast, global_ns)
             inter.run()

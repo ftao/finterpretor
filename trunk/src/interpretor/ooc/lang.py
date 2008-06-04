@@ -498,7 +498,10 @@ class Class(RootClass):
             #print "member_cls"
             try:
                 ret = getattr(self, "op_" + op_name)(arg)
-                return ret.type
+                if not isinstance(ret, Object):
+                    return ret
+                else:
+                    return ret.type
             except error.MemberError:
                 return None
         return super(Class, self).do_type_trans(op_name, arg)

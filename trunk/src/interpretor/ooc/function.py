@@ -85,6 +85,8 @@ class Function(Namespace):
 
     def freeze(self):
         '函数定义完成后,冻结这个函数'
+        #if self.decorate != 'static':
+        #    self.ns['this'] = self.cls.alloc_one()
         self.ns_org = copy_ns(self.ns)
 
     def set_param(self, name, value):
@@ -96,6 +98,7 @@ class Function(Namespace):
 
     def bind(self, obj):
         '''将方法绑定到一个对象上'''
+        #print "hi , binding this to %s on function %s" %(obj,self.name)
         self._bind = obj
         #self.set('this', obj)
         #print "binding .... " ,self.name, "to", obj
@@ -126,7 +129,7 @@ class Function(Namespace):
     def set(self, name, value):
         '增加名字。函数自己的名字空间中没有修饰符的区别'
         if name in self.ns:
-            raise MultipleError(name)
+            raise error.MultipleError(name)
         else:
             self.ns[name] = value
 
@@ -145,10 +148,10 @@ class Function(Namespace):
         #这里的copy_ns 是一个半深半浅的复制
         self.ns = copy_ns(self.ns_org)
         if self._bind:
-            #print self._bind.org_type,self._bind.type,self.cls
+            #print "self set this" , self._bind, self.name
             #self._bind.org_type = self.cls
             self.set('this', self._bind)
-        self._bind = None
+            self._bind = None
 
         old_current = inter.current_ns
         inter.current_ns = self
