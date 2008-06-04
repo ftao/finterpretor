@@ -121,8 +121,12 @@ class Node:
     def set_attr(self, name, value):
         self._attr[name] = value
 
+
     def get_attr(self, name):
-        return self._attr.get(name, None)
+        r =  self._attr.get(name, None)
+        #if r is None:
+            #print "get %s from Node %s  got None" %(name , self)
+        return r
 
 
     def get_postion(self):

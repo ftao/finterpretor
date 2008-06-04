@@ -169,12 +169,13 @@ def p_type(p):
             | id
     '''
     all_to_node(p)
-    #the final ast should like  id {'[' ']'}
+    #FIXME make a ast not a ast ???
     if len(p) > 2:
-        p[0] = Node("type",p[1].getChildren() + p[2:])
+        p[0] = p[1]
+        p[0].dim = p[0].dim + 1
     else:
-        p[0] = Node("type",p[1:])
-
+        p[0] = Node("type", p[1:])
+        p[0].dim = 0
 
 def p_idlist(p):
     '''idlist : id ',' idlist

@@ -5,6 +5,14 @@ import copy,sys
 from interpretor.ooc import lang
 from interpretor.ooc import error
 
+def report_none(func):
+    def w(self, t):
+        r = func(self, t)
+        if r  is None:
+            print "get %s from %s got None" , t, self.name
+        return r
+    return w
+
 def copy_ns(ns_dict):
     ret = copy.copy(ns_dict)
     for x in ret:
@@ -100,11 +108,12 @@ class Function(Namespace):
         '''将方法绑定到一个对象上'''
         #print "hi , binding this to %s on function %s" %(obj,self.name)
         self._bind = obj
-        #self.set('this', obj)
-        #print "binding .... " ,self.name, "to", obj
-        #print self.ns['this']
         return self
 
+    def unbind(self):
+        self._bind = None
+
+    #@report_none
     def get(self, name):
         '''取得name 对应的对象
          函数中访问一个名字，来源可能有：
@@ -119,9 +128,18 @@ class Function(Namespace):
             else:#在非静态函数中，必然存在一个this对象
                 #assert 'this' in self.ns
                 #print self.cls,self.name,name
-                obj = self.ns['this']
+                if 'this' in self.ns:
+                    obj = self.ns['this']
+                elif self._bind:
+                    obj = self._bind
+                else:
+                    raise StandardError()
+                if name == 'this':
+                    return obj
                 #通过实例可以访问的变量。包括实例变量和类变量
                 r =  obj.op("get", name)
+                if r is None:
+                    raise error.NameError(name)
                 return r
 
 

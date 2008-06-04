@@ -103,7 +103,7 @@ class Type(object):
             else:
                 return None
         elif op_name == 'tcast':
-            if self == arg or arg == voidType:
+            if self == arg or arg == void:
                 return arg
             else:
                 return None
@@ -160,7 +160,8 @@ class Type(object):
         return "<ooc Type %s>" %self.name
 
     def __eq__(self,rhs):
-        return self.name == rhs.name
+
+        return isinstance(rhs, Type) and self.name == rhs.name
 
     def __ne__(self,rhs):
         return not self.__eq__(rhs)
@@ -384,6 +385,12 @@ class RootClass(Type):
         elif op_name == "assign":
             if arg == nullType or self.is_base_of(arg):
                 return self
+            else:
+                return None
+        elif op_name == 'tcast':
+            #TCAST 有可能是向上转型
+            if self == arg or arg == void or self.is_base_of(arg) or arg.is_base_of(self):
+                return arg
             else:
                 return None
         elif op_name in("member", "op_member_no_private", "op_member_cls"):
