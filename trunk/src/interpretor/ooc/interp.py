@@ -8,6 +8,7 @@ ooc 语言解释器
 import operator
 import copy
 import sys
+import ply
 import interpretor.ooc.lang as lang
 from interpretor.ooc.parse import parse
 from interpretor.ooc.function import Function,AbstractFunction,get_built_in_ns,copy_ns,set_io
@@ -654,8 +655,10 @@ def old_run(data, input_file = sys.stdin, output_file = sys.stdout):
     #print inter.global_ns.ns
 
 def run(data, input_file = sys.stdin, output_file = sys.stdout):
-    #try:
+    #print >>sys.stderr, data
+    try:
         set_io(input_file, output_file)
+
         ast = parse(data)
         do_op_annotate(ast)
         global_ns = do_namespace_parse(ast)
@@ -664,8 +667,12 @@ def run(data, input_file = sys.stdin, output_file = sys.stdout):
                 pass
                 inter = Interpreter(ast, global_ns)
                 inter.run()
-    #except StandardError,e:
-    #    print >>sys.stderr, "Interpretor inner error "
+    except error.ParseError, e:
+        print >>sys.stderr,e
+    except ply.lex.LexError,e:
+        pass
+    except StandardError,e:
+        print >>sys.stderr, "Interpretor inner error "
 
 
 if __name__ == '__main__':

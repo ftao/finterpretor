@@ -4,7 +4,7 @@
 from ply import yacc
 from interpretor.smallc.lex import *
 from interpretor.ast import Node,all_to_node,to_graph
-import interpretor.smallc.error as error
+from interpretor.smallc import error
 
 
 start = 'prog'
@@ -430,5 +430,5 @@ if __name__ == '__main__':
     #test = open("../../test/smallc/parse.smc").read()
     n =  parse(test)
     #print n
-    to_graph(n.query("**>explist")[0], "test_smallc")
-    to_graph(n.query("**>explist")[1], "test_smallc2")
+    to_graph(n, "test_smallc")
+

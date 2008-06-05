@@ -5,7 +5,7 @@ import sys
 from ply import yacc
 from interpretor.ooc.lex import *
 from interpretor.ast import Node,all_to_node,to_graph
-
+from interpretor.ooc import error
 
 
 start = 'prog'
@@ -475,13 +475,13 @@ def p_alloc(p):
 
 
 def p_error(p):
-    print >>sys.stderr,"parser error at line %d token '%s'" %(p.lineno, p.value)
-    sys.exit()
+    print >>sys.stderr,p
+    raise error.ParseError(p)
 
 parser = yacc.yacc()
 
 def parse(data):
-    p = parser.parse(data,debug=1)
+    p = parser.parse(data,debug=0)
     return p
 
 if __name__ == '__main__':

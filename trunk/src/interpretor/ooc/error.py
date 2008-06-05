@@ -21,6 +21,18 @@ class LangError(Exception):
 
     __repr__ = __str__
 
+#语法分析错误
+class ParseError(Exception):
+
+    def __init__(self,token):
+        self.token = token
+
+    def __str__(self):
+        if self.token:
+            return "Parser error at line %d token '%s'"  %(self.token.lineno, self.token.value)
+        else:
+            return "Parse error , unknow location"
+
 #静态语义错误
 class StaticSemanticError(LangError):
     '''静态语义错误'''
