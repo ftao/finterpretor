@@ -35,6 +35,7 @@ class Shell:
 
 
     def on_command(self,command):
+        command = command.strip()
         if command.startswith("clear"):
             self.clear()
         elif command.startswith("read"):
@@ -79,6 +80,7 @@ class Shell:
             except EOFError,e:
                 break
         if self.code:
+            print '----------------------------------------------'
             self.engineer.run(self.code)
 
     def exit(self):
@@ -108,12 +110,14 @@ class Shell:
         self.engineer.run(self.code)
 
 if __name__ == '__main__':
-    if len(sys.argv) <= 1 or sys.argv[1] not in ["L1", "L2"]:
+    if len(sys.argv) <= 1 or sys.argv[1] not in ("L0","L1", "L2"):
         print "Plase choose a engieer"
         print "L0, L1 , L2 "
         print "eg: %s L1" %(sys.argv[0])
     else:
-        if sys.argv[1] == "L1":
+        if sys.argv[1] == "L0":
+            import  interpretor.kernelc.interp as engieer
+        elif sys.argv[1] == "L1":
             import  interpretor.smallc.interp as engieer
         elif sys.argv[1] == "L2":
             import  interpretor.ooc.interp as engieer

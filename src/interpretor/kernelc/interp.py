@@ -15,8 +15,8 @@ KernelC 语言解释器
 '''
 import operator
 import sys
-import interpretor.kernelc.lang as lang
-import interpretor.kernelc.error as error
+from interpretor.kernelc import lang
+from interpretor.kernelc import error
 from interpretor.kernelc.function import Namespace,Function,get_built_in_ns
 from interpretor.kernelc.parse import parse
 from interpretor.kernelc.lex import test
@@ -75,7 +75,7 @@ class Interpreter:
                         print >>sys.stderr, "call %s" % (x[0])
         except StandardError,e:
             print >>sys.stderr, "Interpretor inner error "
-            raise e
+            raise
 
     def on_node(self, node):
         if isinstance(node, Leaf):
