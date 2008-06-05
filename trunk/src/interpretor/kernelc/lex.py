@@ -105,22 +105,20 @@ func gcd {
     );
     *1
 }
-
 func main {
 
     while (!eof())
     (
         1=read();
         if (!eof())(
-            print(*1);
-            print(2=read());
+            2=read();
             print(gcd())
         )
     )
 }
 '''
 
-test = '''
+test1 = '''
 func gcd {
     1=*1+*2;
     *1=*2;
@@ -142,13 +140,14 @@ func main {
     while (!eof())(
         *1+1=read();
         if (!eof())(
-            print(*1+*2+1=*(*1+1));
-            print(*1+*2+2=read());
+            *1+*2+1=*(*1+1);
+            *1+*2+2=read();
             print(gcd());
             println()
         )
     )
 }
+
 '''
 
 lex.lex()

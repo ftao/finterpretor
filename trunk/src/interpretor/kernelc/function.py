@@ -4,7 +4,8 @@
 '''Kernel C 函数
 '''
 import sys
-import interpretor.kernelc.lang as lang
+from interpretor.kernelc import lang
+from interpretor.kernelc import error
 
 class Namespace(dict):
     def __getitem__(self, key):
@@ -55,6 +56,7 @@ class PrintlnFunc(Function):
 
     def call(self,inter, line_no = None):
         print >>io['output']
+        io['output'].flush()
 
 
 class ReadFunc(Function):
