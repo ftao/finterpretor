@@ -76,7 +76,7 @@ class Shell:
         self.clear()
         while(True):
             try:
-                self.code += raw_input()
+                self.code += raw_input() + '\n'
             except EOFError,e:
                 break
         if self.code:

@@ -135,7 +135,7 @@ test = '''
  func void main(){ var int i, j end
    while (!eof())( i=read();
      if (!eof())( j=read();
-       println(i, j, gcd(i, j)))) }
+       print(gcd(i, j)))) }
 '''
 test3= '''
   var int[] a; int n end
@@ -160,7 +160,7 @@ test3= '''
 
 '''
 
-test = '''
+test11 = '''
 class Link { Node prob; Link next }
 class Node { int level; int[] board }
 const n=8;
@@ -232,7 +232,7 @@ func void main(){
 }
 '''
 
-test = '''
+test111 = '''
 class Link { Node prob; Link next }
 class Node { int level; int[] board }
 func int bin_search(int[] ar, int start, int en, int target){
